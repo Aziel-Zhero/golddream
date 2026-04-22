@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
 import { collection, query, limit, doc } from 'firebase/firestore';
-import { updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
@@ -42,7 +41,7 @@ export default function AdminDashboard() {
 
   // Configurações do site
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: config, isLoading: isConfigLoading } = useDoc(configRef);
+  const { data: config } = useDoc(configRef);
 
   const [siteSettings, setSiteSettings] = useState({
     telegramLink: '',
@@ -63,6 +62,7 @@ export default function AdminDashboard() {
   }, [config]);
 
   const handleSaveSettings = () => {
+    if (!configRef) return;
     setDocumentNonBlocking(configRef, siteSettings, { merge: true });
     toast({
       title: "Configurações Salvas!",
@@ -92,7 +92,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Lado Esquerdo: Produtos e Promos */}
         <div className="lg:col-span-2 space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card>
@@ -142,7 +141,7 @@ export default function AdminDashboard() {
                 <Globe className="w-5 h-5 text-primary" />
                 <CardTitle>Configurações Globais do Site</CardTitle>
               </div>
-              <CardDescription>Edite links e informações de rodapé/benefícios.</CardDescription>
+              <CardDescription>Edite links e informações de benefícios exibidas na Home.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,7 +158,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Informação de Frete</Label>
+                  <Label>Informação de Frete (Ex: Em pedidos acima de R$250)</Label>
                   <Input 
                     value={siteSettings.freteInfo} 
                     onChange={e => setSiteSettings({...siteSettings, freteInfo: e.target.value})}
@@ -167,7 +166,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Informação de Pagamento</Label>
+                  <Label>Informação de Pagamento (Ex: 100% criptografado)</Label>
                   <Input 
                     value={siteSettings.pagamentoInfo} 
                     onChange={e => setSiteSettings({...siteSettings, pagamentoInfo: e.target.value})}
@@ -175,7 +174,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Informação de Entrega</Label>
+                  <Label>Informação de Entrega (Ex: Todo o Brasil em 3-5 dias)</Label>
                   <Input 
                     value={siteSettings.entregaInfo} 
                     onChange={e => setSiteSettings({...siteSettings, entregaInfo: e.target.value})}
@@ -190,7 +189,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Lado Direito: Resumo */}
         <div className="space-y-8">
           <Card className="bg-primary text-white">
             <CardHeader>
@@ -198,8 +196,8 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="text-sm space-y-4 opacity-90">
               <p>Mantenha as fotos dos produtos atualizadas para aumentar a conversão.</p>
-              <p>O link do Telegram é exibido no botão azul no rodapé de todas as páginas.</p>
-              <p>Durante a Black Friday, ative o selo específico nas configurações da campanha.</p>
+              <p>O link do Telegram é exibido no botão azul no rodapé.</p>
+              <p>Os textos de benefícios editados aparecem na seção central da Home.</p>
             </CardContent>
           </Card>
 
