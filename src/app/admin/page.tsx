@@ -10,10 +10,7 @@ import {
   Package, 
   ArrowRight,
   PlusCircle,
-  Send,
   Save,
-  Globe,
-  ExternalLink,
   MapPin,
   Ticket,
   Truck,
@@ -21,7 +18,8 @@ import {
   ShieldCheck,
   Star,
   Heart,
-  LayoutDashboard
+  LayoutDashboard,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, limit, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, limit, doc, getDocs } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -72,16 +70,18 @@ export default function AdminDashboard() {
   const handleSaveSettings = () => {
     if (!configRef) return;
     setDocumentNonBlocking(configRef, siteSettings, { merge: true });
-    toast({ title: "Configurações Salvas!", description: "A Home foi atualizada com sucesso." });
+    toast({ title: "Configurações Salvas!", description: "A home Gold Dream foi atualizada." });
   };
 
   const handleAddFrete = () => {
+    if (!newFrete.cidade || !newFrete.bairro) return;
     addDocumentNonBlocking(collection(firestore, 'fretes'), newFrete);
     setNewFrete({ cidade: '', bairro: '', valor: 0 });
     toast({ title: "Frete Adicionado" });
   };
 
   const handleAddCupom = () => {
+    if (!newCupom.codigo) return;
     addDocumentNonBlocking(collection(firestore, 'cupons'), newCupom);
     setNewCupom({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
     toast({ title: "Cupom Criado" });
@@ -96,12 +96,12 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
         <div>
-          <h1 className="text-4xl font-headline font-bold">Gerenciamento VogueCraft</h1>
-          <p className="text-muted-foreground">Controle total da sua loja de moda.</p>
+          <h1 className="text-4xl font-headline font-bold">Admin Gold Dream</h1>
+          <p className="text-muted-foreground">Gestão completa da Multimarcas.</p>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" className="rounded-full">
-            <Link href="/admin/products"><Package className="w-4 h-4 mr-2" /> Produtos</Link>
+            <Link href="/"><ExternalLink className="w-4 h-4 mr-2" /> Ver Loja</Link>
           </Button>
           <Button asChild className="rounded-full">
             <Link href="/admin/products/new"><PlusCircle className="w-4 h-4 mr-2" /> Novo Produto</Link>
@@ -110,24 +110,24 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="home" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl bg-muted p-1">
-          <TabsTrigger value="home">Home & Topo</TabsTrigger>
-          <TabsTrigger value="catalog">Catálogo</TabsTrigger>
-          <TabsTrigger value="frete">Frete & Logística</TabsTrigger>
-          <TabsTrigger value="coupons">Cupons</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 max-w-3xl bg-muted p-1 rounded-xl">
+          <TabsTrigger value="home" className="rounded-lg">Visual Home</TabsTrigger>
+          <TabsTrigger value="catalog" className="rounded-lg">Produtos</TabsTrigger>
+          <TabsTrigger value="frete" className="rounded-lg">Logística/Fretes</TabsTrigger>
+          <TabsTrigger value="coupons" className="rounded-lg">Cupons</TabsTrigger>
         </TabsList>
 
         <TabsContent value="home" className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card>
-              <CardHeader><CardTitle>Seção Hero (Topo)</CardTitle><CardDescription>Imagem recomendada: 1200x600px</CardDescription></CardHeader>
+            <Card className="border-2">
+              <CardHeader><CardTitle>Seção Hero (Banner)</CardTitle><CardDescription>Imagem recomendada: 1200x600px</CardDescription></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Texto da Badge</Label>
+                  <Label>Badge (Ex: Nova Coleção 2024)</Label>
                   <Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Título Principal</Label>
+                  <Label>Título (Ex: Gold Dream Multimarcas)</Label>
                   <Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
                 </div>
                 <div className="space-y-2">
@@ -135,23 +135,23 @@ export default function AdminDashboard() {
                   <Input value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label>URL da Imagem de Fundo</Label>
+                  <Label>Link da Imagem de Fundo</Label>
                   <Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Benefícios e Telegram</CardTitle></CardHeader>
+            <Card className="border-2">
+              <CardHeader><CardTitle>Cards de Benefícios</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Link do Grupo Telegram</Label>
-                  <Input value={siteSettings.telegramLink} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} />
+                  <Label>Link do Canal Telegram</Label>
+                  <Input value={siteSettings.telegramLink} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} placeholder="https://t.me/seugrupo" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4].map(num => (
                     <div key={num} className="p-4 border rounded-xl space-y-3 bg-muted/20">
-                      <Label className="text-xs font-bold uppercase">Card {num}</Label>
+                      <Label className="text-xs font-bold uppercase">Benefício {num}</Label>
                       <Input placeholder="Título" value={siteSettings[`b${num}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${num}_title`]: e.target.value})} />
                       <Input placeholder="Subtítulo" value={siteSettings[`b${num}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${num}_sub`]: e.target.value})} />
                       <select className="w-full p-2 text-sm border rounded-md" value={siteSettings[`b${num}_icon`]} onChange={e => setSiteSettings({...siteSettings, [`b${num}_icon`]: e.target.value})}>
@@ -160,69 +160,78 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleSaveSettings} className="w-full h-12">
-                  <Save className="w-4 h-4 mr-2" /> Salvar Visual da Home
+                <Button onClick={handleSaveSettings} className="w-full h-12 font-bold shadow-lg shadow-primary/20">
+                  <Save className="w-4 h-4 mr-2" /> Salvar Tudo
                 </Button>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
+        <TabsContent value="catalog">
+          <div className="space-y-6">
+             <Card><CardHeader><CardTitle>Catálogo Gold Dream</CardTitle></CardHeader>
+             <CardContent className="flex flex-wrap gap-4">
+               <Button asChild size="lg" className="rounded-xl"><Link href="/admin/products">Gerenciar Lista de Produtos</Link></Button>
+               <Button asChild variant="outline" size="lg" className="rounded-xl"><Link href="/admin/promotions">Promoções e Black Friday</Link></Button>
+             </CardContent></Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="frete" className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Configurar Tabela de Fretes</CardTitle></CardHeader>
+          <Card className="border-2">
+            <CardHeader><CardTitle>Tabela de Fretes por Bairro</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 items-end bg-muted/30 p-4 rounded-xl">
                 <div className="space-y-2"><Label>Cidade</Label><Input value={newFrete.cidade} onChange={e => setNewFrete({...newFrete, cidade: e.target.value})} /></div>
                 <div className="space-y-2"><Label>Bairro</Label><Input value={newFrete.bairro} onChange={e => setNewFrete({...newFrete, bairro: e.target.value})} /></div>
                 <div className="space-y-2"><Label>Valor (R$)</Label><Input type="number" value={newFrete.valor} onChange={e => setNewFrete({...newFrete, valor: parseFloat(e.target.value)})} /></div>
-                <Button onClick={handleAddFrete}><PlusCircle className="w-4 h-4 mr-2" /> Adicionar</Button>
+                <Button onClick={handleAddFrete} className="rounded-xl"><PlusCircle className="w-4 h-4 mr-2" /> Adicionar</Button>
               </div>
-              <Table>
-                <TableHeader><TableRow><TableHead>Cidade</TableHead><TableHead>Bairro</TableHead><TableHead>Valor</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {fretes?.map(f => (
-                    <TableRow key={f.id}><TableCell>{f.cidade}</TableCell><TableCell>{f.bairro}</TableCell><TableCell>R$ {f.valor.toFixed(2)}</TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => handleDeleteItem('fretes', f.id)}>Remover</Button></TableCell></TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="border rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted"><TableRow><TableHead>Cidade</TableHead><TableHead>Bairro</TableHead><TableHead>Valor</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {fretes?.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-8">Nenhum frete cadastrado.</TableCell></TableRow>
+                    ) : fretes?.map(f => (
+                      <TableRow key={f.id}><TableCell>{f.cidade}</TableCell><TableCell>{f.bairro}</TableCell><TableCell>R$ {f.valor.toFixed(2)}</TableCell>
+                      <TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => handleDeleteItem('fretes', f.id)} className="text-destructive">Remover</Button></TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="coupons" className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Gerenciar Cupons</CardTitle></CardHeader>
+          <Card className="border-2">
+            <CardHeader><CardTitle>Cupons de Desconto</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8 items-end">
-                <div className="space-y-2"><Label>Código</Label><Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value.toUpperCase()})} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8 items-end bg-muted/30 p-4 rounded-xl">
+                <div className="space-y-2"><Label>Código</Label><Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value.toUpperCase()})} placeholder="EX: GOLD20" /></div>
                 <div className="space-y-2"><Label>Desconto (%)</Label><Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseInt(e.target.value)})} /></div>
-                <div className="space-y-2 flex items-center gap-2"><input type="checkbox" checked={newCupom.expira} onChange={e => setNewCupom({...newCupom, expira: e.target.checked})} /><Label>Expira?</Label></div>
-                {newCupom.expira && <div className="space-y-2"><Label>Data</Label><Input type="date" value={newCupom.dataExpiracao} onChange={e => setNewCupom({...newCupom, dataExpiracao: e.target.value})} /></div>}
-                <Button onClick={handleAddCupom}><Ticket className="w-4 h-4 mr-2" /> Criar Cupom</Button>
+                <div className="space-y-2 flex flex-col h-10 justify-center"><div className="flex items-center gap-2"><input type="checkbox" checked={newCupom.expira} onChange={e => setNewCupom({...newCupom, expira: e.target.checked})} /><Label>Expira?</Label></div></div>
+                {newCupom.expira && <div className="space-y-2"><Label>Data de Expiração</Label><Input type="date" value={newCupom.dataExpiracao} onChange={e => setNewCupom({...newCupom, dataExpiracao: e.target.value})} /></div>}
+                <Button onClick={handleAddCupom} className="rounded-xl"><Ticket className="w-4 h-4 mr-2" /> Criar</Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {cupons?.map(c => (
-                  <Card key={c.id} className="border-2 border-primary/10">
+                  <Card key={c.id} className="border-2 border-primary/10 shadow-sm">
                     <CardContent className="p-6 flex justify-between items-center">
-                      <div><p className="font-bold text-lg">{c.codigo}</p><p className="text-sm text-primary">{c.desconto}% OFF</p>
-                      {c.expira && <p className="text-[10px] text-muted-foreground">Vence em: {c.dataExpiracao}</p>}</div>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteItem('cupons', c.id)}>Remover</Button>
+                      <div>
+                        <p className="font-bold text-lg">{c.codigo}</p>
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">{c.desconto}% OFF</Badge>
+                        {c.expira && <p className="text-[10px] text-muted-foreground mt-2 uppercase">Vence em: {new Date(c.dataExpiracao!).toLocaleDateString()}</p>}
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive">Remover</Button>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="catalog">
-           <Card><CardHeader><CardTitle>Ações de Catálogo</CardTitle></CardHeader>
-           <CardContent className="flex gap-4">
-             <Button asChild><Link href="/admin/products">Lista de Produtos</Link></Button>
-             <Button asChild variant="outline"><Link href="/admin/promotions">Promoções Black Friday</Link></Button>
-           </CardContent></Card>
         </TabsContent>
       </Tabs>
     </div>

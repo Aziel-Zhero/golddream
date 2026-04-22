@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
@@ -8,8 +9,8 @@ import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'VogueCraft | Moda Moderna Premium',
-  description: 'Eleve seu estilo com VogueCraft - O destino para roupas modernas e de alta qualidade.',
+  title: 'Gold Dream Multimarcas | Estilo e Exclusividade',
+  description: 'O melhor da moda premium. Gold Dream Multimarcas - Elegância e qualidade para você.',
 };
 
 export default function RootLayout({

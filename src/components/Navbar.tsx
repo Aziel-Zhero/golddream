@@ -1,8 +1,9 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -16,10 +17,18 @@ import {
   SheetTrigger,
   SheetClose
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const { totalItems, items, totalPrice, removeItem, updateQuantity } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
@@ -28,8 +37,8 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-headline text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-              VogueCraft
+            <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+              Gold Dream
             </span>
           </Link>
 
@@ -45,17 +54,35 @@ export function Navbar() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="text-foreground hover:text-primary"
+              className="text-foreground hover:text-primary hidden sm:flex"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <Search className="w-5 h-5" />
             </Button>
 
-            <Link href={user ? "/account" : "/auth/login"}>
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-primary">
-                <User className="w-5 h-5" />
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full overflow-hidden border">
+                    <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/account">Meus Dados</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary">
+                <Link href="/auth/login"><User className="w-5 h-5" /></Link>
               </Button>
-            </Link>
+            )}
 
             {/* Cart Drawer */}
             <Sheet>
@@ -148,9 +175,23 @@ export function Navbar() {
               </SheetContent>
             </Sheet>
 
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="w-6 h-6" />
-            </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="w-6 h-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 mt-8">
+                  <SheetClose asChild><Link href="/category/feminino" className="text-lg font-medium">Feminino</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/masculino" className="text-lg font-medium">Masculino</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/acessorios" className="text-lg font-medium">Acessórios</Link></SheetClose>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 
@@ -161,7 +202,7 @@ export function Navbar() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 className="pl-10 w-full rounded-full" 
-                placeholder="Buscar estilos, categorias, produtos..." 
+                placeholder="Buscar produtos Gold Dream..." 
                 autoFocus
               />
             </div>
