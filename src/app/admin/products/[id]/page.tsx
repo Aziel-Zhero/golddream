@@ -1,8 +1,7 @@
-
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,33 +13,48 @@ import {
   X, 
   Save, 
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase';
 
-export default function NewProductPage() {
+export default function EditProductPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { data: product, isLoading: isFetching } = useDoc(id ? doc(firestore, 'produtos', id) : null);
+
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     nome: '',
     descricao: '',
     preco: 0,
     estoque: 0,
     categoriaId: 'feminino',
-    imagens: [] as string[],
-    isFeatured: false,
-    tamanhosDisponiveis: ['P', 'M', 'G'],
-    coresDisponiveis: ['Preto', 'Branco']
+    imagens: [],
+    isFeatured: false
   });
-  
   const [imageUrl, setImageUrl] = useState('');
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        nome: product.nome,
+        descricao: product.descricao,
+        preco: product.preco,
+        estoque: product.estoque,
+        categoriaId: product.categoriaId || 'feminino',
+        imagens: product.imagens || [],
+        isFeatured: product.isFeatured || false
+      });
+    }
+  }, [product]);
 
   const handleAddImage = () => {
     if (imageUrl && formData.imagens.length < 5) {
@@ -50,38 +64,37 @@ export default function NewProductPage() {
   };
 
   const removeImage = (index: number) => {
-    setFormData({ ...formData, imagens: formData.imagens.filter((_, i) => i !== index) });
+    setFormData({ ...formData, imagens: formData.imagens.filter((_: any, i: number) => i !== index) });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    addDocumentNonBlocking(collection(firestore, 'produtos'), {
-      ...formData,
-      dataCriacao: new Date().toISOString()
-    });
+    updateDocumentNonBlocking(doc(firestore, 'produtos', id), formData);
     
     setTimeout(() => {
       setIsLoading(false);
       toast({
         title: "Sucesso!",
-        description: "O produto foi adicionado ao catálogo com sucesso.",
+        description: "O produto foi atualizado com sucesso.",
       });
       router.push('/admin/products');
     }, 1000);
   };
+
+  if (isFetching) return <div className="p-12 text-center">Carregando dados...</div>;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="mb-8">
         <Button asChild variant="ghost" className="mb-4">
           <Link href="/admin/products">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para Lista
           </Link>
         </Button>
-        <h1 className="text-4xl font-headline font-bold">Novo Produto</h1>
-        <p className="text-muted-foreground">Cadastre novos itens em seu catálogo de moda.</p>
+        <h1 className="text-4xl font-headline font-bold">Editar Produto</h1>
+        <p className="text-muted-foreground">Atualize os detalhes do item # {id}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -95,20 +108,20 @@ export default function NewProductPage() {
                 <Label htmlFor="name">Nome do Produto</Label>
                 <Input 
                   id="name" 
-                  value={formData.nome}
+                  value={formData.nome} 
                   onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                  placeholder="Ex: Camiseta Oversized" 
+                  placeholder="Ex: Camiseta Oversized Algodão" 
                   required 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
+                <Label htmlFor="description">Descrição Detalhada</Label>
                 <Textarea 
                   id="description" 
                   value={formData.descricao}
                   onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                  placeholder="Detalhes do material e caimento..." 
-                  className="min-h-[120px]" 
+                  placeholder="Descreva o material, caimento e detalhes..." 
+                  className="min-h-[150px]" 
                   required 
                 />
               </div>
@@ -121,16 +134,18 @@ export default function NewProductPage() {
                     step="0.01" 
                     value={formData.preco}
                     onChange={(e) => setFormData({...formData, preco: parseFloat(e.target.value)})}
+                    placeholder="0,00" 
                     required 
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Estoque Inicial</Label>
+                  <Label htmlFor="stock">Estoque</Label>
                   <Input 
                     id="stock" 
                     type="number" 
                     value={formData.estoque}
                     onChange={(e) => setFormData({...formData, estoque: parseInt(e.target.value)})}
+                    placeholder="0" 
                     required 
                   />
                 </div>
@@ -140,29 +155,29 @@ export default function NewProductPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Imagens</CardTitle>
-              <CardDescription>Adicione URLs de imagens (máx 5).</CardDescription>
+              <CardTitle>Imagens do Produto</CardTitle>
+              <CardDescription>Gerencie as fotos exibidas no catálogo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex gap-2">
                 <Input 
                   value={imageUrl} 
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://exemplo.com/foto.jpg" 
+                  placeholder="https://exemplo.com/imagem.jpg" 
                 />
                 <Button type="button" onClick={handleAddImage} variant="secondary">
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
 
-              <div className="grid grid-cols-5 gap-4">
-                {formData.imagens.map((url, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden">
-                    <img src={url} alt="Preview" className="w-full h-full object-cover" />
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
+                {formData.imagens.map((url: string, idx: number) => (
+                  <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
+                    <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -182,31 +197,36 @@ export default function NewProductPage() {
               <div className="space-y-2">
                 <Label>Categoria</Label>
                 <select 
-                  className="w-full p-2 border rounded-md bg-background"
                   value={formData.categoriaId}
                   onChange={(e) => setFormData({...formData, categoriaId: e.target.value})}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                 >
                   <option value="feminino">Feminino</option>
                   <option value="masculino">Masculino</option>
                   <option value="acessorios">Acessórios</option>
                 </select>
               </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <Label htmlFor="feat">Destaque?</Label>
-                <input 
-                  id="feat"
-                  type="checkbox" 
-                  checked={formData.isFeatured}
-                  onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                  className="h-5 w-5 accent-primary" 
-                />
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Star className={`w-4 h-4 ${formData.isFeatured ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} />
+                    <Label className="cursor-pointer" htmlFor="feat">Destaque?</Label>
+                  </div>
+                  <input 
+                    id="feat"
+                    type="checkbox" 
+                    checked={formData.isFeatured}
+                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
+                    className="h-5 w-5 accent-primary" 
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={isLoading} className="w-full h-14 text-lg font-bold">
-            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
-            Salvar Produto
+          <Button type="submit" disabled={isLoading} className="w-full h-14 rounded-xl shadow-xl shadow-primary/20 text-lg font-bold">
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
+            Salvar Alterações
           </Button>
         </div>
       </form>

@@ -1,39 +1,33 @@
-import { PRODUCTS, CATEGORIES } from '@/lib/placeholder-data';
-import { Product, Category } from '@/types';
+
+import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, deleteDoc, orderBy, Firestore } from 'firebase/firestore';
+import { Product } from '@/types';
+
+// Removida a inicialização de nível superior para evitar erros de servidor/cliente.
+// As funções agora aceitam a instância do firestore como argumento ou a obtêm internamente se garantido o lado do cliente.
 
 export const productService = {
-  async getFeaturedProducts(): Promise<Product[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return PRODUCTS.filter(p => p.isFeatured);
+  async getFeaturedProducts(db: Firestore): Promise<Product[]> {
+    const q = query(collection(db, 'produtos'), where('isFeatured', '==', true), orderBy('dataCriacao', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
   },
 
-  async getAllProducts(): Promise<Product[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return PRODUCTS;
+  async getAllProducts(db: Firestore): Promise<Product[]> {
+    const q = query(collection(db, 'produtos'), orderBy('dataCriacao', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
   },
 
-  async getProductById(id: string): Promise<Product | null> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return PRODUCTS.find(p => p.id === id) || null;
+  async getProductById(db: Firestore, id: string): Promise<Product | null> {
+    const docRef = doc(db, 'produtos', id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return null;
+    return { ...snapshot.data(), id: snapshot.id } as Product;
   },
 
-  async getProductsByCategory(slug: string): Promise<Product[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return PRODUCTS.filter(p => p.category.toLowerCase() === slug.toLowerCase());
-  },
-
-  async getCategories(): Promise<Category[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return CATEGORIES;
-  },
-
-  async searchProducts(query: string): Promise<Product[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const lowerQuery = query.toLowerCase();
-    return PRODUCTS.filter(p => 
-      p.name.toLowerCase().includes(lowerQuery) || 
-      p.description.toLowerCase().includes(lowerQuery)
-    );
+  async getProductsByCategory(db: Firestore, slug: string): Promise<Product[]> {
+    const q = query(collection(db, 'produtos'), where('categoriaId', '==', slug));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
   }
 };

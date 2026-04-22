@@ -1,13 +1,28 @@
+
+"use client";
+
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
-import { productService } from '@/services/productService';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { Badge } from '@/components/ui/badge';
 
-export default async function Home() {
-  const featuredProducts = await productService.getFeaturedProducts();
+export default function Home() {
+  const firestore = useFirestore();
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-fashion')?.imageUrl;
+
+  const featuredQuery = useMemoFirebase(() => {
+    return query(
+      collection(firestore, 'produtos'),
+      where('isFeatured', '==', true),
+      orderBy('dataCriacao', 'desc')
+    );
+  }, [firestore]);
+
+  const { data: featuredProducts, isLoading } = useCollection(featuredQuery);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -34,8 +49,10 @@ export default async function Home() {
               Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas. Elegância sem esforço para quem sabe o que quer.
             </p>
             <div className="flex gap-4 pt-4">
-              <Button size="lg" className="rounded-full px-8 h-12 text-base shadow-xl hover:scale-105 transition-transform">
-                Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
+              <Button size="lg" asChild className="rounded-full px-8 h-12 text-base shadow-xl hover:scale-105 transition-transform">
+                <Link href="/category/feminino">
+                  Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
               </Button>
               <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-base backdrop-blur-md bg-white/10 hover:bg-white/20">
                 Descobrir Mais
@@ -77,7 +94,11 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product) => (
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-xl" />
+              ))
+            ) : featuredProducts?.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
@@ -103,8 +124,4 @@ export default async function Home() {
       </section>
     </div>
   );
-}
-
-function Badge({ className, children, ...props }: any) {
-  return <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`} {...props}>{children}</div>
 }

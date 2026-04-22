@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Github, Instagram, Twitter, Facebook } from 'lucide-react';
+import { Instagram, Twitter, Facebook } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -9,7 +9,7 @@ export function Footer() {
           <div className="space-y-4">
             <span className="font-headline text-2xl font-bold text-primary">VogueCraft</span>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Redefining modern fashion with sustainable practices and high-quality craftsmanship. Your destination for contemporary style.
+              Redefinindo a moda moderna com práticas sustentáveis e artesanato de alta qualidade. Seu destino para o estilo contemporâneo.
             </p>
             <div className="flex space-x-4">
               <Link href="#" className="text-muted-foreground hover:text-primary"><Instagram size={20}/></Link>
@@ -19,46 +19,46 @@ export function Footer() {
           </div>
           
           <div>
-            <h4 className="font-headline font-bold mb-6">Collections</h4>
+            <h4 className="font-headline font-bold mb-6">Coleções</h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
-              <li><Link href="/category/women" className="hover:text-primary transition-colors">Women's Fashion</Link></li>
-              <li><Link href="/category/men" className="hover:text-primary transition-colors">Men's Apparel</Link></li>
-              <li><Link href="/category/accessories" className="hover:text-primary transition-colors">Accessories</Link></li>
-              <li><Link href="/new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
+              <li><Link href="/category/feminino" className="hover:text-primary transition-colors">Moda Feminina</Link></li>
+              <li><Link href="/category/masculino" className="hover:text-primary transition-colors">Moda Masculina</Link></li>
+              <li><Link href="/category/acessorios" className="hover:text-primary transition-colors">Acessórios</Link></li>
+              <li><Link href="/" className="hover:text-primary transition-colors">Novidades</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-headline font-bold mb-6">Support</h4>
+            <h4 className="font-headline font-bold mb-6">Suporte</h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-primary transition-colors">Shipping Policy</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Returns & Exchanges</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Size Guide</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">FAQs</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Política de Envio</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Trocas e Devoluções</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Guia de Tamanhos</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Perguntas Frequentes</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-headline font-bold mb-6">Newsletter</h4>
-            <p className="text-sm text-muted-foreground mb-4">Join our community for exclusive early access and style updates.</p>
+            <p className="text-sm text-muted-foreground mb-4">Junte-se à nossa comunidade para acesso antecipado exclusivo e atualizações de estilo.</p>
             <div className="flex gap-2">
               <input 
                 type="email" 
-                placeholder="Email address" 
+                placeholder="Seu e-mail" 
                 className="bg-muted border-none rounded-md px-4 py-2 text-sm w-full focus:ring-1 focus:ring-primary outline-none"
               />
               <button className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
-                Join
+                Assinar
               </button>
             </div>
           </div>
         </div>
         
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground gap-4">
-          <p>&copy; {new Date().getFullYear()} VogueCraft. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} VogueCraft. Todos os direitos reservados.</p>
           <div className="flex gap-8">
-            <Link href="#" className="hover:text-primary">Privacy Policy</Link>
-            <Link href="#" className="hover:text-primary">Terms of Service</Link>
+            <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
+            <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
             <Link href="#" className="hover:text-primary">Cookies</Link>
           </div>
         </div>

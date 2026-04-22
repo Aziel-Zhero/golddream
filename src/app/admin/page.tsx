@@ -11,13 +11,26 @@ import {
   Package, 
   ArrowRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  PlusCircle,
+  Megaphone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, limit, orderBy } from 'firebase/firestore';
 
 export default function AdminDashboard() {
+  const firestore = useFirestore();
+  
+  // Queries simplificadas para o dashboard
+  const productsQuery = useMemoFirebase(() => query(collection(firestore, 'produtos'), limit(5)), [firestore]);
+  const { data: recentProducts } = useCollection(productsQuery);
+  
+  const promosQuery = useMemoFirebase(() => query(collection(firestore, 'promocoes'), limit(2)), [firestore]);
+  const { data: activePromos } = useCollection(promosQuery);
+
   const stats = [
     { label: 'Vendas Totais', value: 'R$ 12.450,00', icon: BarChart3, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Novos Pedidos', value: '24', icon: ShoppingBag, color: 'text-green-600', bg: 'bg-green-50' },
@@ -30,15 +43,17 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
         <div>
           <h1 className="text-4xl font-headline font-bold">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie sua loja, produtos e campanhas em um só lugar.</p>
+          <p className="text-muted-foreground">Controle total da sua loja VogueCraft.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="rounded-full">
-            <Settings className="w-4 h-4 mr-2" /> Configurações
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href="/admin/products">
+              <Package className="w-4 h-4 mr-2" /> Ver Produtos
+            </Link>
           </Button>
-          <Button asChild className="rounded-full bg-accent hover:bg-accent/90">
+          <Button asChild className="rounded-full bg-primary hover:bg-primary/90">
             <Link href="/admin/products/new">
-              <Package className="w-4 h-4 mr-2" /> Novo Produto
+              <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Item
             </Link>
           </Button>
         </div>
@@ -64,42 +79,41 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Quick Actions & Marketing */}
         <div className="lg:col-span-2 space-y-8">
           <Card className="border-2 border-primary/10">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Tag className="w-5 h-5 text-primary" /> Campanhas e Promoções
+                    <Megaphone className="w-5 h-5 text-primary" /> Marketing e Campanhas
                   </CardTitle>
-                  <CardDescription>Ative ofertas especiais e Black Friday.</CardDescription>
+                  <CardDescription>Gerencie promoções e descontos ativos.</CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">2 Ativas</Badge>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  {activePromos?.length || 0} Ativas
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-xl border-2 border-dashed border-red-200 bg-red-50/30 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-black text-white rounded-lg flex items-center justify-center font-bold italic">BF</div>
-                  <div>
-                    <h4 className="font-bold">Campanha Black Friday</h4>
-                    <p className="text-sm text-muted-foreground">Status: Programada para 24/11</p>
+              {activePromos?.map(promo => (
+                <div key={promo.id} className={`p-4 rounded-xl border-2 ${promo.isBlackFriday ? 'border-black bg-black/5' : 'border-border'} flex items-center justify-between`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 ${promo.isBlackFriday ? 'bg-black text-white' : 'bg-primary/10 text-primary'} rounded-lg flex items-center justify-center font-bold`}>
+                      {promo.isBlackFriday ? 'BF' : <Tag className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{promo.nome}</h4>
+                      <p className="text-sm text-muted-foreground">Desconto: {promo.valorDesconto}%</p>
+                    </div>
                   </div>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/admin/promotions">Gerenciar</Link>
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-100">Configurar</Button>
-              </div>
-              <div className="p-4 rounded-xl border flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-accent/10 text-accent rounded-lg flex items-center justify-center"><TrendingUp className="w-6 h-6" /></div>
-                  <div>
-                    <h4 className="font-bold">Desconto Progressivo Verão</h4>
-                    <p className="text-sm text-muted-foreground">Status: Ativa no site</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm">Editar</Button>
-              </div>
-              <Button variant="link" className="w-full text-primary font-bold">Ver Todas as Campanhas <ArrowRight className="ml-2 w-4 h-4" /></Button>
+              ))}
+              <Button asChild variant="link" className="w-full text-primary font-bold">
+                <Link href="/admin/promotions">Ver Todas as Campanhas <ArrowRight className="ml-2 w-4 h-4" /></Link>
+              </Button>
             </CardContent>
           </Card>
 
@@ -109,43 +123,44 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors border-b last:border-0">
+                {recentProducts?.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors border-b last:border-0">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-muted rounded border overflow-hidden">
-                        <img src={`https://picsum.photos/seed/${i}/100/100`} alt="Product" className="object-cover w-full h-full" />
+                        <img src={product.imagens?.[0] || 'https://placehold.co/100'} alt={product.nome} className="object-cover w-full h-full" />
                       </div>
                       <div>
-                        <p className="font-medium">Camiseta Classic V{i}</p>
-                        <p className="text-xs text-muted-foreground">ID: #PROD-00{i}</p>
+                        <p className="font-medium text-sm">{product.nome}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase">{product.categoriaId}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <p className="font-bold">R$ 89,90</p>
-                      <Button variant="ghost" size="sm">Editar</Button>
+                      <p className="font-bold text-sm">R$ {product.preco?.toFixed(2)}</p>
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/admin/products/${product.id}`}>Editar</Link>
+                      </Button>
                     </div>
                   </div>
                 ))}
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/admin/products">Gerenciar Todo o Estoque</Link>
+                  <Link href="/admin/products">Ver Todo o Estoque</Link>
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar Alerts & Tasks */}
         <div className="space-y-8">
           <Card className="bg-primary text-white overflow-hidden relative">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             <CardHeader>
-              <CardTitle className="text-lg">Dica do Sistema</CardTitle>
+              <CardTitle className="text-lg">Inteligência de Vendas</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-white/80 leading-relaxed mb-4">
-                Sua loja teve um aumento de 15% nas visitas após a integração com a IA Stylist. Tente adicionar mais descrições detalhadas aos produtos para melhorar as recomendações.
+                Seus produtos em destaque estão gerando 40% mais cliques. Considere adicionar novos itens à categoria 'Acessórios' para a próxima semana.
               </p>
-              <Button variant="secondary" size="sm" className="w-full">Ler Relatório</Button>
+              <Button variant="secondary" size="sm" className="w-full">Analisar Tendências</Button>
             </CardContent>
           </Card>
 
@@ -163,10 +178,6 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between text-sm">
                 <span>Tênis Sport (42)</span>
                 <Badge variant="destructive" className="h-5">Esgotado</Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span>Boné Classic</span>
-                <Badge variant="outline" className="h-5 text-orange-600 bg-orange-50 border-orange-200">5 restando</Badge>
               </div>
             </CardContent>
           </Card>
