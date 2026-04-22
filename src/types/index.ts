@@ -23,8 +23,26 @@ export type User = {
     bairro: string;
     cidade: string;
     cep: string;
+    numero: string;
   };
   papel: 'cliente' | 'administrador';
+  dataCriacao: string;
+  avatarUrl?: string;
+};
+
+export type Pedido = {
+  id: string;
+  codigo: string;
+  usuarioId: string;
+  clienteNome: string;
+  clienteTelefone: string;
+  clienteEndereco: string;
+  itens: CartItem[];
+  subtotal: number;
+  frete: number;
+  desconto: number;
+  total: number;
+  status: 'pendente' | 'enviado' | 'cancelado';
   dataCriacao: string;
 };
 

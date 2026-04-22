@@ -19,7 +19,11 @@ import {
   Star,
   Heart,
   LayoutDashboard,
-  ExternalLink
+  ExternalLink,
+  ClipboardList,
+  CheckCircle2,
+  Clock,
+  User as UserIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, limit, doc, getDocs } from 'firebase/firestore';
+import { collection, query, limit, doc, orderBy } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,6 +51,9 @@ export default function AdminDashboard() {
 
   const cuponsQuery = useMemoFirebase(() => collection(firestore, 'cupons'), [firestore]);
   const { data: cupons } = useCollection(cuponsQuery);
+
+  const ordersQuery = useMemoFirebase(() => query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'), limit(10)), [firestore]);
+  const { data: orders } = useCollection(ordersQuery);
 
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
   const { data: config } = useDoc(configRef);
@@ -109,13 +116,70 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="home" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 max-w-3xl bg-muted p-1 rounded-xl">
+      <Tabs defaultValue="orders" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-5 max-w-4xl bg-muted p-1 rounded-xl">
+          <TabsTrigger value="orders" className="rounded-lg">Pedidos</TabsTrigger>
           <TabsTrigger value="home" className="rounded-lg">Visual Home</TabsTrigger>
           <TabsTrigger value="catalog" className="rounded-lg">Produtos</TabsTrigger>
-          <TabsTrigger value="frete" className="rounded-lg">Logística/Fretes</TabsTrigger>
+          <TabsTrigger value="frete" className="rounded-lg">Fretes</TabsTrigger>
           <TabsTrigger value="coupons" className="rounded-lg">Cupons</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="orders" className="space-y-6">
+          <Card className="border-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Histórico de Pedidos (WhatsApp)</CardTitle>
+                <CardDescription>Estes pedidos foram gerados e enviados para o vendedor.</CardDescription>
+              </div>
+              <ClipboardList className="w-8 h-8 text-primary opacity-20" />
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted">
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Nenhum pedido registrado ainda.</TableCell></TableRow>
+                    ) : orders?.map(order => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-bold">{order.codigo}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{order.clienteNome}</span>
+                            <span className="text-[10px] text-muted-foreground">{order.clienteTelefone}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(order.dataCriacao).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-primary">R$ {order.total.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Enviado WhatsApp</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteItem('pedidos', order.id)} className="text-destructive">Excluir</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="home" className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

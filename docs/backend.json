@@ -15,10 +15,27 @@
             "rua": { "type": "string" },
             "bairro": { "type": "string" },
             "cidade": { "type": "string" },
-            "cep": { "type": "string" }
+            "cep": { "type": "string" },
+            "numero": { "type": "string" }
           }
         },
         "papel": { "type": "string", "enum": ["cliente", "administrador"] },
+        "dataCriacao": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Pedido": {
+      "title": "Pedido",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "usuarioId": { "type": "string" },
+        "clienteNome": { "type": "string" },
+        "itens": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "frete": { "type": "number" },
+        "desconto": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
         "dataCriacao": { "type": "string", "format": "date-time" }
       }
     },
@@ -71,7 +88,8 @@
       { "path": "/configuracoes/geral", "definition": { "entityName": "ConfiguracaoSite", "schema": { "$ref": "#/backend/entities/ConfiguracaoSite" } } },
       { "path": "/fretes/{freteId}", "definition": { "entityName": "Frete", "schema": { "$ref": "#/backend/entities/Frete" } } },
       { "path": "/cupons/{cupomId}", "definition": { "entityName": "Cupom", "schema": { "$ref": "#/backend/entities/Cupom" } } },
-      { "path": "/produtos/{produtoId}", "definition": { "entityName": "Produto", "schema": { "$ref": "#/backend/entities/Produto" } } }
+      { "path": "/produtos/{produtoId}", "definition": { "entityName": "Produto", "schema": { "$ref": "#/backend/entities/Produto" } } },
+      { "path": "/pedidos/{pedidoId}", "definition": { "entityName": "Pedido", "schema": { "$ref": "#/backend/entities/Pedido" } } }
     ]
   }
 }
