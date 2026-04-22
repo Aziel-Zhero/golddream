@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, Sparkles } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, Sparkles, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -35,13 +35,13 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/category/women" className="text-sm font-medium hover:text-primary transition-colors">Women</Link>
-            <Link href="/category/men" className="text-sm font-medium hover:text-primary transition-colors">Men</Link>
-            <Link href="/category/accessories" className="text-sm font-medium hover:text-primary transition-colors">Accessories</Link>
+            <Link href="/category/feminino" className="text-sm font-medium hover:text-primary transition-colors">Feminino</Link>
+            <Link href="/category/masculino" className="text-sm font-medium hover:text-primary transition-colors">Masculino</Link>
+            <Link href="/category/acessorios" className="text-sm font-medium hover:text-primary transition-colors">Acessórios</Link>
           </div>
 
           {/* Icons & Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -52,8 +52,14 @@ export function Navbar() {
             </Button>
 
             <Link href="/ai-recommender">
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-accent group">
+              <Button variant="ghost" size="icon" className="text-foreground hover:text-accent group" title="Recomendações IA">
                 <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
+              </Button>
+            </Link>
+
+            <Link href="/admin">
+              <Button variant="ghost" size="icon" className="text-foreground hover:text-primary" title="Painel Admin">
+                <LayoutDashboard className="w-5 h-5" />
               </Button>
             </Link>
 
@@ -78,7 +84,7 @@ export function Navbar() {
               <SheetContent className="w-full sm:max-w-md flex flex-col">
                 <SheetHeader>
                   <SheetTitle className="font-headline flex items-center gap-2">
-                    Shopping Bag ({totalItems})
+                    Sacola de Compras ({totalItems})
                   </SheetTitle>
                 </SheetHeader>
                 
@@ -86,10 +92,10 @@ export function Navbar() {
                   {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                       <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
-                      <p>Your bag is empty</p>
+                      <p>Sua sacola está vazia</p>
                       <SheetClose asChild>
                         <Button variant="link" asChild>
-                          <Link href="/">Browse Collections</Link>
+                          <Link href="/">Navegar Coleções</Link>
                         </Button>
                       </SheetClose>
                     </div>
@@ -107,7 +113,7 @@ export function Navbar() {
                           <div className="flex flex-1 flex-col">
                             <div className="flex justify-between text-base font-medium">
                               <h3>{item.product.name}</h3>
-                              <p className="ml-4">${(item.product.price * item.quantity).toFixed(2)}</p>
+                              <p className="ml-4">R$ {(item.product.price * item.quantity).toFixed(2)}</p>
                             </div>
                             <p className="mt-1 text-sm text-muted-foreground">{item.selectedSize} / {item.selectedColor}</p>
                             <div className="flex flex-1 items-end justify-between text-sm">
@@ -127,7 +133,7 @@ export function Navbar() {
                                 className="font-medium text-primary hover:text-primary/80"
                                 onClick={() => removeItem(item.productId, item.selectedSize, item.selectedColor)}
                               >
-                                Remove
+                                Remover
                               </button>
                             </div>
                           </div>
@@ -141,12 +147,12 @@ export function Navbar() {
                   <div className="border-t pt-6">
                     <div className="flex justify-between text-base font-medium mb-4">
                       <p>Subtotal</p>
-                      <p>${totalPrice.toFixed(2)}</p>
+                      <p>R$ {totalPrice.toFixed(2)}</p>
                     </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground mb-6">Shipping and taxes calculated at checkout.</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground mb-6">Frete e impostos calculados no checkout.</p>
                     <SheetClose asChild>
                       <Button className="w-full" size="lg" asChild>
-                        <Link href="/checkout">Checkout</Link>
+                        <Link href="/checkout">Finalizar Compra</Link>
                       </Button>
                     </SheetClose>
                   </div>
@@ -167,7 +173,7 @@ export function Navbar() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 className="pl-10 w-full rounded-full" 
-                placeholder="Search for styles, categories, products..." 
+                placeholder="Buscar estilos, categorias, produtos..." 
                 autoFocus
               />
             </div>
