@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useDoc } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase';
 
@@ -28,7 +28,10 @@ export default function EditProductPage() {
   const id = params.id as string;
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { data: product, isLoading: isFetching } = useDoc(id ? doc(firestore, 'produtos', id) : null);
+
+  // Memoriza a referência do documento para evitar loops de renderização
+  const productRef = useMemoFirebase(() => id ? doc(firestore, 'produtos', id) : null, [firestore, id]);
+  const { data: product, isLoading: isFetching } = useDoc(productRef);
 
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<any>({
@@ -45,10 +48,10 @@ export default function EditProductPage() {
   useEffect(() => {
     if (product) {
       setFormData({
-        nome: product.nome,
-        descricao: product.descricao,
-        preco: product.preco,
-        estoque: product.estoque,
+        nome: product.nome || '',
+        descricao: product.descricao || '',
+        preco: product.preco || 0,
+        estoque: product.estoque || 0,
         categoriaId: product.categoriaId || 'feminino',
         imagens: product.imagens || [],
         isFeatured: product.isFeatured || false
@@ -69,9 +72,10 @@ export default function EditProductPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!productRef) return;
     
-    updateDocumentNonBlocking(doc(firestore, 'produtos', id), formData);
+    setIsLoading(true);
+    updateDocumentNonBlocking(productRef, formData);
     
     setTimeout(() => {
       setIsLoading(false);
@@ -83,12 +87,19 @@ export default function EditProductPage() {
     }, 1000);
   };
 
-  if (isFetching) return <div className="p-12 text-center">Carregando dados...</div>;
+  if (isFetching) {
+    return (
+      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando dados do produto...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="mb-8">
-        <Button asChild variant="ghost" className="mb-4">
+        <Button asChild variant="ghost" className="mb-4 -ml-4">
           <Link href="/admin/products">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para Lista
           </Link>
@@ -156,7 +167,7 @@ export default function EditProductPage() {
           <Card>
             <CardHeader>
               <CardTitle>Imagens do Produto</CardTitle>
-              <CardDescription>Gerencie as fotos exibidas no catálogo.</CardDescription>
+              <CardDescription>Gerencie as fotos exibidas no catálogo (máx. 5).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex gap-2">
@@ -172,12 +183,12 @@ export default function EditProductPage() {
 
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
                 {formData.imagens.map((url: string, idx: number) => (
-                  <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
+                  <div key={url + idx} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
                     <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-3 h-3" />
                     </button>
