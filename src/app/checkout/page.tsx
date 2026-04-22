@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -29,7 +29,6 @@ export default function CheckoutPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // CORREÇÃO: Memorizando a consulta de fretes para evitar o erro de hidratação/loop
   const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
   const { data: freteRules } = useCollection(fretesQuery);
 
@@ -40,7 +39,7 @@ export default function CheckoutPage() {
         r.bairro.toLowerCase() === user.endereco?.bairro.toLowerCase()
       );
       if (rule) setShippingCost(rule.valor);
-      else setShippingCost(25); // Valor padrão caso não encontre o bairro
+      else setShippingCost(25); // Valor padrão
     }
   }, [user, freteRules]);
 
@@ -74,7 +73,7 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      toast({ variant: "destructive", title: "Acesse sua conta", description: "Você precisa estar logado para finalizar o pedido." });
+      toast({ variant: "destructive", title: "Acesso Negado", description: "Você precisa estar logado para finalizar o pedido." });
       return;
     }
 
@@ -102,10 +101,8 @@ export default function CheckoutPage() {
       dataCriacao: new Date().toISOString()
     };
 
-    // Salva no Firestore
     addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
 
-    // Formata mensagem WhatsApp conforme modelo solicitado
     const whatsappNumber = "5512991862651";
     let message = `🛍️ *NOVO PEDIDO*\n\n`;
     message += `🧾 *Código do Pedido:* #${orderId}\n\n`;
@@ -135,7 +132,6 @@ export default function CheckoutPage() {
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 
-    // Redireciona
     setTimeout(() => {
       window.open(whatsappUrl, '_blank');
       setIsOrdered(true);
@@ -152,12 +148,42 @@ export default function CheckoutPage() {
         </div>
         <h1 className="text-5xl font-headline font-bold">Pedido Enviado!</h1>
         <p className="text-muted-foreground max-w-md mx-auto text-lg">
-          Seu pedido foi registrado e a conversa no WhatsApp foi aberta. <br/> 
-          Se não abriu, clique no botão abaixo para falar com nosso vendedor.
+          Seu pedido foi registrado. A conversa no WhatsApp foi aberta para combinarmos o pagamento.
         </p>
         <Button asChild size="lg" className="rounded-full px-12 h-14 text-lg">
           <Link href="/">Voltar à Gold Dream</Link>
         </Button>
+      </div>
+    );
+  }
+
+  // Se não estiver logado, mostra tela de login obrigatório
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-24 max-w-2xl text-center">
+        <Card className="border-2 shadow-2xl rounded-3xl overflow-hidden">
+          <CardHeader className="bg-primary/5 pb-8 pt-12">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+              <LogIn className="w-10 h-10" />
+            </div>
+            <CardTitle className="text-3xl font-headline font-bold">Quase lá!</CardTitle>
+            <CardDescription className="text-lg">Para finalizar seu pedido na Gold Dream Multimarcas, você precisa acessar sua conta ou se cadastrar.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-12 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button asChild size="lg" className="h-16 rounded-2xl text-lg font-bold">
+                <Link href="/auth/login"><LogIn className="mr-2 w-5 h-5" /> Entrar na Conta</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-16 rounded-2xl text-lg font-bold border-2">
+                <Link href="/auth/register"><UserPlus className="mr-2 w-5 h-5" /> Criar Conta</Link>
+              </Button>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm font-medium">
+              <ShieldCheck className="w-4 h-4" /> Seus dados estão 100% protegidos pela Gold Dream.
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -177,42 +203,32 @@ export default function CheckoutPage() {
             <h2 className="text-2xl font-headline font-bold flex items-center gap-2">
               <Truck className="w-6 h-6 text-primary" /> Confirmar Entrega
             </h2>
-            {user ? (
-              <div className="p-8 bg-muted/50 rounded-3xl border-2 border-primary/5 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-bold text-xl">{user.nome}</p>
-                    <p className="text-muted-foreground">{user.telefone}</p>
-                  </div>
-                  <Button asChild variant="ghost" size="sm" className="text-primary font-bold">
-                    <Link href="/auth/complete-profile">Alterar</Link>
-                  </Button>
+            <div className="p-8 bg-muted/50 rounded-3xl border-2 border-primary/5 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-xl">{user.nome}</p>
+                  <p className="text-muted-foreground">{user.telefone}</p>
                 </div>
-                <Separator />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{user.endereco?.rua}, {user.endereco?.numero}</p>
-                  <p className="text-sm text-muted-foreground">{user.endereco?.bairro}</p>
-                  <p className="text-sm text-muted-foreground">{user.endereco?.cidade} - {user.endereco?.cep}</p>
-                </div>
+                <Button asChild variant="ghost" size="sm" className="text-primary font-bold">
+                  <Link href="/auth/complete-profile">Alterar Endereço</Link>
+                </Button>
               </div>
-            ) : (
-              <Button asChild variant="outline" className="w-full h-20 rounded-2xl border-dashed border-2 hover:bg-primary/5">
-                <Link href="/auth/register" className="flex flex-col gap-1">
-                  <span className="font-bold">Acesse sua conta para continuar</span>
-                  <span className="text-xs text-muted-foreground">Precisamos do seu endereço para o frete</span>
-                </Link>
-              </Button>
-            )}
+              <Separator />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{user.endereco?.rua}, {user.endereco?.numero}</p>
+                <p className="text-sm text-muted-foreground">{user.endereco?.bairro}</p>
+                <p className="text-sm text-muted-foreground">{user.endereco?.cidade} - {user.endereco?.cep}</p>
+              </div>
+            </div>
           </section>
 
           <section className="bg-green-50 p-8 rounded-3xl border border-green-100 space-y-4">
             <div className="flex items-center gap-3 text-green-700 font-bold">
               <ShieldCheck className="w-6 h-6" />
-              <h3 className="text-lg">Checkout 100% Seguro via WhatsApp</h3>
+              <h3 className="text-lg">Checkout Seguro Gold Dream</h3>
             </div>
             <p className="text-sm text-green-600/80 leading-relaxed">
-              Ao clicar em "Finalizar Pedido", você será redirecionado para o nosso WhatsApp oficial. 
-              Um de nossos atendentes irá receber os detalhes da sua compra e combinar a forma de pagamento (Pix ou Link de Cartão) e o prazo de entrega.
+              O pagamento (Pix ou Link de Cartão) será combinado diretamente com o nosso vendedor no WhatsApp.
             </p>
           </section>
         </div>
@@ -240,7 +256,7 @@ export default function CheckoutPage() {
               <div className="pt-4 border-t space-y-3">
                 <div className="flex gap-2">
                   <Input 
-                    placeholder="CUPOM DE DESCONTO" 
+                    placeholder="CUPOM" 
                     value={couponCode} 
                     onChange={e => setCouponCode(e.target.value.toUpperCase())} 
                     className="rounded-xl h-12"
@@ -263,7 +279,6 @@ export default function CheckoutPage() {
                 <p className="text-lg font-bold">Total</p>
                 <div className="text-right">
                   <p className="text-3xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Combine o pagamento no WhatsApp</p>
                 </div>
               </div>
 
@@ -273,12 +288,8 @@ export default function CheckoutPage() {
                 className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20 bg-green-600 hover:bg-green-700 text-white"
               >
                 {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-2 w-6 h-6" />}
-                Enviar Pedido
+                Finalizar no WhatsApp
               </Button>
-
-              <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                <ShieldCheck className="w-3 h-3" /> Transação Monitorada
-              </div>
             </CardContent>
           </Card>
         </div>
