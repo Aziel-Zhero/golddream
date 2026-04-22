@@ -2,20 +2,17 @@
 "use client";
 
 import Link from 'next/link';
-import { Instagram, Twitter, Facebook, Send, LayoutDashboard, ShieldCheck } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { Instagram, Twitter, Facebook, Send, LayoutDashboard } from 'lucide-react';
+import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 
 export function Footer() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const firestore = useFirestore();
   
-  // Verifica se o usuário é administrador
-  const adminRef = useMemoFirebase(() => user ? doc(firestore, 'roles_administrador', user.uid) : null, [firestore, user]);
-  const { data: adminRole } = useDoc(adminRef);
+  const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
 
-  // Busca link do Telegram das configurações
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
   const { data: config } = useDoc(configRef);
 
@@ -75,7 +72,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground gap-4 uppercase tracking-widest">
           <div className="flex items-center gap-4">
             <p>&copy; {new Date().getFullYear()} Gold Dream Multimarcas.</p>
-            {adminRole ? (
+            {isAdmin ? (
               <Link href="/admin" className="flex items-center gap-1 text-primary font-black hover:underline bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
                 <LayoutDashboard className="w-3 h-3" /> PAINEL ADMIN
               </Link>

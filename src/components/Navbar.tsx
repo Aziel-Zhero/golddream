@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut, Settings } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -31,25 +31,24 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
+
   return (
     <nav className="sticky top-0 z-50 glass-morphism border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105">
               Gold Dream
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link href="/category/feminino" className="text-sm font-semibold hover:text-primary transition-colors">Feminino</Link>
             <Link href="/category/masculino" className="text-sm font-semibold hover:text-primary transition-colors">Masculino</Link>
             <Link href="/category/acessorios" className="text-sm font-semibold hover:text-primary transition-colors">Acessórios</Link>
           </div>
 
-          {/* Icons & Actions */}
           <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
@@ -77,7 +76,7 @@ export function Navbar() {
                       <p className="text-sm font-bold leading-none">{user.nome}</p>
                       <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
                       <Badge variant="secondary" className="w-fit text-[10px] mt-2 capitalize font-bold bg-primary/10 text-primary border-none">
-                        {user.papel === 'administrador' ? 'Perfil Admin' : 'Cliente Gold'}
+                        {isAdmin ? 'Perfil Admin' : 'Cliente Gold'}
                       </Badge>
                     </div>
                   </DropdownMenuLabel>
@@ -88,14 +87,12 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {user.papel === 'administrador' && (
-                    <>
-                      <DropdownMenuItem asChild className="rounded-lg cursor-pointer text-primary font-bold focus:bg-primary/5 focus:text-primary">
-                        <Link href="/admin">
-                          <LayoutDashboard className="w-4 h-4 mr-2" /> Painel Administrativo
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer text-primary font-bold focus:bg-primary/5 focus:text-primary">
+                      <Link href="/admin">
+                        <LayoutDashboard className="w-4 h-4 mr-2" /> Painel Administrativo
+                      </Link>
+                    </DropdownMenuItem>
                   )}
                   
                   <DropdownMenuSeparator className="my-2" />
@@ -113,7 +110,6 @@ export function Navbar() {
               </Button>
             )}
 
-            {/* Cart Drawer */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary transition-colors">
@@ -223,7 +219,7 @@ export function Navbar() {
                       <div className="space-y-4">
                         <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Minha Conta</p>
                         <SheetClose asChild><Link href="/auth/complete-profile" className="block text-lg font-bold">Meus Dados</Link></SheetClose>
-                        {user.papel === 'administrador' && (
+                        {isAdmin && (
                           <SheetClose asChild><Link href="/admin" className="block text-lg font-bold text-primary">Painel Admin</Link></SheetClose>
                         )}
                         <SheetClose asChild><button onClick={logout} className="text-destructive font-black text-lg">Sair da Conta</button></SheetClose>
@@ -238,7 +234,6 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Dynamic Search Bar */}
         {isSearchOpen && (
           <div className="py-4 animate-in slide-in-from-top-4 duration-300">
             <div className="relative">

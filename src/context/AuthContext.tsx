@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -24,7 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [appUser, setAppUser] = useState<AppUser | null>(null);
 
-  // Busca os dados complementares do usuário no Firestore
   const userDocRef = useMemoFirebase(() => fbUser ? doc(firestore, 'usuarios', fbUser.uid) : null, [fbUser, firestore]);
   const { data: userData, isLoading: isDocLoading } = useDoc(userDocRef);
 
@@ -45,13 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fbUser, userData]);
 
-  // Redirecionamento obrigatório para completar perfil
   useEffect(() => {
-    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname);
+    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || pathname.startsWith('/category/') || pathname.startsWith('/products/');
     const isCompletingProfile = pathname === '/auth/complete-profile';
 
     if (!isUserLoading && fbUser && !isDocLoading) {
-      // Se logado mas sem dados básicos de endereço, obriga a completar perfil
       if (!userData?.endereco?.cidade && !isCompletingProfile && !isPublicPage) {
         router.push('/auth/complete-profile');
       }
