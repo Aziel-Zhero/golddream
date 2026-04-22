@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-fashion",
+      "description": "High fashion model in modern clothing",
+      "imageUrl": "https://picsum.photos/seed/fashion-hero/1200/600",
+      "imageHint": "fashion model"
+    },
+    {
+      "id": "category-women",
+      "description": "Elegant women fashion collection",
+      "imageUrl": "https://picsum.photos/seed/women-style/600/800",
+      "imageHint": "women clothing"
+    },
+    {
+      "id": "category-men",
+      "description": "Modern men casual wear",
+      "imageUrl": "https://picsum.photos/seed/men-style/600/800",
+      "imageHint": "men clothing"
+    },
+    {
+      "id": "category-accessories",
+      "description": "Minimalist fashion accessories",
+      "imageUrl": "https://picsum.photos/seed/acc-style/600/800",
+      "imageHint": "fashion accessories"
+    },
+    {
+      "id": "product-1",
+      "description": "Classic Linen Shirt",
+      "imageUrl": "https://picsum.photos/seed/shirt-1/800/1000",
+      "imageHint": "linen shirt"
+    },
+    {
+      "id": "product-2",
+      "description": "Denim Jacket",
+      "imageUrl": "https://picsum.photos/seed/jacket-1/800/1000",
+      "imageHint": "denim jacket"
+    },
+    {
+      "id": "product-3",
+      "description": "Summer Dress",
+      "imageUrl": "https://picsum.photos/seed/dress-1/800/1000",
+      "imageHint": "summer dress"
+    },
+    {
+      "id": "product-4",
+      "description": "Cotton Trousers",
+      "imageUrl": "https://picsum.photos/seed/pants-1/800/1000",
+      "imageHint": "cotton trousers"
+    }
+  ]
 }
