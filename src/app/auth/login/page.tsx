@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -8,14 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth as useFirebaseAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const auth = useFirebaseAuth();
   const { toast } = useToast();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
@@ -24,13 +25,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Simulação de login - para protótipo vamos aceitar qualquer senha
-      // Em produção usaria o Firebase Auth real
-      await login(formData.email, "Cliente Gold Dream");
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
       toast({ title: "Bem-vindo!", description: "Login realizado com sucesso." });
       router.push('/');
-    } catch (error) {
-      toast({ variant: "destructive", title: "Erro no login" });
+    } catch (error: any) {
+      let message = "E-mail ou senha incorretos.";
+      if (error.code === 'auth/user-not-found') message = "Usuário não encontrado.";
+      if (error.code === 'auth/wrong-password') message = "Senha incorreta.";
+      
+      toast({ variant: "destructive", title: "Erro no login", description: message });
     } finally {
       setIsLoading(false);
     }

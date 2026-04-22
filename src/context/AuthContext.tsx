@@ -1,73 +1,82 @@
-
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@/types';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User as AppUser } from '@/types';
 import { usePathname, useRouter } from 'next/navigation';
+import { useUser, useAuth as useFirebaseAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 type AuthContextType = {
-  user: User | null;
+  user: AppUser | null;
   isLoading: boolean;
-  login: (email: string, name: string, userData?: Partial<User>) => Promise<void>;
-  logout: () => void;
-  updateUser: (data: Partial<User>) => void;
+  logout: () => Promise<void>;
+  updateUser: (data: Partial<AppUser>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: fbUser, isUserLoading } = useUser();
+  const auth = useFirebaseAuth();
+  const firestore = useFirestore();
   const pathname = usePathname();
   const router = useRouter();
+  const [appUser, setAppUser] = useState<AppUser | null>(null);
+
+  // Busca os dados complementares do usuário no Firestore
+  const userDocRef = useMemoFirebase(() => fbUser ? doc(firestore, 'usuarios', fbUser.uid) : null, [fbUser, firestore]);
+  const { data: userData, isLoading: isDocLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('golddream_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (fbUser && userData) {
+      setAppUser({
+        uid: fbUser.uid,
+        email: fbUser.email || '',
+        nome: userData.nome || fbUser.displayName || 'Cliente',
+        telefone: userData.telefone || '',
+        endereco: userData.endereco,
+        papel: userData.papel || 'cliente',
+        dataCriacao: userData.dataCriacao || new Date().toISOString(),
+        avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`
+      });
+    } else if (!fbUser) {
+      setAppUser(null);
     }
-    setIsLoading(false);
-  }, []);
+  }, [fbUser, userData]);
 
   // Redirecionamento obrigatório para completar perfil
   useEffect(() => {
-    if (!isLoading && user && !user.endereco?.cidade && pathname !== '/auth/complete-profile' && pathname !== '/auth/login' && pathname !== '/auth/register') {
-      router.push('/auth/complete-profile');
+    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname);
+    const isCompletingProfile = pathname === '/auth/complete-profile';
+
+    if (!isUserLoading && fbUser && !isDocLoading) {
+      // Se logado mas sem dados básicos de endereço, obriga a completar perfil
+      if (!userData?.endereco?.cidade && !isCompletingProfile && !isPublicPage) {
+        router.push('/auth/complete-profile');
+      }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [fbUser, userData, isUserLoading, isDocLoading, pathname, router]);
 
-  const login = async (email: string, name: string, userData?: Partial<User>) => {
-    setIsLoading(true);
-    const newUser: User = {
-      uid: userData?.uid || Math.random().toString(36).substr(2, 9),
-      nome: name,
-      email,
-      papel: userData?.papel || 'cliente',
-      dataCriacao: userData?.dataCriacao || new Date().toISOString(),
-      avatarUrl: `https://picsum.photos/seed/${email}/100/100`,
-      telefone: userData?.telefone,
-      endereco: userData?.endereco
-    };
-    setUser(newUser);
-    localStorage.setItem('golddream_user', JSON.stringify(newUser));
-    setIsLoading(false);
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('golddream_user');
+  const logout = async () => {
+    await signOut(auth);
+    setAppUser(null);
     router.push('/');
   };
 
-  const updateUser = (data: Partial<User>) => {
-    if (!user) return;
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('golddream_user', JSON.stringify(updatedUser));
+  const updateUser = (data: Partial<AppUser>) => {
+    if (appUser) {
+      setAppUser({ ...appUser, ...data });
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ 
+      user: appUser, 
+      isLoading: isUserLoading || isDocLoading, 
+      logout, 
+      updateUser 
+    }}>
       {children}
     </AuthContext.Provider>
   );

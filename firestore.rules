@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DEPLOY TRIGGER: Forçando atualização das regras para leitura pública de fretes/cupons.
-     * Versão: 1.0.5
+     * Gold Dream Multimarcas - Regras de Segurança
+     * Versão: 1.0.6 - Correção de permissões de cadastro
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -14,7 +14,6 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Verifica se o UID do usuário existe na coleção de administradores
       return isSignedIn() && exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
     }
 
@@ -24,27 +23,23 @@ service cloud.firestore {
 
     // --- REGRAS DE COLEÇÃO ---
 
-    // Papéis administrativos
     match /roles_administrador/{usuarioId} {
       allow get: if isSignedIn();
       allow list, create, update, delete: if isAdmin();
     }
 
-    // Perfis de usuários
     match /usuarios/{usuarioId} {
-      allow get, list: if isOwner(usuarioId) || isAdmin();
-      allow create: if isOwner(usuarioId);
-      allow update: if (isOwner(usuarioId) || isAdmin());
+      // Permite que o usuário crie seu próprio documento de perfil após se autenticar
+      allow create: if isSignedIn() && request.auth.uid == usuarioId;
+      allow get, list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Pedidos (Qualquer um pode criar para o fluxo de WhatsApp, leitura apenas admin)
     match /pedidos/{pedidoId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
     }
 
-    // Fretes e Cupons (Leitura pública essencial para o checkout, escrita apenas admin)
     match /fretes/{id} {
       allow read: if true;
       allow write: if isAdmin();
@@ -55,23 +50,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Catálogo e Configurações
-    match /categorias/{categoriaId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /produtos/{produtoId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /promocoes/{promocaoId} {
+    match /configuracoes/{configId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /configuracoes/{configId} {
+    match /promocoes/{promocaoId} {
       allow read: if true;
       allow write: if isAdmin();
     }
