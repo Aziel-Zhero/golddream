@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DEPLOY TRIGGER: Adicionando permissões para fretes, cupons e pedidos.
-     * Versão: 1.0.4
+     * DEPLOY TRIGGER: Forçando atualização das regras para leitura pública de fretes/cupons.
+     * Versão: 1.0.5
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -38,15 +38,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Pedidos (Coleção Raiz)
+    // Pedidos (Qualquer um pode criar para o fluxo de WhatsApp, leitura apenas admin)
     match /pedidos/{pedidoId} {
-      // Qualquer um pode criar um pedido (necessário para o fluxo de WhatsApp)
       allow create: if true;
-      // Apenas admin pode listar e ver detalhes de todos os pedidos
       allow read, update, delete: if isAdmin();
     }
 
-    // Fretes e Cupons (Leitura pública para cálculo no checkout, escrita apenas admin)
+    // Fretes e Cupons (Leitura pública essencial para o checkout, escrita apenas admin)
     match /fretes/{id} {
       allow read: if true;
       allow write: if isAdmin();
@@ -57,7 +55,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Coleções do Catálogo e Configurações
+    // Catálogo e Configurações
     match /categorias/{categoriaId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -75,7 +73,7 @@ service cloud.firestore {
 
     match /configuracoes/{configId} {
       allow read: if true;
-      allow write: if true; // Liberado para prototipagem da Home
+      allow write: if isAdmin();
     }
   }
 }
