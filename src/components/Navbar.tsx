@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -94,15 +93,15 @@ export function Navbar() {
                         <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex gap-4">
                           <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-md border">
                             <img
-                              src={item.product.images[0]}
-                              alt={item.product.name}
+                              src={item.product.imagens?.[0] || 'https://placehold.co/100'}
+                              alt={item.product.nome}
                               className="h-full w-full object-cover"
                             />
                           </div>
                           <div className="flex flex-1 flex-col">
                             <div className="flex justify-between text-base font-medium">
-                              <h3>{item.product.name}</h3>
-                              <p className="ml-4">R$ {(item.product.price * item.quantity).toFixed(2)}</p>
+                              <h3 className="truncate max-w-[150px]">{item.product.nome}</h3>
+                              <p className="ml-4">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
                             </div>
                             <p className="mt-1 text-sm text-muted-foreground">{item.selectedSize} / {item.selectedColor}</p>
                             <div className="flex flex-1 items-end justify-between text-sm">

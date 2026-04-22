@@ -14,7 +14,10 @@ export function ProductCard({ product }: { product: Product }) {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product, 1, product.sizes[0], product.colors[0]);
+    // Usa propriedades em português e fornece fallbacks seguros
+    const tamanho = product.tamanhosDisponiveis?.[0] || 'M';
+    const cor = product.coresDisponiveis?.[0] || 'Padrão';
+    addItem(product, 1, tamanho, cor);
   };
 
   return (
@@ -22,14 +25,14 @@ export function ProductCard({ product }: { product: Product }) {
       <Link href={`/products/${product.id}`} className="block">
         <div className="aspect-[4/5] w-full overflow-hidden bg-muted relative">
           <img
-            src={product.images[0]}
-            alt={product.name}
+            src={product.imagens?.[0] || 'https://placehold.co/400x500?text=Sem+Imagem'}
+            alt={product.nome || 'Produto'}
             className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          {product.stock < 5 && (
+          {product.estoque < 5 && product.estoque > 0 && (
             <Badge className="absolute top-3 left-3 bg-white/90 text-primary border-none shadow-sm" variant="outline">
-              Only {product.stock} left
+              Apenas {product.estoque} restantes
             </Badge>
           )}
           
@@ -50,12 +53,12 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
         <div className="p-4">
           <div className="flex justify-between items-start mb-1">
-            <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-              {product.name}
+            <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate pr-2">
+              {product.nome}
             </h3>
-            <p className="text-sm font-bold">${product.price.toFixed(2)}</p>
+            <p className="text-sm font-bold">R$ {product.preco?.toFixed(2)}</p>
           </div>
-          <p className="text-xs text-muted-foreground capitalize">{product.category}</p>
+          <p className="text-xs text-muted-foreground capitalize">{product.categoriaId}</p>
         </div>
       </Link>
     </div>

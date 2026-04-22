@@ -10,8 +10,11 @@ import { ProductCard } from '@/components/ProductCard';
 import { Separator } from '@/components/ui/separator';
 
 export function ProductClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
+  const tamanhos = product.tamanhosDisponiveis || ['P', 'M', 'G'];
+  const cores = product.coresDisponiveis || ['Padrão'];
+  
+  const [selectedSize, setSelectedSize] = useState(tamanhos[0]);
+  const [selectedColor, setSelectedColor] = useState(cores[0]);
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
 
@@ -26,15 +29,15 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         <div className="space-y-4">
           <div className="aspect-[4/5] overflow-hidden rounded-2xl border bg-muted group">
             <img 
-              src={product.images[0]} 
-              alt={product.name} 
+              src={product.imagens?.[0] || 'https://placehold.co/800x1000?text=Sem+Imagem'} 
+              alt={product.nome} 
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
             />
           </div>
           <div className="grid grid-cols-4 gap-4">
-            {product.images.map((img, idx) => (
+            {product.imagens?.map((img, idx) => (
               <div key={idx} className="aspect-square rounded-lg overflow-hidden border cursor-pointer hover:border-primary transition-colors">
-                <img src={img} alt={`${product.name} ${idx}`} className="w-full h-full object-cover" />
+                <img src={img} alt={`${product.nome} ${idx}`} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
@@ -44,36 +47,36 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Badge variant="outline" className="uppercase tracking-widest text-[10px] px-3 py-1 text-primary border-primary">{product.category}</Badge>
+              <Badge variant="outline" className="uppercase tracking-widest text-[10px] px-3 py-1 text-primary border-primary">{product.categoriaId}</Badge>
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10"><Share2 className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-pink-50 hover:text-pink-500"><Heart className="w-4 h-4" /></Button>
               </div>
             </div>
-            <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
+            <h1 className="text-4xl font-headline font-bold">{product.nome}</h1>
             <div className="flex items-center gap-4">
-              <p className="text-3xl font-bold text-primary">${product.price.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-primary">R$ {product.preco?.toFixed(2)}</p>
               <div className="flex items-center gap-1 text-yellow-500">
                 <Star className="w-4 h-4 fill-current" />
                 <Star className="w-4 h-4 fill-current" />
                 <Star className="w-4 h-4 fill-current" />
                 <Star className="w-4 h-4 fill-current" />
                 <Star className="w-4 h-4 text-muted" />
-                <span className="text-xs text-muted-foreground ml-2">(128 reviews)</span>
+                <span className="text-xs text-muted-foreground ml-2">(128 avaliações)</span>
               </div>
             </div>
           </div>
 
-          <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+          <p className="text-muted-foreground leading-relaxed">{product.descricao}</p>
 
           <Separator />
 
           {/* Variants */}
           <div className="space-y-6">
             <div className="space-y-3">
-              <label className="text-sm font-bold uppercase tracking-wider">Select Color: <span className="text-muted-foreground font-normal normal-case">{selectedColor}</span></label>
+              <label className="text-sm font-bold uppercase tracking-wider">Cor: <span className="text-muted-foreground font-normal normal-case">{selectedColor}</span></label>
               <div className="flex gap-3">
-                {product.colors.map(color => (
+                {cores.map(color => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
@@ -87,11 +90,11 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
             <div className="space-y-3">
               <div className="flex justify-between">
-                <label className="text-sm font-bold uppercase tracking-wider">Select Size</label>
-                <button className="text-xs text-primary underline font-medium">Size Guide</button>
+                <label className="text-sm font-bold uppercase tracking-wider">Tamanho</label>
+                <button className="text-xs text-primary underline font-medium">Guia de Medidas</button>
               </div>
               <div className="flex gap-3">
-                {product.sizes.map(size => (
+                {tamanhos.map(size => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -111,7 +114,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               <button onClick={() => setQuantity(quantity + 1)} className="px-3 hover:text-primary">+</button>
             </div>
             <Button size="lg" className="flex-1 h-14 rounded-xl text-lg font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform" onClick={handleAddToCart}>
-              <ShoppingBag className="mr-2 w-5 h-5" /> Add to Bag
+              <ShoppingBag className="mr-2 w-5 h-5" /> Adicionar à Sacola
             </Button>
           </div>
 
@@ -119,15 +122,15 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
               <ShieldCheck className="w-5 h-5 text-primary" />
               <div className="text-xs">
-                <p className="font-bold">2-Year Warranty</p>
-                <p className="text-muted-foreground">Quality guaranteed</p>
+                <p className="font-bold">Garantia Premium</p>
+                <p className="text-muted-foreground">Qualidade assegurada</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
               <RefreshCcw className="w-5 h-5 text-primary" />
               <div className="text-xs">
-                <p className="font-bold">30-Day Returns</p>
-                <p className="text-muted-foreground">Hassle-free process</p>
+                <p className="font-bold">30 Dias para Troca</p>
+                <p className="text-muted-foreground">Processo sem custos</p>
               </div>
             </div>
           </div>
@@ -137,8 +140,8 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
       {/* Related Products */}
       <section className="space-y-12">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-headline font-bold">You Might Also Like</h2>
-          <p className="text-muted-foreground">Complete the look with these curated items.</p>
+          <h2 className="text-3xl font-headline font-bold">Você também pode gostar</h2>
+          <p className="text-muted-foreground">Complete o look com estas peças curadas.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {relatedProducts.slice(0, 4).map(p => (

@@ -1,14 +1,14 @@
 export type Product = {
   id: string;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  images: string[];
-  sizes: string[];
-  colors: string[];
-  stock: number;
-  createdAt: string;
+  nome: string;
+  preco: number;
+  descricao: string;
+  categoriaId: string;
+  imagens: string[];
+  tamanhosDisponiveis?: string[];
+  coresDisponiveis?: string[];
+  estoque: number;
+  dataCriacao: string;
   isFeatured?: boolean;
 };
 

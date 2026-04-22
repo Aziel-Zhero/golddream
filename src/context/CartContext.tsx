@@ -47,8 +47,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     toast({
-      title: "Added to cart",
-      description: `${product.name} (${size}, ${color}) added.`,
+      title: "Adicionado à sacola",
+      description: `${product.nome} (${size}, ${color}) adicionado.`,
     });
   };
 
@@ -73,7 +73,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = () => setItems([]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const totalPrice = items.reduce((sum, item) => sum + (item.product.preco * item.quantity), 0);
 
   return (
     <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
