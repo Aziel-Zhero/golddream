@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -64,22 +64,46 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 rounded-full px-3 h-10 hover:bg-muted transition-colors">
-                    <div className="w-8 h-8 rounded-full border overflow-hidden">
+                    <div className="w-8 h-8 rounded-full border overflow-hidden bg-muted">
                       <img src={user.avatarUrl} alt={user.nome} className="w-full h-full object-cover" />
                     </div>
                     <span className="text-xs font-bold hidden lg:inline max-w-[80px] truncate">{user.nome.split(' ')[0]}</span>
                     <ChevronDown size={14} className="text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 rounded-xl border-2">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth/complete-profile">Meus Dados</Link>
+                <DropdownMenuContent align="end" className="w-64 rounded-xl border-2 shadow-xl p-2">
+                  <DropdownMenuLabel className="font-normal px-4 py-3">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-bold leading-none">{user.nome}</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
+                      <Badge variant="secondary" className="w-fit text-[10px] mt-2 capitalize font-bold bg-primary/10 text-primary border-none">
+                        {user.papel === 'administrador' ? 'Perfil Admin' : 'Cliente Gold'}
+                      </Badge>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="my-2" />
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/auth/complete-profile">
+                      <User className="w-4 h-4 mr-2" /> Meus Dados
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive font-bold focus:bg-destructive/10 focus:text-destructive">
-                    Sair da Conta
+                  
+                  {user.papel === 'administrador' && (
+                    <>
+                      <DropdownMenuItem asChild className="rounded-lg cursor-pointer text-primary font-bold focus:bg-primary/5 focus:text-primary">
+                        <Link href="/admin">
+                          <LayoutDashboard className="w-4 h-4 mr-2" /> Painel Administrativo
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  <DropdownMenuSeparator className="my-2" />
+                  <DropdownMenuItem 
+                    onClick={logout} 
+                    className="rounded-lg cursor-pointer text-destructive font-bold focus:bg-destructive/10 focus:text-destructive"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" /> Sair da Conta
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -108,7 +132,7 @@ export function Navbar() {
                   </SheetTitle>
                 </SheetHeader>
                 
-                <div className="flex-grow overflow-y-auto py-6">
+                <div className="flex-grow overflow-y-auto py-6 px-1">
                   {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-center px-4">
                       <ShoppingBag className="w-16 h-16 mb-4 opacity-10" />
@@ -196,7 +220,14 @@ export function Navbar() {
                   <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary">Acessórios</Link></SheetClose>
                   <div className="pt-8 border-t mt-4 space-y-4">
                     {user ? (
-                      <SheetClose asChild><button onClick={logout} className="text-destructive font-black">Sair da Conta</button></SheetClose>
+                      <div className="space-y-4">
+                        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Minha Conta</p>
+                        <SheetClose asChild><Link href="/auth/complete-profile" className="block text-lg font-bold">Meus Dados</Link></SheetClose>
+                        {user.papel === 'administrador' && (
+                          <SheetClose asChild><Link href="/admin" className="block text-lg font-bold text-primary">Painel Admin</Link></SheetClose>
+                        )}
+                        <SheetClose asChild><button onClick={logout} className="text-destructive font-black text-lg">Sair da Conta</button></SheetClose>
+                      </div>
                     ) : (
                       <SheetClose asChild><Link href="/auth/login" className="flex items-center gap-2 font-bold"><LogIn size={20} /> Entrar</Link></SheetClose>
                     )}
