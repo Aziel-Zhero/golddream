@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, LogIn } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -36,17 +36,17 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105">
               Gold Dream
             </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/category/feminino" className="text-sm font-medium hover:text-primary transition-colors">Feminino</Link>
-            <Link href="/category/masculino" className="text-sm font-medium hover:text-primary transition-colors">Masculino</Link>
-            <Link href="/category/acessorios" className="text-sm font-medium hover:text-primary transition-colors">Acessórios</Link>
+            <Link href="/category/feminino" className="text-sm font-semibold hover:text-primary transition-colors">Feminino</Link>
+            <Link href="/category/masculino" className="text-sm font-semibold hover:text-primary transition-colors">Masculino</Link>
+            <Link href="/category/acessorios" className="text-sm font-semibold hover:text-primary transition-colors">Acessórios</Link>
           </div>
 
           {/* Icons & Actions */}
@@ -63,23 +63,28 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full overflow-hidden border">
-                    <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                  <Button variant="ghost" className="flex items-center gap-2 rounded-full px-3 h-10 hover:bg-muted transition-colors">
+                    <div className="w-8 h-8 rounded-full border overflow-hidden">
+                      <img src={user.avatarUrl} alt={user.nome} className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs font-bold hidden lg:inline max-w-[80px] truncate">{user.nome.split(' ')[0]}</span>
+                    <ChevronDown size={14} className="text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 rounded-xl border-2">
                   <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/account">Meus Dados</Link>
+                    <Link href="/auth/complete-profile">Meus Dados</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="text-destructive">
-                    Sair
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive font-bold focus:bg-destructive/10 focus:text-destructive">
+                    Sair da Conta
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary">
+              <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary transition-colors">
                 <Link href="/auth/login"><User className="w-5 h-5" /></Link>
               </Button>
             )}
@@ -87,38 +92,38 @@ export function Navbar() {
             {/* Cart Drawer */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary">
+                <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary transition-colors">
                   <ShoppingBag className="w-5 h-5" />
                   {totalItems > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]" variant="default">
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] animate-in zoom-in" variant="default">
                       {totalItems}
                     </Badge>
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md flex flex-col">
+              <SheetContent className="w-full sm:max-w-md flex flex-col rounded-l-3xl">
                 <SheetHeader>
-                  <SheetTitle className="font-headline flex items-center gap-2">
-                    Sacola de Compras ({totalItems})
+                  <SheetTitle className="font-headline flex items-center gap-2 text-2xl">
+                    Sua Sacola ({totalItems})
                   </SheetTitle>
                 </SheetHeader>
                 
                 <div className="flex-grow overflow-y-auto py-6">
                   {items.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                      <ShoppingBag className="w-12 h-12 mb-4 opacity-20" />
-                      <p>Sua sacola está vazia</p>
+                    <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-center px-4">
+                      <ShoppingBag className="w-16 h-16 mb-4 opacity-10" />
+                      <p className="font-medium">Sua sacola está vazia</p>
                       <SheetClose asChild>
-                        <Button variant="link" asChild>
-                          <Link href="/">Navegar Coleções</Link>
+                        <Button variant="link" asChild className="text-primary font-bold">
+                          <Link href="/">Começar a Comprar</Link>
                         </Button>
                       </SheetClose>
                     </div>
                   ) : (
                     <div className="space-y-6">
                       {items.map((item) => (
-                        <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex gap-4">
-                          <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-md border">
+                        <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex gap-4 p-2 rounded-xl hover:bg-muted/50 transition-colors">
+                          <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl border shadow-sm">
                             <img
                               src={item.product.imagens?.[0] || 'https://placehold.co/100'}
                               alt={item.product.nome}
@@ -126,26 +131,26 @@ export function Navbar() {
                             />
                           </div>
                           <div className="flex flex-1 flex-col">
-                            <div className="flex justify-between text-base font-medium">
+                            <div className="flex justify-between text-base font-bold">
                               <h3 className="truncate max-w-[150px]">{item.product.nome}</h3>
-                              <p className="ml-4">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
+                              <p className="ml-4 text-primary">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
                             </div>
-                            <p className="mt-1 text-sm text-muted-foreground">{item.selectedSize} / {item.selectedColor}</p>
+                            <p className="mt-1 text-xs text-muted-foreground uppercase font-bold">{item.selectedSize} | {item.selectedColor}</p>
                             <div className="flex flex-1 items-end justify-between text-sm">
-                              <div className="flex items-center border rounded-md">
+                              <div className="flex items-center border rounded-lg bg-background">
                                 <button 
-                                  className="px-2 py-1 hover:bg-muted"
+                                  className="px-2 py-1 hover:text-primary transition-colors"
                                   onClick={() => updateQuantity(item.productId, item.selectedSize, item.selectedColor, item.quantity - 1)}
                                 >-</button>
-                                <span className="px-3">{item.quantity}</span>
+                                <span className="px-3 font-bold">{item.quantity}</span>
                                 <button 
-                                  className="px-2 py-1 hover:bg-muted"
+                                  className="px-2 py-1 hover:text-primary transition-colors"
                                   onClick={() => updateQuantity(item.productId, item.selectedSize, item.selectedColor, item.quantity + 1)}
                                 >+</button>
                               </div>
                               <button
                                 type="button"
-                                className="font-medium text-primary hover:text-primary/80"
+                                className="text-xs font-bold text-destructive hover:underline"
                                 onClick={() => removeItem(item.productId, item.selectedSize, item.selectedColor)}
                               >
                                 Remover
@@ -159,15 +164,15 @@ export function Navbar() {
                 </div>
 
                 {items.length > 0 && (
-                  <div className="border-t pt-6">
-                    <div className="flex justify-between text-base font-medium mb-4">
+                  <div className="border-t pt-6 bg-background space-y-4">
+                    <div className="flex justify-between text-xl font-bold">
                       <p>Subtotal</p>
                       <p>R$ {totalPrice.toFixed(2)}</p>
                     </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground mb-6">Frete e impostos calculados no checkout.</p>
+                    <p className="text-xs text-muted-foreground">Frete e descontos calculados na finalização.</p>
                     <SheetClose asChild>
-                      <Button className="w-full" size="lg" asChild>
-                        <Link href="/checkout">Finalizar Compra</Link>
+                      <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20" size="lg" asChild>
+                        <Link href="/checkout">Finalizar Pedido</Link>
                       </Button>
                     </SheetClose>
                   </div>
@@ -181,14 +186,21 @@ export function Navbar() {
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
+              <SheetContent side="left" className="rounded-r-3xl">
                 <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
+                  <SheetTitle className="text-2xl font-headline font-bold">Menu Gold Dream</SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-4 mt-8">
-                  <SheetClose asChild><Link href="/category/feminino" className="text-lg font-medium">Feminino</Link></SheetClose>
-                  <SheetClose asChild><Link href="/category/masculino" className="text-lg font-medium">Masculino</Link></SheetClose>
-                  <SheetClose asChild><Link href="/category/acessorios" className="text-lg font-medium">Acessórios</Link></SheetClose>
+                <div className="flex flex-col gap-6 mt-12 px-2">
+                  <SheetClose asChild><Link href="/category/feminino" className="text-xl font-bold hover:text-primary">Moda Feminina</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/masculino" className="text-xl font-bold hover:text-primary">Moda Masculina</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary">Acessórios</Link></SheetClose>
+                  <div className="pt-8 border-t mt-4 space-y-4">
+                    {user ? (
+                      <SheetClose asChild><button onClick={logout} className="text-destructive font-black">Sair da Conta</button></SheetClose>
+                    ) : (
+                      <SheetClose asChild><Link href="/auth/login" className="flex items-center gap-2 font-bold"><LogIn size={20} /> Entrar</Link></SheetClose>
+                    )}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -197,13 +209,14 @@ export function Navbar() {
 
         {/* Dynamic Search Bar */}
         {isSearchOpen && (
-          <div className="py-4 animate-in slide-in-from-top duration-300">
+          <div className="py-4 animate-in slide-in-from-top-4 duration-300">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
-                className="pl-10 w-full rounded-full" 
-                placeholder="Buscar produtos Gold Dream..." 
+                className="pl-12 h-12 w-full rounded-2xl border-2 focus-visible:ring-primary/20" 
+                placeholder="O que você está procurando hoje?" 
                 autoFocus
+                onBlur={() => !isSearchOpen && setIsSearchOpen(false)}
               />
             </div>
           </div>

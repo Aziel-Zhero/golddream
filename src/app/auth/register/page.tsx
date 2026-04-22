@@ -1,18 +1,19 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, ArrowLeft } from 'lucide-react';
+import { Loader2, UserPlus, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,91 +21,111 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   const [formData, setFormData] = useState({
-    nome: '',
     email: '',
     telefone: '',
-    rua: '',
-    bairro: '',
-    cidade: '',
-    cep: ''
+    password: '',
+    confirmPassword: ''
   });
+
+  const calculatePasswordStrength = (pass: string) => {
+    let score = 0;
+    if (pass.length > 6) score += 25;
+    if (/[A-Z]/.test(pass)) score += 25;
+    if (/[0-9]/.test(pass)) score += 25;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 25;
+    setPasswordStrength(score);
+  };
+
+  useEffect(() => {
+    calculatePasswordStrength(formData.password);
+  }, [formData.password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      toast({ variant: "destructive", title: "As senhas não coincidem" });
+      return;
+    }
+    if (passwordStrength < 50) {
+      toast({ variant: "destructive", title: "Senha muito fraca", description: "Use letras maiúsculas, números e símbolos." });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const uid = Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(firestore, 'usuarios', uid), {
-        ...formData,
+      const userRef = doc(firestore, 'usuarios', uid);
+      const userData = {
         id: uid,
+        email: formData.email,
+        telefone: formData.telefone,
         papel: 'cliente',
         dataCriacao: new Date().toISOString()
-      });
-
-      await login(formData.email, formData.nome);
+      };
       
-      toast({ title: "Conta Criada!", description: "Seja bem-vindo(a) à Gold Dream Multimarcas." });
-      router.push('/');
+      await setDoc(userRef, userData);
+      await login(formData.email, "Novo Cliente", userData as any);
+      
+      toast({ title: "Conta Criada!", description: "Agora, complete seu perfil para continuar." });
+      router.push('/auth/complete-profile');
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao cadastrar", description: "Verifique os dados e tente novamente." });
+      toast({ variant: "destructive", title: "Erro ao cadastrar", description: "Tente novamente mais tarde." });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 flex justify-center">
-      <Card className="w-full max-w-2xl border-2 shadow-2xl">
+    <div className="container mx-auto px-4 py-24 flex justify-center">
+      <Card className="w-full max-w-md border-2 shadow-2xl">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-             <Link href="/auth/login" className="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary">
-               <ArrowLeft className="w-3 h-3" /> Já tenho conta
-             </Link>
-          </div>
-          <CardTitle className="text-4xl font-headline font-bold">Cadastro de Cliente</CardTitle>
-          <CardDescription>Preencha os dados para calcular o frete e realizar pedidos.</CardDescription>
+          <CardTitle className="text-3xl font-headline font-bold">Criar Conta</CardTitle>
+          <CardDescription>Junte-se à Gold Dream Multimarcas</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 md:col-span-2">
-                <Label>Nome Completo</Label>
-                <Input required value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="João da Silva" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="seu@email.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp (Telefone)</Label>
+              <Input required value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} placeholder="(00) 00000-0000" />
+            </div>
+            
+            <div className="space-y-2 relative">
+              <Label>Senha</Label>
+              <div className="relative">
+                <Input type={showPassword ? "text" : "password"} required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="joao@exemplo.com" />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone (WhatsApp)</Label>
-                <Input required placeholder="(00) 00000-0000" value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>CEP</Label>
-                <Input required value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="00000-000" />
-              </div>
-              <div className="space-y-2">
-                <Label>Cidade</Label>
-                <Input required value={formData.cidade} onChange={e => setFormData({...formData, cidade: e.target.value})} />
-              </div>
-              
-              <div className="md:col-span-2 space-y-2">
-                <Label>Endereço (Rua e Número)</Label>
-                <Input required value={formData.rua} onChange={e => setFormData({...formData, rua: e.target.value})} />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label>Bairro</Label>
-                <Input required value={formData.bairro} onChange={e => setFormData({...formData, bairro: e.target.value})} />
+              <div className="space-y-1">
+                <Progress value={passwordStrength} className={`h-1 ${passwordStrength < 50 ? 'bg-red-100' : passwordStrength < 100 ? 'bg-yellow-100' : 'bg-green-100'}`} />
+                <p className="text-[10px] text-muted-foreground">Força da senha: {passwordStrength}%</p>
               </div>
             </div>
-            <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl shadow-xl shadow-primary/20" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : <UserPlus className="mr-2" />} Criar Minha Conta
+
+            <div className="space-y-2">
+              <Label>Confirmar Senha</Label>
+              <Input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
+            </div>
+
+            <Button type="submit" className="w-full h-12 font-bold" disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="mr-2 w-4 h-4" />} Cadastrar
             </Button>
           </form>
+          <div className="mt-6 text-center text-sm">
+            <Link href="/auth/login" className="text-muted-foreground hover:text-primary flex items-center justify-center gap-1">
+              <ArrowLeft size={14} /> Já tenho uma conta
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
