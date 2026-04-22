@@ -16,7 +16,8 @@ import {
   Send,
   Save,
   Loader2,
-  Globe
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
