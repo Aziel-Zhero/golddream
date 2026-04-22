@@ -4,7 +4,7 @@ service cloud.firestore {
 
     /**
      * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.0.6 - Correção de permissões de cadastro
+     * Versão: 1.0.7 - Acesso administrativo flexível
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -13,8 +13,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Verifica se o usuário é admin via coleção de roles ou via campo no perfil
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
+      );
     }
 
     function isOwner(userId) {
@@ -29,7 +33,6 @@ service cloud.firestore {
     }
 
     match /usuarios/{usuarioId} {
-      // Permite que o usuário crie seu próprio documento de perfil após se autenticar
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
       allow get, list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
