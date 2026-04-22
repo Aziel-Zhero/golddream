@@ -3,159 +3,68 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * FILOSOFIA DE SEGURANÇA E ESTRUTURA DE DADOS
-     * 
-     * Este conjunto de regras implementa um modelo de autorização híbrido baseado em Propriedade de Caminho e 
-     * Controle de Acesso Baseado em Banco de Dados (DBAC).
-     * 
-     * Core Philosophy:
-     * 1. Acesso Administrativo: O status de administrador é verificado pela existência de um documento 
-     *    na coleção '/roles_administrador/{uid}'. Isso permite que administradores gerenciem produtos, 
-     *    categorias e promoções (incluindo Black Friday).
-     * 2. Propriedade do Usuário: Dados sensíveis como Perfis e Pedidos são aninhados sob o UID do usuário 
-     *    no caminho do Firestore (/usuarios/{uid}/...). Isso garante que as regras de segurança 
-     *    possam verificar a propriedade de forma ultra-rápida sem consultas adicionais.
-     * 3. Acesso Público: O catálogo de produtos, categorias e promoções ativas é de leitura pública para 
-     *    permitir a navegação de usuários não autenticados (visitantes).
-     * 
-     * Denormalização para Autorização:
-     * - O 'usuarioId' é incluído no caminho de Pedidos e Itens de Pedido.
-     * - O 'usuarioId' é validado dentro do corpo do documento no momento da criação para manter 
-     *   integridade relacional com o caminho.
-     * 
-     * Segregação Estrutural:
-     * - Admin Roles: Separados em uma coleção dedicada para evitar conflitos com dados de perfil do cliente.
-     * - Pedidos: Armazenados como subcoleções de usuários para facilitar a listagem segura (Query as Permission).
+     * DEPLOY TRIGGER: Atualização de regras para garantir acesso público ao catálogo.
+     * Versão: 1.0.1
      */
 
     // --- FUNÇÕES AUXILIARES ---
 
-    /** 
-     * Verifica se o usuário está autenticado no Firebase Auth.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** 
-     * Verifica se o UID do usuário autenticado existe na coleção de administradores.
-     * Esta é a base para o controle de acesso de "super-usuário".
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
     }
 
-    /** 
-     * Verifica se o UID fornecido corresponde ao UID do usuário autenticado.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** 
-     * Verifica propriedade e garante que o documento atual exista para operações de alteração.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /** 
-     * Verifica se o usuário é admin e o recurso existe para operações de alteração/exclusão.
-     */
-    function isExistingAdmin() {
-      return isAdmin() && resource != null;
-    }
-
     // --- REGRAS DE COLEÇÃO ---
 
-    /**
-     * @description Gerenciamento de papéis administrativos. Apenas admins gerenciam outros admins.
-     * @path /roles_administrador/{usuarioId}
-     * @allow (get) Qualquer usuário logado pode verificar seu próprio status ou o de outros.
-     * @deny (create) Usuários comuns tentando se promover a administrador.
-     * @principle Database Access Control (DBAC) para permissões globais.
-     */
+    // Papéis administrativos
     match /roles_administrador/{usuarioId} {
       allow get: if isSignedIn();
       allow list, create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description Dados de perfil do usuário. O próprio usuário pode ler/editar seu perfil. Admins têm acesso total.
-     * @path /usuarios/{usuarioId}
-     * @allow (create) O usuário criando seu próprio perfil no momento do cadastro.
-     * @deny (update) Alterar o ID do documento para tentar assumir outra identidade.
-     * @principle Validação de identidade baseada em UID e integridade de caminho.
-     */
+    // Perfis de usuários
     match /usuarios/{usuarioId} {
       allow get, list: if isOwner(usuarioId) || isAdmin();
       allow create: if isOwner(usuarioId) && request.resource.data.id == usuarioId;
-      allow update: if (isExistingOwner(usuarioId) || isExistingAdmin()) && request.resource.data.id == resource.data.id;
+      allow update: if (isOwner(usuarioId) || isAdmin()) && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
 
-      /**
-       * @description Pedidos realizados pelo usuário.
-       * @path /usuarios/{usuarioId}/pedidos/{pedidoId}
-       * @allow (list) Usuário listando seu próprio histórico de compras.
-       * @deny (create) Criar um pedido para outro usuário (mismatch de usuarioId).
-       * @principle Autorização independente via aninhamento de caminhos.
-       */
+      // Pedidos do usuário
       match /pedidos/{pedidoId} {
         allow get, list: if isOwner(usuarioId) || isAdmin();
-        allow create: if isOwner(usuarioId) && request.resource.data.usuarioId == usuarioId;
-        allow update: if (isExistingOwner(usuarioId) && request.resource.data.usuarioId == resource.data.usuarioId) || isAdmin();
-        allow delete: if isAdmin();
+        allow create: if isOwner(usuarioId);
+        allow update, delete: if isAdmin();
 
-        /**
-         * @description Itens específicos de um pedido.
-         * @path /usuarios/{usuarioId}/pedidos/{pedidoId}/itensPedido/{itemPedidoId}
-         * @allow (get) Proprietário visualizando detalhes do item.
-         * @deny (delete) Clientes tentando apagar itens de um pedido já processado.
-         * @principle Herança de permissão através da estrutura de subcoleção.
-         */
+        // Itens do pedido
         match /itensPedido/{itemPedidoId} {
           allow get, list: if isOwner(usuarioId) || isAdmin();
           allow create: if isOwner(usuarioId);
-          allow update: if isExistingOwner(usuarioId) || isAdmin();
-          allow delete: if isAdmin();
+          allow update, delete: if isAdmin();
         }
       }
     }
 
-    /**
-     * @description Categorias de produtos da loja. Leitura pública para navegação.
-     * @path /categorias/{categoriaId}
-     * @allow (list) Visitante anônimo navegando pelas categorias do menu.
-     * @deny (create) Usuário comum tentando adicionar novas categorias.
-     * @principle Leitura pública com escrita restrita a administradores.
-     */
+    // Coleções Públicas (Leitura liberada para todos)
     match /categorias/{categoriaId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Catálogo de produtos. Leitura pública. Apenas admins gerenciam estoque, preço e imagens.
-     * @path /produtos/{produtoId}
-     * @allow (update) Admin alterando preço ou estoque para Black Friday.
-     * @deny (update) Cliente tentando alterar o preço de um produto.
-     * @principle Separação de privilégios entre consumo de dados e gestão de inventário.
-     */
     match /produtos/{produtoId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Campanhas e Promoções (ex: Black Friday).
-     * @path /promocoes/{promocaoId}
-     * @allow (get) Cliente visualizando descontos ativos para aplicar no carrinho.
-     * @deny (create) Qualquer tentativa de criação por não-admins.
-     * @principle Disponibilidade global de promoções com controle centralizado.
-     */
     match /promocoes/{promocaoId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -7,18 +6,19 @@ import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
   const firestore = useFirestore();
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-fashion')?.imageUrl;
 
+  // Consulta simplificada para evitar erro de índice composto no primeiro acesso
   const featuredQuery = useMemoFirebase(() => {
     return query(
       collection(firestore, 'produtos'),
       where('isFeatured', '==', true),
-      orderBy('dataCriacao', 'desc')
+      limit(8)
     );
   }, [firestore]);
 
@@ -88,9 +88,9 @@ export default function Home() {
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-4">
-            <Badge variant="outline" className="border-accent text-accent rounded-full px-4 py-1">Mais Vendidos</Badge>
+            <Badge variant="outline" className="border-accent text-accent rounded-full px-4 py-1">Destaques</Badge>
             <h2 className="text-4xl font-headline font-bold">Peças Favoritas</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">Explore nossos designs mais populares, escolhidos por qualidade e estilo pela nossa comunidade.</p>
+            <p className="text-muted-foreground max-w-xl mx-auto">Explore nossos designs mais populares, escolhidos por qualidade e estilo.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -98,9 +98,15 @@ export default function Home() {
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-xl" />
               ))
-            ) : featuredProducts?.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            ) : (featuredProducts && featuredProducts.length > 0) ? (
+              featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-20 text-muted-foreground">
+                Nenhum produto em destaque encontrado.
+              </div>
+            )}
           </div>
         </div>
       </section>
