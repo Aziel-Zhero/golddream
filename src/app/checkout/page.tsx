@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle, Send } from 'lucide-react';
+import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
 
@@ -29,7 +29,9 @@ export default function CheckoutPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { data: freteRules } = useCollection(collection(firestore, 'fretes'));
+  // CORREÇÃO: Memorizando a consulta de fretes para evitar o erro de hidratação/loop
+  const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
+  const { data: freteRules } = useCollection(fretesQuery);
 
   useEffect(() => {
     if (user?.endereco && freteRules) {
@@ -38,7 +40,7 @@ export default function CheckoutPage() {
         r.bairro.toLowerCase() === user.endereco?.bairro.toLowerCase()
       );
       if (rule) setShippingCost(rule.valor);
-      else setShippingCost(25);
+      else setShippingCost(25); // Valor padrão caso não encontre o bairro
     }
   }, [user, freteRules]);
 
@@ -103,10 +105,10 @@ export default function CheckoutPage() {
     // Salva no Firestore
     addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
 
-    // Formata mensagem WhatsApp
+    // Formata mensagem WhatsApp conforme modelo solicitado
     const whatsappNumber = "5512991862651";
     let message = `🛍️ *NOVO PEDIDO*\n\n`;
-    message += `🧾 *Código do Pedido:* ${orderId}\n\n`;
+    message += `🧾 *Código do Pedido:* #${orderId}\n\n`;
     message += `📦 *Produtos*\n\n`;
     
     pedidoData.itens.forEach((item, idx) => {
