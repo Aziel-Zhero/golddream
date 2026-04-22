@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Usuario": {
@@ -103,20 +102,6 @@
         "imagens": {
           "type": "array",
           "description": "Uma lista de URLs para imagens do produto.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tamanhosDisponiveis": {
-          "type": "array",
-          "description": "Uma lista dos tamanhos disponíveis.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "coresDisponiveis": {
-          "type": "array",
-          "description": "Uma lista das cores disponíveis.",
           "items": {
             "type": "string"
           }

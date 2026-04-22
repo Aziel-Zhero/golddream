@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DEPLOY TRIGGER: Atualização de regras para garantir acesso público ao catálogo.
-     * Versão: 1.0.1
+     * DEPLOY TRIGGER: Atualização de regras para garantir acesso público ao catálogo e configurações.
+     * Versão: 1.0.2
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -63,6 +63,11 @@ service cloud.firestore {
     }
 
     match /promocoes/{promocaoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /configuracoes/{configId} {
       allow read: if true;
       allow write: if isAdmin();
     }
