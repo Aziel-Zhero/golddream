@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * DEPLOY TRIGGER: Permissão de escrita liberada para coleções de catálogo e configurações para fins de prototipagem.
-     * Versão: 1.0.3
+     * DEPLOY TRIGGER: Adicionando permissões para fretes, cupons e pedidos.
+     * Versão: 1.0.4
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -14,8 +14,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Para o protótipo, vamos considerar que se o usuário está tentando acessar o admin, 
-      // ou se a regra de escrita for true, ele pode prosseguir.
+      // Verifica se o UID do usuário existe na coleção de administradores
       return isSignedIn() && exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
     }
 
@@ -34,33 +33,49 @@ service cloud.firestore {
     // Perfis de usuários
     match /usuarios/{usuarioId} {
       allow get, list: if isOwner(usuarioId) || isAdmin();
-      allow create: if isOwner(usuarioId) && request.resource.data.id == usuarioId;
-      allow update: if (isOwner(usuarioId) || isAdmin()) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(usuarioId);
+      allow update: if (isOwner(usuarioId) || isAdmin());
       allow delete: if isAdmin();
-
-      // Pedidos do usuário
-      match /pedidos/{pedidoId} {
-        allow get, list: if isOwner(usuarioId) || isAdmin();
-        allow create: if isOwner(usuarioId);
-        allow update, delete: if isAdmin();
-      }
     }
 
-    // Coleções do Catálogo e Configurações (Acesso liberado para prototipagem rápida do painel admin)
+    // Pedidos (Coleção Raiz)
+    match /pedidos/{pedidoId} {
+      // Qualquer um pode criar um pedido (necessário para o fluxo de WhatsApp)
+      allow create: if true;
+      // Apenas admin pode listar e ver detalhes de todos os pedidos
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Fretes e Cupons (Leitura pública para cálculo no checkout, escrita apenas admin)
+    match /fretes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /cupons/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Coleções do Catálogo e Configurações
     match /categorias/{categoriaId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /produtos/{produtoId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /promocoes/{promocaoId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /configuracoes/{configId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true; // Liberado para prototipagem da Home
     }
   }
 }
