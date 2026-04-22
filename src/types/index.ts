@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   nome: string;
@@ -12,12 +13,46 @@ export type Product = {
   isFeatured?: boolean;
 };
 
-export type Category = {
+export type User = {
+  uid: string;
+  nome: string;
+  email: string;
+  telefone?: string;
+  endereco?: {
+    rua: string;
+    bairro: string;
+    cidade: string;
+    cep: string;
+  };
+  papel: 'cliente' | 'administrador';
+  dataCriacao: string;
+};
+
+export type SiteConfig = {
+  heroBadgeText?: string;
+  heroTitle?: string;
+  heroDescription?: string;
+  heroImage?: string;
+  telegramLink?: string;
+  b1_title?: string; b1_sub?: string; b1_icon?: string;
+  b2_title?: string; b2_sub?: string; b2_icon?: string;
+  b3_title?: string; b3_sub?: string; b3_icon?: string;
+  b4_title?: string; b4_sub?: string; b4_icon?: string;
+};
+
+export type FreteRule = {
   id: string;
-  name: string;
-  slug: string;
-  image: string;
-  description?: string;
+  cidade: string;
+  bairro: string;
+  valor: number;
+};
+
+export type Cupom = {
+  id: string;
+  codigo: string;
+  desconto: number;
+  expira: boolean;
+  dataExpiracao?: string;
 };
 
 export type CartItem = {
@@ -26,27 +61,4 @@ export type CartItem = {
   quantity: number;
   selectedSize: string;
   selectedColor: string;
-};
-
-export type User = {
-  uid: string;
-  name: string;
-  email: string;
-  createdAt: string;
-  avatarUrl?: string;
-};
-
-export type Order = {
-  id: string;
-  userId: string;
-  items: CartItem[];
-  total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
-  createdAt: string;
-  shippingAddress: {
-    street: string;
-    city: string;
-    zip: string;
-    country: string;
-  };
 };

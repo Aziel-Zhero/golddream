@@ -1,219 +1,77 @@
+
 {
   "entities": {
     "Usuario": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Usuario",
       "type": "object",
-      "description": "Representa um usuário do sistema, podendo ser um cliente ou um administrador.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identificador único para o usuário."
-        },
-        "nome": {
-          "type": "string",
-          "description": "Nome completo do usuário."
-        },
-        "email": {
-          "type": "string",
-          "description": "Endereço de e-mail único do usuário.",
-          "format": "email"
-        },
-        "papel": {
-          "type": "string",
-          "description": "O papel do usuário no sistema (ex: 'cliente', 'administrador')."
-        },
-        "dataCriacao": {
-          "type": "string",
-          "description": "Timestamp de quando o usuário foi criado.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "nome",
-        "email",
-        "papel",
-        "dataCriacao"
-      ]
-    },
-    "Categoria": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Categoria",
-      "type": "object",
-      "description": "Representa uma categoria de produto na loja, como 'Camisetas' ou 'Calças'.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identificador único para a categoria."
-        },
-        "nome": {
-          "type": "string",
-          "description": "Nome da categoria (ex: 'Camisetas')."
-        },
-        "slug": {
-          "type": "string",
-          "description": "Um identificador amigável para URL da categoria."
-        },
-        "descricao": {
-          "type": "string",
-          "description": "Uma breve descrição da categoria."
-        },
-        "dataCriacao": {
-          "type": "string",
-          "description": "Timestamp de quando a categoria foi criada.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "nome",
-        "slug",
-        "descricao",
-        "dataCriacao"
-      ]
-    },
-    "Produto": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Produto",
-      "type": "object",
-      "description": "Representa um item de vestuário disponível para venda no e-commerce.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identificador único para o produto."
-        },
-        "nome": {
-          "type": "string",
-          "description": "Nome do produto."
-        },
-        "descricao": {
-          "type": "string",
-          "description": "Descrição detalhada do produto."
-        },
-        "preco": {
-          "type": "number",
-          "description": "Preço atual do produto."
-        },
-        "categoriaId": {
-          "type": "string",
-          "description": "Referência à Categoria à qual o produto pertence."
-        },
-        "imagens": {
-          "type": "array",
-          "description": "Uma lista de URLs para imagens do produto.",
-          "items": {
-            "type": "string"
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "telefone": { "type": "string" },
+        "endereco": {
+          "type": "object",
+          "properties": {
+            "rua": { "type": "string" },
+            "bairro": { "type": "string" },
+            "cidade": { "type": "string" },
+            "cep": { "type": "string" }
           }
         },
-        "estoque": {
-          "type": "number",
-          "description": "Nível de estoque atual do produto."
-        },
-        "isFeatured": {
-          "type": "boolean",
-          "description": "Indica se o produto deve aparecer na vitrine de destaques."
-        },
-        "dataCriacao": {
-          "type": "string",
-          "description": "Timestamp de quando o produto foi criado.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "nome",
-        "descricao",
-        "preco",
-        "categoriaId",
-        "imagens",
-        "estoque",
-        "dataCriacao"
-      ]
+        "papel": { "type": "string", "enum": ["cliente", "administrador"] },
+        "dataCriacao": { "type": "string", "format": "date-time" }
+      }
     },
     "ConfiguracaoSite": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConfiguracaoSite",
       "type": "object",
-      "description": "Configurações globais do site editáveis pelo administrador.",
       "properties": {
-        "telegramLink": {
-          "type": "string",
-          "description": "Link para o grupo do Telegram."
-        },
-        "freteInfo": {
-          "type": "string",
-          "description": "Texto exibido sobre frete (ex: 'Em pedidos acima de R$250')."
-        },
-        "entregaInfo": {
-          "type": "string",
-          "description": "Texto exibido sobre entrega (ex: 'Todo o Brasil em 3-5 dias')."
-        },
-        "pagamentoInfo": {
-          "type": "string",
-          "description": "Texto exibido sobre pagamento (ex: '100% criptografado')."
-        }
+        "heroBadge": { "type": "string" },
+        "heroTitle": { "type": "string" },
+        "heroDescription": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "telegramLink": { "type": "string" },
+        "b1_title": { "type": "string" },
+        "b1_sub": { "type": "string" },
+        "b1_icon": { "type": "string" },
+        "b2_title": { "type": "string" },
+        "b2_sub": { "type": "string" },
+        "b2_icon": { "type": "string" },
+        "b3_title": { "type": "string" },
+        "b3_sub": { "type": "string" },
+        "b3_icon": { "type": "string" },
+        "b4_title": { "type": "string" },
+        "b4_sub": { "type": "string" },
+        "b4_icon": { "type": "string" }
+      }
+    },
+    "Frete": {
+      "title": "Frete",
+      "type": "object",
+      "properties": {
+        "cidade": { "type": "string" },
+        "bairro": { "type": "string" },
+        "valor": { "type": "number" }
+      }
+    },
+    "Cupom": {
+      "title": "Cupom",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "desconto": { "type": "number", "description": "Valor em porcentagem" },
+        "expira": { "type": "boolean" },
+        "dataExpiracao": { "type": "string", "format": "date" }
       }
     }
   },
-  "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
-  },
   "firestore": {
     "structure": [
-      {
-        "path": "/usuarios/{usuarioId}",
-        "definition": {
-          "entityName": "Usuario",
-          "schema": {
-            "$ref": "#/backend/entities/Usuario"
-          },
-          "description": "Dados de perfil de um usuário individual."
-        }
-      },
-      {
-        "path": "/roles_administrador/{usuarioId}",
-        "definition": {
-          "entityName": "Usuario",
-          "schema": {
-            "$ref": "#/backend/entities/Usuario"
-          },
-          "description": "Define explicitamente os usuários com papel de administrador."
-        }
-      },
-      {
-        "path": "/configuracoes/geral",
-        "definition": {
-          "entityName": "ConfiguracaoSite",
-          "schema": {
-            "$ref": "#/backend/entities/ConfiguracaoSite"
-          },
-          "description": "Documento único contendo as configurações globais do site."
-        }
-      },
-      {
-        "path": "/produtos/{produtoId}",
-        "definition": {
-          "entityName": "Produto",
-          "schema": {
-            "$ref": "#/backend/entities/Produto"
-          },
-          "description": "Lista de produtos disponíveis."
-        }
-      },
-      {
-        "path": "/promocoes/{promocaoId}",
-        "definition": {
-          "entityName": "Promocao",
-          "schema": {
-            "$ref": "#/backend/entities/Promocao"
-          },
-          "description": "Lista de campanhas e promoções."
-        }
-      }
+      { "path": "/usuarios/{uid}", "definition": { "entityName": "Usuario", "schema": { "$ref": "#/backend/entities/Usuario" } } },
+      { "path": "/configuracoes/geral", "definition": { "entityName": "ConfiguracaoSite", "schema": { "$ref": "#/backend/entities/ConfiguracaoSite" } } },
+      { "path": "/fretes/{freteId}", "definition": { "entityName": "Frete", "schema": { "$ref": "#/backend/entities/Frete" } } },
+      { "path": "/cupons/{cupomId}", "definition": { "entityName": "Cupom", "schema": { "$ref": "#/backend/entities/Cupom" } } },
+      { "path": "/produtos/{produtoId}", "definition": { "entityName": "Produto", "schema": { "$ref": "#/backend/entities/Produto" } } }
     ]
   }
 }
