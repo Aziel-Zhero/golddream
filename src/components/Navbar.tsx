@@ -1,8 +1,9 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, Sparkles, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -50,18 +51,6 @@ export function Navbar() {
             >
               <Search className="w-5 h-5" />
             </Button>
-
-            <Link href="/ai-recommender">
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-accent group" title="Recomendações IA">
-                <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
-              </Button>
-            </Link>
-
-            <Link href="/admin">
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-primary" title="Painel Admin">
-                <LayoutDashboard className="w-5 h-5" />
-              </Button>
-            </Link>
 
             <Link href={user ? "/account" : "/auth/login"}>
               <Button variant="ghost" size="icon" className="text-foreground hover:text-primary">

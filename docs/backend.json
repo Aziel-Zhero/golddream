@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Usuario": {
@@ -97,7 +98,7 @@
         },
         "categoriaId": {
           "type": "string",
-          "description": "Referência à Categoria à qual o produto pertence. (Relacionamento: Categoria 1:N Produto)"
+          "description": "Referência à Categoria à qual o produto pertence."
         },
         "imagens": {
           "type": "array",
@@ -108,14 +109,14 @@
         },
         "tamanhosDisponiveis": {
           "type": "array",
-          "description": "Uma lista dos tamanhos disponíveis para o produto (ex: 'P', 'M', 'G', 'GG').",
+          "description": "Uma lista dos tamanhos disponíveis.",
           "items": {
             "type": "string"
           }
         },
         "coresDisponiveis": {
           "type": "array",
-          "description": "Uma lista das cores disponíveis para o produto (ex: 'Vermelho', 'Azul', 'Preto').",
+          "description": "Uma lista das cores disponíveis.",
           "items": {
             "type": "string"
           }
@@ -124,14 +125,13 @@
           "type": "number",
           "description": "Nível de estoque atual do produto."
         },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Indica se o produto deve aparecer na vitrine de destaques."
+        },
         "dataCriacao": {
           "type": "string",
           "description": "Timestamp de quando o produto foi criado.",
-          "format": "date-time"
-        },
-        "dataAtualizacao": {
-          "type": "string",
-          "description": "Timestamp da última atualização do produto.",
           "format": "date-time"
         }
       },
@@ -142,174 +142,33 @@
         "preco",
         "categoriaId",
         "imagens",
-        "tamanhosDisponiveis",
-        "coresDisponiveis",
         "estoque",
         "dataCriacao"
       ]
     },
-    "Pedido": {
+    "ConfiguracaoSite": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Pedido",
+      "title": "ConfiguracaoSite",
       "type": "object",
-      "description": "Representa um pedido feito por um usuário na loja.",
+      "description": "Configurações globais do site editáveis pelo administrador.",
       "properties": {
-        "id": {
+        "telegramLink": {
           "type": "string",
-          "description": "Identificador único para o pedido."
+          "description": "Link para o grupo do Telegram."
         },
-        "usuarioId": {
+        "freteInfo": {
           "type": "string",
-          "description": "Referência ao Usuário que fez o pedido. (Relacionamento: Usuário 1:N Pedido)"
+          "description": "Texto exibido sobre frete (ex: 'Em pedidos acima de R$250')."
         },
-        "total": {
-          "type": "number",
-          "description": "Valor total do pedido, incluindo frete e impostos."
-        },
-        "status": {
+        "entregaInfo": {
           "type": "string",
-          "description": "Status atual do pedido (ex: 'pendente', 'processando', 'enviado', 'entregue', 'cancelado')."
+          "description": "Texto exibido sobre entrega (ex: 'Todo o Brasil em 3-5 dias')."
         },
-        "dataCriacao": {
+        "pagamentoInfo": {
           "type": "string",
-          "description": "Timestamp de quando o pedido foi criado.",
-          "format": "date-time"
-        },
-        "dataAtualizacao": {
-          "type": "string",
-          "description": "Timestamp da última atualização do status ou detalhes do pedido.",
-          "format": "date-time"
+          "description": "Texto exibido sobre pagamento (ex: '100% criptografado')."
         }
-      },
-      "required": [
-        "id",
-        "usuarioId",
-        "total",
-        "status",
-        "dataCriacao"
-      ]
-    },
-    "ItemPedido": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ItemPedido",
-      "type": "object",
-      "description": "Representa um produto específico dentro de um pedido, incluindo detalhes como quantidade e preço unitário no momento da compra.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identificador único para o item do pedido."
-        },
-        "pedidoId": {
-          "type": "string",
-          "description": "Referência ao Pedido ao qual este item pertence. (Relacionamento: Pedido 1:N ItemPedido)"
-        },
-        "produtoId": {
-          "type": "string",
-          "description": "Referência ao Produto específico que foi comprado. (Relacionamento: Produto 1:N ItemPedido)"
-        },
-        "quantidade": {
-          "type": "number",
-          "description": "Quantidade do produto neste item do pedido."
-        },
-        "precoUnitario": {
-          "type": "number",
-          "description": "Preço do produto no momento em que foi adicionado ao pedido."
-        },
-        "tamanhoSelecionado": {
-          "type": "string",
-          "description": "O tamanho específico do produto selecionado para este item do pedido."
-        },
-        "corSelecionada": {
-          "type": "string",
-          "description": "A cor específica do produto selecionada para este item do pedido."
-        }
-      },
-      "required": [
-        "id",
-        "pedidoId",
-        "produtoId",
-        "quantidade",
-        "precoUnitario",
-        "tamanhoSelecionado",
-        "corSelecionada"
-      ]
-    },
-    "Promocao": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Promocao",
-      "type": "object",
-      "description": "Representa uma campanha ou promoção aplicada a produtos ou categorias.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Identificador único para a promoção."
-        },
-        "nome": {
-          "type": "string",
-          "description": "Nome da promoção (ex: 'Black Friday', 'Desconto de Verão')."
-        },
-        "descricao": {
-          "type": "string",
-          "description": "Descrição detalhada da promoção."
-        },
-        "tipoDesconto": {
-          "type": "string",
-          "description": "Tipo de desconto (ex: 'porcentagem', 'valorFixo', 'freteGratis')."
-        },
-        "valorDesconto": {
-          "type": "number",
-          "description": "Valor do desconto. Pode ser uma porcentagem (ex: 10 para 10%) ou um valor fixo (ex: 50 para R$50)."
-        },
-        "dataInicio": {
-          "type": "string",
-          "description": "Data e hora de início da promoção.",
-          "format": "date-time"
-        },
-        "dataFim": {
-          "type": "string",
-          "description": "Data e hora de término da promoção.",
-          "format": "date-time"
-        },
-        "aplicavelAProdutosIds": {
-          "type": "array",
-          "description": "Lista de IDs de Produtos aos quais esta promoção se aplica. Se vazia, pode aplicar-se a categorias.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "aplicavelACategoriasIds": {
-          "type": "array",
-          "description": "Lista de IDs de Categorias às quais esta promoção se aplica. Se vazia, pode aplicar-se a produtos específicos.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "ativo": {
-          "type": "boolean",
-          "description": "Indica se a promoção está atualmente ativa."
-        },
-        "dataCriacao": {
-          "type": "string",
-          "description": "Timestamp de quando a promoção foi criada.",
-          "format": "date-time"
-        },
-        "dataAtualizacao": {
-          "type": "string",
-          "description": "Timestamp da última atualização da promoção.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "nome",
-        "descricao",
-        "tipoDesconto",
-        "valorDesconto",
-        "dataInicio",
-        "dataFim",
-        "ativo",
-        "dataCriacao"
-      ]
+      }
     }
   },
   "auth": {
@@ -327,13 +186,7 @@
           "schema": {
             "$ref": "#/backend/entities/Usuario"
           },
-          "description": "Dados de perfil de um usuário individual. O acesso é restrito ao próprio usuário ou a administradores. O 'papel' do usuário (ex: 'cliente') é armazenado aqui, mas o status de 'administrador' é determinado pela existência de um documento em '/roles_administrador/{usuarioId}' para fins de regras de segurança robustas.",
-          "params": [
-            {
-              "name": "usuarioId",
-              "description": "O identificador único (UID) do usuário autenticado."
-            }
-          ]
+          "description": "Dados de perfil de um usuário individual."
         }
       },
       {
@@ -343,29 +196,17 @@
           "schema": {
             "$ref": "#/backend/entities/Usuario"
           },
-          "description": "Coleção para definir explicitamente os usuários com papel de administrador. A existência de um documento com o UID do usuário nesta coleção concede permissões administrativas em todo o sistema, utilizando o modelo DBAC (Database Access Control) de 'existência sobre conteúdo'.",
-          "params": [
-            {
-              "name": "usuarioId",
-              "description": "O identificador único (UID) do usuário que possui o papel de administrador."
-            }
-          ]
+          "description": "Define explicitamente os usuários com papel de administrador."
         }
       },
       {
-        "path": "/categorias/{categoriaId}",
+        "path": "/configuracoes/geral",
         "definition": {
-          "entityName": "Categoria",
+          "entityName": "ConfiguracaoSite",
           "schema": {
-            "$ref": "#/backend/entities/Categoria"
+            "$ref": "#/backend/entities/ConfiguracaoSite"
           },
-          "description": "Coleção pública para listar todas as categorias de produtos. Apenas administradores podem criar, editar ou excluir categorias.",
-          "params": [
-            {
-              "name": "categoriaId",
-              "description": "O identificador único da categoria."
-            }
-          ]
+          "description": "Documento único contendo as configurações globais do site."
         }
       },
       {
@@ -375,13 +216,7 @@
           "schema": {
             "$ref": "#/backend/entities/Produto"
           },
-          "description": "Coleção pública para listar todos os produtos disponíveis na loja. Inclui 'categoriaId' como referência. Apenas administradores podem criar, editar ou excluir produtos.",
-          "params": [
-            {
-              "name": "produtoId",
-              "description": "O identificador único do produto."
-            }
-          ]
+          "description": "Lista de produtos disponíveis."
         }
       },
       {
@@ -391,60 +226,9 @@
           "schema": {
             "$ref": "#/backend/entities/Promocao"
           },
-          "description": "Coleção pública para listar campanhas e promoções ativas. É publicamente legível para que os clientes possam aplicar descontos. Apenas administradores podem criar, editar ou excluir promoções.",
-          "params": [
-            {
-              "name": "promocaoId",
-              "description": "O identificador único da promoção."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/usuarios/{usuarioId}/pedidos/{pedidoId}",
-        "definition": {
-          "entityName": "Pedido",
-          "schema": {
-            "$ref": "#/backend/entities/Pedido"
-          },
-          "description": "Pedidos feitos por um usuário específico. Aninhado sob o usuário para garantir que o 'usuarioId' esteja no caminho, facilitando regras de segurança que validam a propriedade do pedido. Inclui denormalização do 'usuarioId' no documento para consistência. Apenas o proprietário do pedido ou administradores podem ler/atualizar. Administradores podem ler/deletar todos os pedidos.",
-          "params": [
-            {
-              "name": "usuarioId",
-              "description": "O identificador único (UID) do usuário que fez o pedido."
-            },
-            {
-              "name": "pedidoId",
-              "description": "O identificador único do pedido."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/usuarios/{usuarioId}/pedidos/{pedidoId}/itensPedido/{itemPedidoId}",
-        "definition": {
-          "entityName": "ItemPedido",
-          "schema": {
-            "$ref": "#/backend/entities/ItemPedido"
-          },
-          "description": "Itens individuais dentro de um pedido específico. Aninhado sob o pedido para herdar o 'usuarioId' e 'pedidoId' do caminho, garantindo autorização independente e rastreamento claro. O acesso é restrito ao proprietário do pedido ou a administradores.",
-          "params": [
-            {
-              "name": "usuarioId",
-              "description": "O identificador único (UID) do usuário que possui o pedido pai."
-            },
-            {
-              "name": "pedidoId",
-              "description": "O identificador único do pedido pai."
-            },
-            {
-              "name": "itemPedidoId",
-              "description": "O identificador único do item do pedido."
-            }
-          ]
+          "description": "Lista de campanhas e promoções."
         }
       }
-    ],
-    "reasoning": "A estrutura do Firestore é projetada para otimizar a segurança, escalabilidade e debugabilidade, seguindo rigorosamente os princípios de design fornecidos. A estratégia central é a **Autorização Independente via Desnormalização** e a **Segregação Estrutural** para simplificar as regras de segurança e garantir o QAP (Query as Permission).\n\n**Justificativa Detalhada:**\n\n1.  **Autorização Independente (Desnormalização):**\n    *   Para `Pedidos` e seus `ItemPedidos`, o `usuarioId` é crucial para a autorização. Ao aninhar `pedidos` sob `/usuarios/{usuarioId}/pedidos/{pedidoId}`, o `usuarioId` se torna parte do caminho. Isso permite que as regras de segurança verifiquem `request.auth.uid == usuarioId` diretamente do caminho, sem a necessidade de uma chamada `get()` ao documento pai (`/usuarios/{usuarioId}`) ou ao próprio documento `Pedido` para obter o `usuarioId`. O documento `Pedido` também contém o campo `usuarioId` como uma redundância útil para consultas diretas e consistência de dados, mas não é estritamente necessário para a verificação de regras no `ItemPedido` devido à estrutura do caminho.\n    *   Para `ItemPedidos` (subcoleção de `Pedidos`), a estrutura `/usuarios/{usuarioId}/pedidos/{pedidoId}/itensPedido/{itemPedidoId}` garante que o `usuarioId` e `pedidoId` estejam presentes no caminho. Isso assegura que o acesso a um `ItemPedido` possa ser verificado de forma atômica e independente, sem depender de `get()` para buscar dados do `Pedido` pai.\n\n2.  **Suporte a QAPs (Segregação Estrutural):**\n    *   **Dados Públicos/Globais:** As coleções `/categorias`, `/produtos` e `/promocoes` são estruturadas como coleções de nível superior. Todos os documentos dentro delas têm a mesma postura de segurança: são publicamente legíveis por qualquer usuário (autenticado ou não) e **somente graváveis/editáveis por administradores**. Isso permite operações de `list` eficientes e seguras para a loja, catálogo e promoções, sem a necessidade de filtrar resultados por permissão. As regras de segurança para essas coleções serão simples, verificando apenas se `request.auth.uid` pertence à coleção de `roles_administrador` para operações de escrita.\n    *   **Dados Privados/Do Usuário:** A coleção `/usuarios/{usuarioId}` e suas subcoleções `/usuarios/{usuarioId}/pedidos/{pedidoId}` (e `/usuarios/{usuarioId}/pedidos/{pedidoId}/itensPedido/{itemPedidoId}`) seguem um modelo de propriedade baseada em caminho. Um usuário só pode `listar` e `ler` seus próprios `pedidos` e `itensPedido`. Isso é fundamental para evitar que um usuário veja pedidos de outros e para garantir que as operações de `list` sejam eficientes e automaticamente filtradas pelo `uid` do usuário autenticado no caminho.\n    *   **Gerenciamento de Administradores (DBAC):** A coleção `/roles_administrador/{usuarioId}` é um exemplo de segregação. A existência de um documento nesta coleção com o `uid` do usuário em `request.auth.uid` confere o papel de administrador. As regras de segurança podem facilmente verificar `get(/roles_administrador/$(request.auth.uid)).exists()` para autorizar ações administrativas, como editar produtos ou categorias, ou ler/gerenciar todos os pedidos.\n\nEsta abordagem não apenas simplifica drasticamente as regras de segurança, tornando-as fáceis de escrever e depurar, mas também otimiza o desempenho das consultas, pois a maioria dos dados relevantes para autorização já está disponível no caminho ou no próprio documento, sem a necessidade de leituras adicionais (e caras) em outras partes do banco de dados."
+    ]
   }
 }

@@ -1,19 +1,24 @@
+
 "use client";
 
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
+import { collection, query, where, limit, doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
   const firestore = useFirestore();
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-fashion')?.imageUrl;
 
-  // Consulta simplificada para evitar erro de índice composto no primeiro acesso
+  // Busca configurações globais
+  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: config } = useDoc(configRef);
+
+  // Consulta para produtos em destaque
   const featuredQuery = useMemoFirebase(() => {
     return query(
       collection(firestore, 'produtos'),
@@ -23,6 +28,29 @@ export default function Home() {
   }, [firestore]);
 
   const { data: featuredProducts, isLoading } = useCollection(featuredQuery);
+
+  const valueProps = [
+    { 
+      icon: Truck, 
+      label: 'Frete Grátis', 
+      sub: config?.freteInfo || 'Em pedidos acima de R$250' 
+    },
+    { 
+      icon: ShieldCheck, 
+      label: 'Pagamento Seguro', 
+      sub: config?.pagamentoInfo || '100% criptografado' 
+    },
+    { 
+      icon: Zap, 
+      label: 'Entrega Rápida', 
+      sub: config?.entregaInfo || 'Todo o Brasil em 3-5 dias' 
+    },
+    { 
+      icon: ArrowRight, 
+      label: 'Novidades', 
+      sub: 'Lançamentos semanais exclusivos' 
+    }
+  ];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -54,9 +82,6 @@ export default function Home() {
                   Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-base backdrop-blur-md bg-white/10 hover:bg-white/20">
-                Descobrir Mais
-              </Button>
             </div>
           </div>
         </div>
@@ -66,12 +91,7 @@ export default function Home() {
       <section className="py-16 bg-white border-y">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { icon: Truck, label: 'Frete Grátis', sub: 'Em pedidos acima de R$250' },
-              { icon: ShieldCheck, label: 'Pagamento Seguro', sub: '100% criptografado' },
-              { icon: Zap, label: 'Entrega Rápida', sub: 'Todo o Brasil em 3-5 dias' },
-              { icon: Sparkles, label: 'IA Stylist', sub: 'Personalizado para você' }
-            ].map((item, idx) => (
+            {valueProps.map((item, idx) => (
               <div key={idx} className="flex flex-col items-center text-center space-y-2">
                 <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-primary mb-2">
                   <item.icon className="w-6 h-6" />
@@ -107,24 +127,6 @@ export default function Home() {
                 Nenhum produto em destaque encontrado.
               </div>
             )}
-          </div>
-        </div>
-      </section>
-
-      {/* AI CTA */}
-      <section className="py-24 bg-primary text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-accent rounded-full blur-[120px] opacity-30" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
-              <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-xs font-bold tracking-widest uppercase">Stylist com IA</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-headline font-bold">Dúvida sobre o que vestir?</h2>
-            <p className="text-lg text-white/70">Nossa IA de Estilo analisa suas preferências e tendências sazonais para sugerir os looks perfeitos para você.</p>
-            <Button size="lg" asChild className="bg-white text-primary hover:bg-white/90 rounded-full px-12 h-14 font-bold shadow-2xl">
-              <Link href="/ai-recommender">Experimentar IA Stylist</Link>
-            </Button>
           </div>
         </div>
       </section>

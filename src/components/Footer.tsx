@@ -1,7 +1,26 @@
+
+"use client";
+
 import Link from 'next/link';
-import { Instagram, Twitter, Facebook } from 'lucide-react';
+import { Instagram, Twitter, Facebook, Send, LayoutDashboard, ExternalLink } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { Button } from '@/components/ui/button';
 
 export function Footer() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  
+  // Verifica se o usuário é administrador
+  const adminRef = useMemoFirebase(() => user ? doc(firestore, 'roles_administrador', user.uid) : null, [firestore, user]);
+  const { data: adminRole } = useDoc(adminRef);
+
+  // Busca link do Telegram das configurações
+  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: config } = useDoc(configRef);
+
+  const telegramUrl = config?.telegramLink || 'https://t.me/voguecraft';
+
   return (
     <footer className="bg-white border-t py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,23 +58,27 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-headline font-bold mb-6">Newsletter</h4>
-            <p className="text-sm text-muted-foreground mb-4">Junte-se à nossa comunidade para acesso antecipado exclusivo e atualizações de estilo.</p>
-            <div className="flex gap-2">
-              <input 
-                type="email" 
-                placeholder="Seu e-mail" 
-                className="bg-muted border-none rounded-md px-4 py-2 text-sm w-full focus:ring-1 focus:ring-primary outline-none"
-              />
-              <button className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
-                Assinar
-              </button>
-            </div>
+            <h4 className="font-headline font-bold mb-6">Grupo no Telegram</h4>
+            <p className="text-sm text-muted-foreground mb-6 text-balance">
+              Entre em nosso grupo exclusivo para receber ofertas, novidades e cupons de desconto em primeira mão!
+            </p>
+            <Button asChild className="w-full rounded-xl bg-[#0088cc] hover:bg-[#0088cc]/90 text-white font-bold h-12">
+              <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
+                <Send className="w-5 h-5 mr-2" /> Entrar no Telegram
+              </a>
+            </Button>
           </div>
         </div>
         
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground gap-4">
-          <p>&copy; {new Date().getFullYear()} VogueCraft. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-4">
+            <p>&copy; {new Date().getFullYear()} VogueCraft. Todos os direitos reservados.</p>
+            {adminRole && (
+              <Link href="/admin" className="flex items-center gap-1 text-primary font-bold hover:underline">
+                <LayoutDashboard className="w-3 h-3" /> Acesso Administrativo
+              </Link>
+            )}
+          </div>
           <div className="flex gap-8">
             <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
             <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
