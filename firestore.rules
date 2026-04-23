@@ -9,7 +9,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin sem recursão
+    // Verifica se o usuário é admin. 
+    // Usamos 'get' mas o match de usuarios garante o curto-circuito para o dono
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador', 'admin_vogue'];
@@ -18,26 +19,22 @@ service cloud.firestore {
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // Regra fundamental: Dono lê sempre sem chamar isAdmin para evitar recursão
-      allow read: if isSignedIn() && (
-        request.auth.uid == uid || isAdmin()
-      );
-      
+      // Dono lê e edita sempre. Admin lê e lista todos.
+      // O curto-circuito (auth.uid == uid) evita a recursão no isAdmin()
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Permite criar pedido se estiver logado
       allow create: if isSignedIn();
       
-      // Regra de leitura/listagem:
-      // Para listagem (queries), o Firestore exige que a regra cubra o filtro aplicado no código.
-      // O filtro 'usuarioId == uid' é validado aqui.
+      // Regra de listagem/leitura:
+      // Admins podem tudo. Clientes podem ver se o usuarioId bater com o UID deles.
+      // Firestore exige que queries filtrem por usuarioId para autorizar o 'list'.
       allow read, list: if isSignedIn() && (
-        (resource == null || resource.data.usuarioId == request.auth.uid) || 
-        isAdmin()
+        isAdmin() || (resource != null && resource.data.usuarioId == request.auth.uid)
       );
       
       allow update, delete: if isAdmin();

@@ -145,9 +145,9 @@ export default function MyOrdersPage() {
                     </div>
                     <div className="flex items-center gap-2 pt-2 px-1">
                       <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         Realizado em: {new Date(order.dataCriacao).toLocaleDateString()} às {new Date(order.dataCriacao).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </div>
