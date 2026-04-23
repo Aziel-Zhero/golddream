@@ -36,7 +36,10 @@ import {
   PowerOff,
   Globe,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Instagram,
+  Facebook,
+  Twitter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +59,7 @@ import { collection, query, doc, orderBy, setDoc, writeBatch, getDocs } from 'fi
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pedido, TelegramConfig, FreteRule, Cupom } from '@/types';
+import { Pedido, TelegramConfig, FreteRule, Cupom, SiteConfig } from '@/types';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/context/AuthContext';
 
@@ -77,11 +80,9 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user, isLoading: isAuthLoading } = useAuth();
   
-  // Verificação rigorosa de admin
   const isAdmin = user?.papel === 'admin' || user?.papel === 'administrador';
 
   const ordersQuery = useMemoFirebase(() => {
-    // Só inicia a consulta se tivermos certeza que o usuário é admin
     if (!isAdmin) return null;
     return query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'));
   }, [firestore, isAdmin]);
@@ -89,10 +90,10 @@ export default function AdminDashboard() {
   const { data: allOrders, error: ordersError } = useCollection<Pedido>(ordersQuery);
 
   const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
-  const { data: config } = useDoc(configRef);
+  const { data: config } = useDoc<SiteConfig>(configRef);
 
   const telegramRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'telegram') : null, [firestore, isAdmin]);
-  const { data: telegramData } = useDoc(telegramRef);
+  const { data: telegramData } = useDoc<TelegramConfig>(telegramRef);
 
   const fretesQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'fretes') : null, [firestore, isAdmin]);
   const { data: fretes } = useCollection<FreteRule>(fretesQuery);
@@ -100,13 +101,13 @@ export default function AdminDashboard() {
   const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
   const { data: cupons } = useCollection<Cupom>(cuponsQuery);
 
-  const [siteSettings, setSiteSettings] = useState<any>({
+  const [siteSettings, setSiteSettings] = useState<SiteConfig>({
     heroBadge: '', heroTitle: '', heroDescription: '', heroImage: '',
-    telegramLink: '',
-    b1_title: '', b1_sub: '', b1_icon: 'Truck',
-    b2_title: '', b2_sub: '', b2_icon: 'ShieldCheck',
-    b3_title: '', b3_sub: '', b3_icon: 'Zap',
-    b4_title: '', b4_sub: '', b4_icon: 'ArrowRight'
+    telegramLink: '', instagramLink: '', facebookLink: '', twitterLink: '',
+    b1_title: '', b1_sub: '', b1_icon: 'Truck', b1_active: true,
+    b2_title: '', b2_sub: '', b2_icon: 'ShieldCheck', b2_active: true,
+    b3_title: '', b3_sub: '', b3_icon: 'Zap', b3_active: true,
+    b4_title: '', b4_sub: '', b4_icon: 'ArrowRight', b4_active: true
   });
 
   const [tgConfig, setTgConfig] = useState<TelegramConfig>({
@@ -129,11 +130,11 @@ export default function AdminDashboard() {
   }, [allOrders]);
 
   useEffect(() => {
-    if (config) setSiteSettings((prev: any) => ({ ...prev, ...config }));
+    if (config) setSiteSettings((prev) => ({ ...prev, ...config }));
   }, [config]);
 
   useEffect(() => {
-    if (telegramData) setTgConfig((prev: any) => ({ ...prev, ...telegramData }));
+    if (telegramData) setTgConfig((prev) => ({ ...prev, ...telegramData }));
   }, [telegramData]);
 
   const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
@@ -153,44 +154,16 @@ export default function AdminDashboard() {
       return;
     }
 
-    const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto\nQtd: 1\nValor: R$ 89,90\n\n2️⃣ *Calça Jeans*\nTamanho: 42\nCor: Azul\nQtd: 1\nValor: R$ 159,90";
-    const testTotal = "249,80";
-    const testPhone = "5512991862651";
-    const testAddress = "Rua das Flores, 123 - Centro, Pinda - SP";
-
+    const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto\nQtd: 1\nValor: R$ 89,90";
     const message = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
       .replace('{{codigo}}', 'TEST-2024-001')
       .replace('{{itens}}', testItems)
       .replace('{{clienteNome}}', 'Administrador Teste')
-      .replace('{{clienteEndereco}}', testAddress)
-      .replace('{{telefone}}', testPhone)
-      .replace('{{cupom}}', 'BOASVINDAS10')
-      .replace('{{total}}', testTotal);
-
-    const waMessage = `Olá *Administrador Teste* 👋
-
-Aqui é da *Gold Dream - Multimarcas*.
-
-Seu pedido já está sendo preparado 🛍️
-
-Poderia confirmar se este endereço está correto?
-
-📍 ${testAddress}
-
-E nos informar a forma de pagamento? 💳`;
-
-    const waUrl = `https://wa.me/${testPhone}?text=${encodeURIComponent(waMessage)}`;
-    const confirmUrl = `${window.location.origin}/admin/orders/TEST-2024-001/confirm`;
-
-    const replyMarkup = JSON.stringify({
-      inline_keyboard: [
-        [{ text: "✅ Pegar Pedido", url: confirmUrl }],
-        [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
-      ]
-    });
+      .replace('{{clienteEndereco}}', 'Endereço Teste')
+      .replace('{{total}}', '89,90');
 
     try {
-      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
+      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
       await fetch(url);
       toast({ title: "Teste Enviado!", description: "Verifique seu Telegram." });
     } catch (e) {
@@ -300,13 +273,13 @@ E nos informar a forma de pagamento? 💳`;
       </div>
 
       <Tabs defaultValue="orders" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 bg-muted/50 p-1 rounded-2xl h-auto">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 bg-muted/50 p-1 rounded-2xl h-auto">
           <TabsTrigger value="orders">Pedidos</TabsTrigger>
           <TabsTrigger value="home">Site</TabsTrigger>
           <TabsTrigger value="catalog">Estoque</TabsTrigger>
           <TabsTrigger value="frete">Fretes</TabsTrigger>
           <TabsTrigger value="coupons">Cupons</TabsTrigger>
-          <TabsTrigger value="api">API Telegram</TabsTrigger>
+          <TabsTrigger value="api">Notificações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="space-y-6">
@@ -394,14 +367,93 @@ E nos informar a forma de pagamento? 💳`;
           </Card>
         </TabsContent>
 
+        <TabsContent value="home" className="space-y-8">
+           <Card className="border-2 shadow-sm">
+            <CardHeader><CardTitle>Site & Banner</CardTitle><CardDescription>Personalize a aparência da sua loja.</CardDescription></CardHeader>
+            <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2"><Label>Badge Principal</Label><Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" /></div>
+                <div className="space-y-2"><Label>URL da Imagem Banner</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} placeholder="https://..." /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Título Principal</Label><Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} placeholder="Crie seu Estilo Único" /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Descrição do Banner</Label><Textarea value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} placeholder="Texto que aparece abaixo do título principal..." /></div>
+              </div>
+
+              <div className="pt-8 border-t">
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Globe className="w-5 h-5 text-primary" /> Redes Sociais</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><Send className="w-4 h-4 text-[#0088cc]" /> Telegram (Grupo VIP)</Label>
+                    <Input value={siteSettings.telegramLink} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} placeholder="https://t.me/seu-grupo" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><Instagram className="w-4 h-4 text-pink-600" /> Instagram</Label>
+                    <Input value={siteSettings.instagramLink} onChange={e => setSiteSettings({...siteSettings, instagramLink: e.target.value})} placeholder="https://instagram.com/seu-perfil" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><Facebook className="w-4 h-4 text-blue-600" /> Facebook</Label>
+                    <Input value={siteSettings.facebookLink} onChange={e => setSiteSettings({...siteSettings, facebookLink: e.target.value})} placeholder="https://facebook.com/seu-perfil" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><Twitter className="w-4 h-4 text-sky-500" /> Twitter (X)</Label>
+                    <Input value={siteSettings.twitterLink} onChange={e => setSiteSettings({...siteSettings, twitterLink: e.target.value})} placeholder="https://twitter.com/seu-perfil" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-8 border-t">
+                <Label className="text-lg font-bold mb-6 block">Cartões de Benefícios</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[1, 2, 3, 4].map(i => {
+                    const iconKey = `b${i}_icon` as keyof SiteConfig;
+                    const activeKey = `b${i}_active` as keyof SiteConfig;
+                    const titleKey = `b${i}_title` as keyof SiteConfig;
+                    const subKey = `b${i}_sub` as keyof SiteConfig;
+                    
+                    const IconComp = ICON_MAP[siteSettings[iconKey] as string] || Truck;
+
+                    return (
+                      <div key={i} className={`p-6 border-2 rounded-2xl relative pt-10 transition-all ${siteSettings[activeKey] ? 'bg-muted/20 border-primary/20' : 'bg-muted/10 border-muted opacity-60 grayscale'}`}>
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                           <Label className="text-[10px] font-black uppercase">Ativo</Label>
+                           <Switch 
+                            checked={!!siteSettings[activeKey]} 
+                            onCheckedChange={val => setSiteSettings({...siteSettings, [activeKey]: val})} 
+                           />
+                        </div>
+                        <div className="absolute top-4 left-6 flex items-center gap-2">
+                           <div className="p-2 bg-white rounded-lg shadow-sm border"><IconComp className="w-4 h-4 text-primary" /></div>
+                           <span className="text-[10px] font-black uppercase text-primary">Card {i}</span>
+                        </div>
+                        <div className="space-y-3 pt-2">
+                          <Input placeholder="Título do Benefício" value={siteSettings[titleKey] as string} onChange={e => setSiteSettings({...siteSettings, [titleKey]: e.target.value})} />
+                          <Input placeholder="Texto Auxiliar" value={siteSettings[subKey] as string} onChange={e => setSiteSettings({...siteSettings, [subKey]: e.target.value})} />
+                          <select 
+                            className="w-full p-2.5 border-2 rounded-xl bg-background text-sm font-bold"
+                            value={siteSettings[iconKey] as string}
+                            onChange={e => setSiteSettings({...siteSettings, [iconKey]: e.target.value})}
+                          >
+                            {Object.keys(ICON_MAP).map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSettings} className="w-full h-14 rounded-2xl font-bold"><Save className="w-5 h-5 mr-2" /> Salvar Alterações Visuais</Button>
+            </CardContent>
+           </Card>
+        </TabsContent>
+
         <TabsContent value="api" className="space-y-6">
           <Card className="border-2 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Send className="w-6 h-6 text-[#0088cc]" />
-                Configuração da Notificação
+                Automação de Notificações
               </CardTitle>
-              <CardDescription>O pedido será enviado automaticamente via bot para o chat configurado.</CardDescription>
+              <CardDescription>Receba alertas em tempo real no Telegram quando um cliente comprar.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -414,19 +466,14 @@ E nos informar a forma de pagamento? 💳`;
                   <Input value={tgConfig.chatId} onChange={e => setTgConfig({...tgConfig, chatId: e.target.value})} placeholder="-100..."/>
                 </div>
                 <div className="space-y-2">
-                  <Label>Chat ID de Teste (Seu ID)</Label>
+                  <Label>Chat ID de Teste</Label>
                   <Input value={tgConfig.testChatId} onChange={e => setTgConfig({...tgConfig, testChatId: e.target.value})} placeholder="12345678"/>
                 </div>
               </div>
 
               <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-bold">Estrutura da Mensagem</Label>
-                  <Badge variant="outline" className="flex gap-1 items-center bg-primary/5 border-primary/20">
-                    <span className="text-[10px] font-black uppercase">Tags Disponíveis</span>
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <Label className="text-lg font-bold">Template da Mensagem (Markdown)</Label>
+                <div className="flex flex-wrap gap-2">
                   {['codigo', 'itens', 'clienteNome', 'clienteEndereco', 'telefone', 'cupom', 'total'].map(tag => (
                     <Badge key={tag} variant="secondary" className="font-mono text-[10px]">{`{{${tag}}}`}</Badge>
                   ))}
@@ -434,22 +481,21 @@ E nos informar a forma de pagamento? 💳`;
                 <Textarea 
                   value={tgConfig.messageTemplate} 
                   onChange={e => setTgConfig({...tgConfig, messageTemplate: e.target.value})}
-                  placeholder="Escreva como a mensagem deve chegar..."
-                  className="min-h-[250px] font-mono text-sm leading-relaxed border-2"
+                  className="min-h-[250px] font-mono text-sm border-2"
                 />
               </div>
               
-              <div className="flex items-center gap-3 p-6 bg-muted/30 rounded-2xl border-2 border-primary/5">
+              <div className="flex items-center gap-3 p-6 bg-muted/30 rounded-2xl border-2">
                 <Switch id="tgactive" checked={tgConfig.isActive} onCheckedChange={checked => setTgConfig({...tgConfig, isActive: checked})} />
-                <Label htmlFor="tgactive" className="cursor-pointer font-bold text-lg">Ativar Fluxo de Notificação Automática</Label>
+                <Label htmlFor="tgactive" className="cursor-pointer font-bold text-lg">Ativar Envio Automático</Label>
               </div>
 
               <div className="flex gap-4">
-                <Button onClick={handleSaveTelegram} className="flex-1 bg-[#0088cc] hover:bg-[#0088cc]/90 h-14 rounded-2xl shadow-xl shadow-[#0088cc]/20 text-lg font-bold">
-                  <Save className="w-5 h-5 mr-2" /> Salvar API
+                <Button onClick={handleSaveTelegram} className="flex-1 h-14 rounded-2xl font-bold bg-[#0088cc] hover:bg-[#0088cc]/90">
+                  <Save className="w-5 h-5 mr-2" /> Salvar
                 </Button>
                 <Button onClick={handleTestTelegram} variant="outline" className="h-14 px-8 rounded-2xl border-2 font-bold">
-                  <MessageSquare className="w-5 h-5 mr-2 text-[#0088cc]" /> Testar Estrutura
+                  Testar Estrutura
                 </Button>
               </div>
             </CardContent>
@@ -546,44 +592,6 @@ E nos informar a forma de pagamento? 💳`;
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="home" className="space-y-8">
-           <Card className="border-2 shadow-sm">
-            <CardHeader><CardTitle>Site & Banner</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Badge</Label><Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} /></div>
-                <div className="space-y-2"><Label>Imagem Hero URL</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} /></div>
-              </div>
-              <div className="space-y-2"><Label>Título Principal</Label><Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} /></div>
-              <div className="space-y-2"><Label>Descrição</Label><Textarea value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} /></div>
-              
-              <div className="pt-6 border-t">
-                <Label className="text-lg font-bold mb-4 block">Cartões de Benefícios</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="p-4 border-2 rounded-2xl relative pt-8 bg-muted/20">
-                      <div className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Card {i}</div>
-                      <div className="pt-2 space-y-3">
-                        <Input placeholder="Título do Benefício" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]: e.target.value})} />
-                        <Input placeholder="Texto Auxiliar" value={siteSettings[`b${i}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} />
-                        <select 
-                          className="w-full p-2.5 border-2 rounded-xl bg-background text-sm font-bold"
-                          value={siteSettings[`b${i}_icon`]}
-                          onChange={e => setSiteSettings({...siteSettings, [`b${i}_icon`]: e.target.value})}
-                        >
-                          {Object.keys(ICON_MAP).map(icon => <option key={icon} value={icon}>{icon}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Button onClick={handleSaveSettings} className="w-full h-14 rounded-2xl font-bold"><Save className="w-5 h-5 mr-2" /> Salvar Configurações Visuais</Button>
-            </CardContent>
-           </Card>
         </TabsContent>
 
         <TabsContent value="catalog">

@@ -59,18 +59,25 @@
         "heroDescription": { "type": "string" },
         "heroImage": { "type": "string" },
         "telegramLink": { "type": "string" },
+        "instagramLink": { "type": "string" },
+        "facebookLink": { "type": "string" },
+        "twitterLink": { "type": "string" },
         "b1_title": { "type": "string" },
         "b1_sub": { "type": "string" },
         "b1_icon": { "type": "string" },
+        "b1_active": { "type": "boolean" },
         "b2_title": { "type": "string" },
         "b2_sub": { "type": "string" },
         "b2_icon": { "type": "string" },
+        "b2_active": { "type": "boolean" },
         "b3_title": { "type": "string" },
         "b3_sub": { "type": "string" },
         "b3_icon": { "type": "string" },
+        "b3_active": { "type": "boolean" },
         "b4_title": { "type": "string" },
         "b4_sub": { "type": "string" },
-        "b4_icon": { "type": "string" }
+        "b4_icon": { "type": "string" },
+        "b4_active": { "type": "boolean" }
       }
     },
     "Frete": {

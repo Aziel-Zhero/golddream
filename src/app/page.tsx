@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
 import { collection, query, where, limit, doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { SiteConfig } from '@/types';
 
 const ICON_MAP: Record<string, any> = {
   Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart
@@ -16,11 +17,9 @@ const ICON_MAP: Record<string, any> = {
 export default function Home() {
   const firestore = useFirestore();
 
-  // Busca configurações globais
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: config } = useDoc(configRef);
+  const { data: config } = useDoc<SiteConfig>(configRef);
 
-  // Consulta para produtos em destaque
   const featuredQuery = useMemoFirebase(() => {
     return query(
       collection(firestore, 'produtos'),
@@ -34,15 +33,14 @@ export default function Home() {
   const heroImage = config?.heroImage || 'https://picsum.photos/seed/fashion-hero/1200/600';
 
   const benefits = [
-    { icon: ICON_MAP[config?.b1_icon || 'Truck'] || Truck, title: config?.b1_title || 'Frete Grátis', sub: config?.b1_sub || 'Em pedidos acima de R$250' },
-    { icon: ICON_MAP[config?.b2_icon || 'ShieldCheck'] || ShieldCheck, title: config?.b2_title || 'Pagamento Seguro', sub: config?.b2_sub || '100% criptografado' },
-    { icon: ICON_MAP[config?.b3_icon || 'Zap'] || Zap, title: config?.b3_title || 'Entrega Rápida', sub: config?.b3_sub || 'Todo o Brasil em 3-5 dias' },
-    { icon: ICON_MAP[config?.b4_icon || 'ArrowRight'] || ArrowRight, title: config?.b4_title || 'Novidades', sub: config?.b4_sub || 'Lançamentos semanais exclusivos' },
-  ];
+    { icon: ICON_MAP[config?.b1_icon || 'Truck'] || Truck, title: config?.b1_title || 'Frete Grátis', sub: config?.b1_sub || 'Em pedidos acima de R$250', active: config?.b1_active !== false },
+    { icon: ICON_MAP[config?.b2_icon || 'ShieldCheck'] || ShieldCheck, title: config?.b2_title || 'Pagamento Seguro', sub: config?.b2_sub || '100% criptografado', active: config?.b2_active !== false },
+    { icon: ICON_MAP[config?.b3_icon || 'Zap'] || Zap, title: config?.b3_title || 'Entrega Rápida', sub: config?.b3_sub || 'Todo o Brasil em 3-5 dias', active: config?.b3_active !== false },
+    { icon: ICON_MAP[config?.b4_icon || 'ArrowRight'] || ArrowRight, title: config?.b4_title || 'Novidades', sub: config?.b4_sub || 'Lançamentos semanais exclusivos', active: config?.b4_active !== false },
+  ].filter(b => b.active);
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
       <section className="relative h-[85vh] flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
@@ -66,7 +64,7 @@ export default function Home() {
             </p>
             <div className="flex gap-4 pt-4">
               <Button size="lg" asChild className="rounded-full px-10 h-14 text-base shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
-                <Link href="/category/feminino">
+                <Link href="/category/all">
                   Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </Button>
@@ -75,24 +73,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Value Props */}
-      <section className="py-20 bg-white border-y">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
-            {benefits.map((item, idx) => (
-              <div key={idx} className="flex flex-col items-center text-center space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-primary mb-2 shadow-sm">
-                  <item.icon className="w-8 h-8" />
+      {benefits.length > 0 && (
+        <section className="py-20 bg-white border-y">
+          <div className="container mx-auto px-4">
+            <div className={`grid grid-cols-2 ${benefits.length === 4 ? 'md:grid-cols-4' : benefits.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-12`}>
+              {benefits.map((item, idx) => (
+                <div key={idx} className="flex flex-col items-center text-center space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-primary mb-2 shadow-sm">
+                    <item.icon className="w-8 h-8" />
+                  </div>
+                  <h4 className="font-bold text-sm uppercase tracking-wider">{item.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed px-4">{item.sub}</p>
                 </div>
-                <h4 className="font-bold text-sm uppercase tracking-wider">{item.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed px-4">{item.sub}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Featured Products */}
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">

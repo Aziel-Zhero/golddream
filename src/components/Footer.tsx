@@ -6,6 +6,7 @@ import { Instagram, Twitter, Facebook, Send, LayoutDashboard } from 'lucide-reac
 import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { SiteConfig } from '@/types';
 
 export function Footer() {
   const { user } = useAuth();
@@ -14,9 +15,12 @@ export function Footer() {
   const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
 
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: config } = useDoc(configRef);
+  const { data: config } = useDoc<SiteConfig>(configRef);
 
-  const telegramUrl = config?.telegramLink || 'https://t.me/golddream';
+  const telegramUrl = config?.telegramLink || '#';
+  const instagramUrl = config?.instagramLink || '#';
+  const facebookUrl = config?.facebookLink || '#';
+  const twitterUrl = config?.twitterLink || '#';
 
   return (
     <footer className="bg-white border-t py-12">
@@ -28,9 +32,9 @@ export function Footer() {
               Gold Dream Multimarcas - O melhor da moda premium. Elegância e exclusividade para quem sabe o que quer.
             </p>
             <div className="flex space-x-4">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram size={20}/></Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter size={20}/></Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Facebook size={20}/></Link>
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600 transition-colors"><Instagram size={20}/></a>
+              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-sky-500 transition-colors"><Twitter size={20}/></a>
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-blue-600 transition-colors"><Facebook size={20}/></a>
             </div>
           </div>
           
@@ -72,12 +76,10 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground gap-4 uppercase tracking-widest">
           <div className="flex items-center gap-4">
             <p>&copy; {new Date().getFullYear()} Gold Dream Multimarcas.</p>
-            {isAdmin ? (
+            {isAdmin && (
               <Link href="/admin" className="flex items-center gap-1 text-primary font-black hover:underline bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
                 <LayoutDashboard className="w-3 h-3" /> PAINEL ADMIN
               </Link>
-            ) : (
-              <div className="opacity-0">.</div>
             )}
           </div>
           <div className="flex gap-8">
