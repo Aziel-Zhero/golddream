@@ -50,6 +50,7 @@ export type Pedido = {
   total: number;
   status: 'pendente' | 'entregue' | 'cancelado';
   dataCriacao: string;
+  cupomText?: string;
 };
 
 export type TelegramConfig = {
