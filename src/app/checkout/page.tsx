@@ -138,27 +138,29 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
+      // Melhorar visualização da cor se for hexadecimal
+      const corDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${corDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
 
-    const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
-    const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
+    const template = (tgConfig?.messageTemplate || `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
-    // Template fixo conforme solicitado
-    const template = `🛍️ *NOVO PEDIDO - GOLD DREAM*
-
-🧾 *Código:* #${order.codigo}
+🧾 *Código:* #{{codigo}}
 
 📦 *Itens:*
-${itemsText.trim()}
+{{itens}}
 
-👤 *Cliente:* ${order.clienteNome}
-📍 *Endereço:* ${order.clienteEndereco}
-📞 *Contato:* https://wa.me/${phoneForLink}
+👤 *Cliente:* {{clienteNome}}
+📍 *Endereço:* {{clienteEndereco}}
 
-💳 *Cupom:* ${order.cupomText || 'Não'}
-
-💰 *TOTAL: R$ ${order.total.toFixed(2)}*`;
+💰 *TOTAL: R$ {{total}}*`)
+      .replace('{{codigo}}', order.codigo)
+      .replace('{{itens}}', itemsText.trim())
+      .replace('{{clienteNome}}', order.clienteNome)
+      .replace('{{clienteEndereco}}', order.clienteEndereco)
+      .replace('{{telefone}}', order.clienteTelefone)
+      .replace('{{cupom}}', order.cupomText || 'Não')
+      .replace('{{total}}', order.total.toFixed(2));
 
     return template;
   };
@@ -194,19 +196,26 @@ ${itemsText.trim()}
     };
 
     try {
-      // 1. Salva no Firestore
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // 2. Disparo Automático API Telegram
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatTelegramMessage(pedidoData);
-        const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
         
-        // Disparo "fire and forget" para não travar a UI
+        const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
+        const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
+
+        // Botão interativo para o Telegram
+        const replyMarkup = JSON.stringify({
+          inline_keyboard: [
+            [{ text: "🚀 Chamar no WhatsApp", url: `https://wa.me/${phoneForLink}` }]
+          ]
+        });
+
+        const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
+        
         fetch(url).catch(err => console.error("Erro Telegram API:", err));
       }
       
-      // 3. Sucesso e Limpeza
       setTimeout(() => {
         setIsOrdered(true);
         clearCart();

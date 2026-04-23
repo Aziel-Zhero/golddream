@@ -44,7 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, limit, doc, orderBy, setDoc, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -68,9 +68,6 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
 👤 *Cliente:* {{clienteNome}}
 📍 *Endereço:* {{clienteEndereco}}
-📞 *Contato:* https://wa.me/{{telefone}}
-
-💳 *Cupom:* {{cupom}}
 
 💰 *TOTAL: R$ {{total}}*`;
 
@@ -81,7 +78,6 @@ export default function AdminDashboard() {
   
   const isAdmin = user?.papel === 'admin' || user?.papel === 'administrador';
 
-  // Queries protegidas por isAdmin
   const ordersQuery = useMemoFirebase(() => {
     if (!isAdmin) return null;
     return query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'));
@@ -101,7 +97,6 @@ export default function AdminDashboard() {
   const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
   const { data: cupons } = useCollection<Cupom>(cuponsQuery);
 
-  // States
   const [siteSettings, setSiteSettings] = useState<any>({
     heroBadge: '', heroTitle: '', heroDescription: '', heroImage: '',
     telegramLink: '',
@@ -118,7 +113,6 @@ export default function AdminDashboard() {
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
 
-  // Dashboard Metrics
   const metrics = useMemo(() => {
     if (!allOrders) return { month: 0, delivered: 0, cancelled: 0 };
     const now = new Date();
@@ -155,19 +149,30 @@ export default function AdminDashboard() {
       toast({ variant: "destructive", title: "Erro", description: "Preencha o Token e o ID de Teste." });
       return;
     }
-    try {
-      const sampleMessage = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
-        .replace('{{codigo}}', 'TEST-2024-001')
-        .replace('{{itens}}', '1️⃣ *Camiseta Premium (M/Preto)*\nQtd: 1\n\n2️⃣ *Calça Jeans (42/Azul)*\nQtd: 1')
-        .replace('{{clienteNome}}', 'Administrador Teste')
-        .replace('{{clienteEndereco}}', 'Rua das Flores, 123 - Centro')
-        .replace('{{telefone}}', '5512991862651')
-        .replace('{{cupom}}', 'BOASVINDAS10')
-        .replace('{{total}}', '249.90');
 
-      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(sampleMessage)}&parse_mode=Markdown`;
+    const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto\nQtd: 1\nValor: R$ 89,90\n\n2️⃣ *Calça Jeans*\nTamanho: 42\nCor: Azul\nQtd: 1\nValor: R$ 159,90";
+    const testTotal = "249,80";
+    const testPhone = "5512991862651";
+
+    const message = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
+      .replace('{{codigo}}', 'TEST-2024-001')
+      .replace('{{itens}}', testItems)
+      .replace('{{clienteNome}}', 'Administrador Teste')
+      .replace('{{clienteEndereco}}', 'Rua das Flores, 123 - Centro, Pinda - SP')
+      .replace('{{telefone}}', testPhone)
+      .replace('{{cupom}}', 'BOASVINDAS10')
+      .replace('{{total}}', testTotal);
+
+    const replyMarkup = JSON.stringify({
+      inline_keyboard: [
+        [{ text: "🚀 Chamar no WhatsApp", url: `https://wa.me/${testPhone}` }]
+      ]
+    });
+
+    try {
+      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
       await fetch(url);
-      toast({ title: "Teste Enviado!", description: "Verifique seu Telegram." });
+      toast({ title: "Teste Enviado!", description: "Verifique seu Telegram com o botão de WhatsApp." });
     } catch (e) {
       toast({ variant: "destructive", title: "Falha no Teste" });
     }
@@ -375,7 +380,7 @@ export default function AdminDashboard() {
                 <Send className="w-6 h-6 text-[#0088cc]" />
                 Configuração da Notificação
               </CardTitle>
-              <CardDescription>O pedido será enviado automaticamente via bot para o chat configurado.</CardDescription>
+              <CardDescription>O pedido será enviado automaticamente via bot com botão de WhatsApp.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
