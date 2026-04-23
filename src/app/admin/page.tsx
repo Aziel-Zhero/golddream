@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -22,21 +23,31 @@ import {
   ClipboardList,
   CheckCircle2,
   Clock,
-  User as UserIcon
+  User as UserIcon,
+  HelpCircle,
+  FileText
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, limit, doc, orderBy } from 'firebase/firestore';
+import { collection, query, limit, doc, orderBy, setDoc } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const ICONS = ['Truck', 'ShieldCheck', 'Zap', 'ArrowRight', 'Star', 'Package', 'Heart'];
+
+const SUPPORT_PAGES = [
+  { id: 'envio-e-frete', title: 'Envio e Frete' },
+  { id: 'trocas-e-devolucoes', title: 'Trocas e Devoluções' },
+  { id: 'guia-de-tamanhos', title: 'Guia de Tamanhos' },
+  { id: 'faq', title: 'FAQ (Perguntas Frequentes)' }
+];
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -65,6 +76,8 @@ export default function AdminDashboard() {
     b3_title: '', b3_sub: '', b3_icon: 'Zap',
     b4_title: '', b4_sub: '', b4_icon: 'ArrowRight'
   });
+
+  const [supportContents, setSupportContents] = useState<Record<string, string>>({});
 
   const [newFrete, setNewFrete] = useState({ cidade: '', bairro: '', valor: 0 });
   const [newCupom, setNewCupom] = useState({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
@@ -98,6 +111,18 @@ export default function AdminDashboard() {
     toast({ title: "Item Removido" });
   };
 
+  const handleSaveSupportPage = (id: string, title: string) => {
+    const content = supportContents[id] || '';
+    const supportRef = doc(firestore, 'suporte', id);
+    setDoc(supportRef, {
+      id,
+      slug: id,
+      titulo: title,
+      conteudo: content
+    }, { merge: true });
+    toast({ title: "Página Atualizada!", description: `O conteúdo de ${title} foi salvo.` });
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
@@ -116,12 +141,13 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="orders" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-5 max-w-4xl bg-muted p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 bg-muted p-1 rounded-xl h-auto">
           <TabsTrigger value="orders" className="rounded-lg">Pedidos</TabsTrigger>
-          <TabsTrigger value="home" className="rounded-lg">Visual Home</TabsTrigger>
+          <TabsTrigger value="home" className="rounded-lg">Home</TabsTrigger>
           <TabsTrigger value="catalog" className="rounded-lg">Produtos</TabsTrigger>
           <TabsTrigger value="frete" className="rounded-lg">Fretes</TabsTrigger>
           <TabsTrigger value="coupons" className="rounded-lg">Cupons</TabsTrigger>
+          <TabsTrigger value="support" className="rounded-lg">Suporte</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="space-y-6">
@@ -295,6 +321,39 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="support" className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {SUPPORT_PAGES.map(page => (
+              <Card key={page.id} className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    {page.title}
+                  </CardTitle>
+                  <CardDescription>Edite o conteúdo que aparece na página de {page.title.toLowerCase()}.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Conteúdo da Página (Use parágrafos claros)</Label>
+                    <Textarea 
+                      placeholder="Escreva aqui as informações para seus clientes..."
+                      className="min-h-[200px]"
+                      value={supportContents[page.id] || ''}
+                      onChange={e => setSupportContents({...supportContents, [page.id]: e.target.value})}
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => handleSaveSupportPage(page.id, page.title)}
+                    className="w-full"
+                  >
+                    <Save className="w-4 h-4 mr-2" /> Salvar {page.title}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

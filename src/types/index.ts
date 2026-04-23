@@ -80,3 +80,10 @@ export type CartItem = {
   selectedSize: string;
   selectedColor: string;
 };
+
+export type SuporteContent = {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  slug: string;
+};

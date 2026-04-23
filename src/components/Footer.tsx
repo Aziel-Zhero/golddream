@@ -47,10 +47,10 @@ export function Footer() {
           <div>
             <h4 className="font-headline font-bold mb-6 uppercase tracking-wider text-xs">Suporte</h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-primary transition-colors">Envio e Frete</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Trocas e Devoluções</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Guia de Tamanhos</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">FAQ</Link></li>
+              <li><Link href="/suporte/envio-e-frete" className="hover:text-primary transition-colors">Envio e Frete</Link></li>
+              <li><Link href="/suporte/trocas-e-devolucoes" className="hover:text-primary transition-colors">Trocas e Devoluções</Link></li>
+              <li><Link href="/suporte/guia-de-tamanhos" className="hover:text-primary transition-colors">Guia de Tamanhos</Link></li>
+              <li><Link href="/suporte/faq" className="hover:text-primary transition-colors">FAQ</Link></li>
             </ul>
           </div>
 

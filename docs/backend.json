@@ -80,6 +80,15 @@
         "expira": { "type": "boolean" },
         "dataExpiracao": { "type": "string", "format": "date" }
       }
+    },
+    "Suporte": {
+      "title": "Suporte",
+      "type": "object",
+      "properties": {
+        "titulo": { "type": "string" },
+        "conteudo": { "type": "string" },
+        "slug": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -89,7 +98,8 @@
       { "path": "/fretes/{freteId}", "definition": { "entityName": "Frete", "schema": { "$ref": "#/backend/entities/Frete" } } },
       { "path": "/cupons/{cupomId}", "definition": { "entityName": "Cupom", "schema": { "$ref": "#/backend/entities/Cupom" } } },
       { "path": "/produtos/{produtoId}", "definition": { "entityName": "Produto", "schema": { "$ref": "#/backend/entities/Produto" } } },
-      { "path": "/pedidos/{pedidoId}", "definition": { "entityName": "Pedido", "schema": { "$ref": "#/backend/entities/Pedido" } } }
+      { "path": "/pedidos/{pedidoId}", "definition": { "entityName": "Pedido", "schema": { "$ref": "#/backend/entities/Pedido" } } },
+      { "path": "/suporte/{slug}", "definition": { "entityName": "Suporte", "schema": { "$ref": "#/backend/entities/Suporte" } } }
     ]
   }
 }

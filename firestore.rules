@@ -1,10 +1,11 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
      * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.0.7 - Acesso administrativo flexível
+     * Versão: 1.0.8 - Acesso ao suporte
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -64,6 +65,11 @@ service cloud.firestore {
     }
 
     match /promocoes/{promocaoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /suporte/{slug} {
       allow read: if true;
       allow write: if isAdmin();
     }
