@@ -18,7 +18,6 @@ export default function MyOrdersPage() {
   const firestore = useFirestore();
 
   // Query otimizada para buscar apenas os pedidos do usuário atual
-  // Isso deve coincidir exatamente com a regra de segurança para permitir a listagem
   const ordersQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
     return query(
@@ -114,10 +113,10 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados
-                    </p>
+                    </div>
                     <div className="space-y-4">
                       {order.itens.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-start group">
@@ -133,10 +132,10 @@ export default function MyOrdersPage() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Resumo Financeiro
-                    </p>
+                    </div>
                     <div className="bg-muted/10 p-5 rounded-2xl border-2 border-primary/5 space-y-3 text-sm">
                       <div className="flex justify-between"><span className="text-muted-foreground">Subtotal:</span><span className="font-bold">R$ {order.subtotal.toFixed(2)}</span></div>
                       {order.desconto > 0 && <div className="flex justify-between text-green-600"><span className="font-bold uppercase text-[10px] tracking-widest">Desconto Aplicado:</span><span className="font-bold">- R$ {order.desconto.toFixed(2)}</span></div>}

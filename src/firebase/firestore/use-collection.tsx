@@ -65,7 +65,7 @@ export function useCollection<T = any>(
         let path = 'unknown';
 
         try {
-          // Tenta extrair o caminho de forma segura
+          // Tenta extrair o caminho de forma segura para ajudar no debug
           if ((targetRefOrQuery as any).path) {
             path = (targetRefOrQuery as any).path;
           } else if ((targetRefOrQuery as any)._query?.path?.canonicalString) {
