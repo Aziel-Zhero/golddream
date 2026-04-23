@@ -138,7 +138,6 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      // Melhorar visualização da cor se for hexadecimal
       const corDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${corDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
@@ -204,10 +203,23 @@ export default function CheckoutPage() {
         const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
         const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
 
-        // Botão interativo para o Telegram
+        const waMessage = `Olá *${pedidoData.clienteNome}* 👋
+
+Aqui é da *Gold Dream - Multimarcas*.
+
+Seu pedido já está sendo preparado 🛍️
+
+Poderia confirmar se este endereço está correto?
+
+📍 ${pedidoData.clienteEndereco}
+
+E nos informar a forma de pagamento? 💳`;
+
+        const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
+
         const replyMarkup = JSON.stringify({
           inline_keyboard: [
-            [{ text: "🚀 Chamar no WhatsApp", url: `https://wa.me/${phoneForLink}` }]
+            [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
           ]
         });
 

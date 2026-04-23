@@ -9,8 +9,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin verificando o campo papel no documento do usuário
-    // Usamos get() de forma cautelosa para evitar recursão
+    // Verifica se o usuário é admin sem causar recursão
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
@@ -23,26 +22,18 @@ service cloud.firestore {
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // Permite criar se estiver logado e for o próprio
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // Permite ler se for o próprio (essencial para evitar erro no check de isAdmin)
-      allow get: if isOwner(usuarioId) || isAdmin();
-      // Outras operações apenas admin ou dono
+      // Permite leitura do próprio perfil sem check de admin para evitar recursão
+      allow get: if isOwner(usuarioId) || (isSignedIn() && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']);
       allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criação permitida para todos (checkout aberto)
       allow create: if true;
-      
-      // Listagem: Cliente vê apenas os seus. Admin vê todos.
-      // Importante: O cliente deve usar query(..., where('usuarioId', '==', uid))
-      allow list: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
-      
-      // Get individual
+      // Garantir que a listagem funcione para o dono e para o admin
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && resource.data.usuarioId == request.auth.uid);
       allow get: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
-      
       allow update, delete: if isAdmin();
     }
 

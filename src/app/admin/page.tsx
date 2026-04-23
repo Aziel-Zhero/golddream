@@ -153,19 +153,34 @@ export default function AdminDashboard() {
     const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto\nQtd: 1\nValor: R$ 89,90\n\n2️⃣ *Calça Jeans*\nTamanho: 42\nCor: Azul\nQtd: 1\nValor: R$ 159,90";
     const testTotal = "249,80";
     const testPhone = "5512991862651";
+    const testAddress = "Rua das Flores, 123 - Centro, Pinda - SP";
 
     const message = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
       .replace('{{codigo}}', 'TEST-2024-001')
       .replace('{{itens}}', testItems)
       .replace('{{clienteNome}}', 'Administrador Teste')
-      .replace('{{clienteEndereco}}', 'Rua das Flores, 123 - Centro, Pinda - SP')
+      .replace('{{clienteEndereco}}', testAddress)
       .replace('{{telefone}}', testPhone)
       .replace('{{cupom}}', 'BOASVINDAS10')
       .replace('{{total}}', testTotal);
 
+    const waMessage = `Olá *Administrador Teste* 👋
+
+Aqui é da *Gold Dream - Multimarcas*.
+
+Seu pedido já está sendo preparado 🛍️
+
+Poderia confirmar se este endereço está correto?
+
+📍 ${testAddress}
+
+E nos informar a forma de pagamento? 💳`;
+
+    const waUrl = `https://wa.me/${testPhone}?text=${encodeURIComponent(waMessage)}`;
+
     const replyMarkup = JSON.stringify({
       inline_keyboard: [
-        [{ text: "🚀 Chamar no WhatsApp", url: `https://wa.me/${testPhone}` }]
+        [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
       ]
     });
 
@@ -380,7 +395,7 @@ export default function AdminDashboard() {
                 <Send className="w-6 h-6 text-[#0088cc]" />
                 Configuração da Notificação
               </CardTitle>
-              <CardDescription>O pedido será enviado automaticamente via bot com botão de WhatsApp.</CardDescription>
+              <CardDescription>O pedido será enviado automaticamente via bot para o chat configurado.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
