@@ -9,50 +9,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Função interna para obter o papel do usuário logado
-    function getPapel() {
+    // Obtém o papel do usuário sem causar recursão
+    function getUserRole() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel;
     }
 
-    // Verifica se o usuário é administrador
     function isAdmin() {
-      return isSignedIn() && getPapel() in ['admin', 'administrador'];
+      return isSignedIn() && (getUserRole() == "admin" || getUserRole() == "administrador");
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // PERMISSÃO CRÍTICA: O dono sempre lê seu próprio documento SEM chamar isAdmin() para evitar recursão
-      allow read: if isSignedIn() && (request.auth.uid == uid || getPapel() in ['admin', 'administrador']);
-      
+      // PERMISSÃO: O dono lê seu perfil primeiro para evitar recursão ao chamar isAdmin()
+      allow read: if isSignedIn() && (request.auth.uid == uid || (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']));
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criar pedido é livre para que visitantes possam comprar
+      // Criar pedido é livre (ou isSignedIn()) para visitantes/clientes
       allow create: if true;
       
       // Regra de leitura/listagem:
-      // 1. Administradores podem ler TUDO (necessário para o Painel Admin).
+      // 1. Administradores podem ler TUDO.
       // 2. Clientes podem ler apenas documentos onde o usuarioId coincide com seu UID.
       allow read, list: if isSignedIn() && (
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']) || 
-        (resource.data.usuarioId == request.auth.uid)
+        (request.auth.uid == resource.data.usuarioId) || 
+        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'])
       );
       
       allow update, delete: if isAdmin();
-    }
-
-    match /fretes/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /cupons/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
     }
 
     match /produtos/{id} {
@@ -61,6 +49,16 @@ service cloud.firestore {
     }
 
     match /configuracoes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /fretes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /cupons/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
