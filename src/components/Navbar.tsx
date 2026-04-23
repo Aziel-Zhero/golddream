@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -81,6 +81,11 @@ export function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="my-2" />
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/account/orders">
+                      <Package className="w-4 h-4 mr-2" /> Meus Pedidos
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                     <Link href="/auth/complete-profile">
                       <User className="w-4 h-4 mr-2" /> Meus Dados
@@ -211,6 +216,7 @@ export function Navbar() {
                   <SheetTitle className="text-2xl font-headline font-bold">Menu Gold Dream</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-6 mt-12 px-2">
+                  <SheetClose asChild><Link href="/account/orders" className="text-xl font-bold hover:text-primary">Meus Pedidos</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/feminino" className="text-xl font-bold hover:text-primary">Moda Feminina</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/masculino" className="text-xl font-bold hover:text-primary">Moda Masculina</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary">Acessórios</Link></SheetClose>

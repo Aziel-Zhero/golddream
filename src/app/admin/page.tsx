@@ -67,6 +67,7 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
 👤 *Cliente:* {{clienteNome}}
 📍 *Endereço:* {{clienteEndereco}}
+📞 *Contato:* https://wa.me/{{telefone}}
 
 💳 *Cupom:* {{cupom}}
 
@@ -148,9 +149,10 @@ export default function AdminDashboard() {
     try {
       const sampleMessage = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
         .replace('{{codigo}}', 'TEST-2024-04-001')
-        .replace('{{itens}}', '• Camiseta Street (G/Preto) x1\n• Calça Cargo (42/Verde) x1')
+        .replace('{{itens}}', '1️⃣ *Camiseta Street (G/Preto)*\nValor: R$ 89.90 (x1)\n\n2️⃣ *Calça Cargo (42/Verde)*\nValor: R$ 144.90 (x1)')
         .replace('{{clienteNome}}', 'Admin Teste')
         .replace('{{clienteEndereco}}', 'Rua de Teste, 123 - Centro - SP')
+        .replace('{{telefone}}', '12991862651')
         .replace('{{cupom}}', 'TESTE10')
         .replace('{{total}}', '234.80');
 
@@ -487,7 +489,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-bold">Estrutura do Pedido</Label>
                   <Badge variant="outline" className="flex gap-1 items-center bg-primary/5 border-primary/20">
-                    <Info className="w-3 h-3" /> Tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{cupom}}"}, {"{{total}}"}
+                    <Info className="w-3 h-3" /> Tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{clienteEndereco}}"}, {"{{telefone}}"}, {"{{cupom}}"}, {"{{total}}"}
                   </Badge>
                 </div>
                 <Textarea 

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, MessageCircle, LogIn, Send, Zap } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, MessageCircle, LogIn, Send, Zap, ShoppingBag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -26,6 +26,7 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
 👤 *Cliente:* {{clienteNome}}
 📍 *Endereço:* {{clienteEndereco}}
+📞 *Contato:* https://wa.me/{{telefone}}
 
 💳 *Cupom:* {{cupom}}
 
@@ -164,11 +165,14 @@ export default function CheckoutPage() {
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nValor: R$ ${i.valor.toFixed(2)} (x${i.quantidade})\n\n`;
     });
 
+    const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
+
     return template
       .replace('{{codigo}}', order.codigo)
       .replace('{{itens}}', itemsText.trim())
       .replace('{{clienteNome}}', order.clienteNome)
       .replace('{{clienteEndereco}}', order.clienteEndereco)
+      .replace('{{telefone}}', cleanPhone)
       .replace('{{cupom}}', order.cupomText || 'Não')
       .replace('{{total}}', order.total.toFixed(2));
   };
@@ -216,13 +220,9 @@ export default function CheckoutPage() {
     };
 
     try {
-      // 1. Salva no banco
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
-      
-      // 2. Notifica o dono da loja via Telegram Bot
       await notifyTelegram(pedidoData);
       
-      // 3. Finaliza visualmente para o cliente
       setTimeout(() => {
         setIsOrdered(true);
         clearCart();
@@ -242,16 +242,14 @@ export default function CheckoutPage() {
           <CheckCircle2 className="w-16 h-16" />
         </div>
         <h1 className="text-5xl font-headline font-bold">Pedido Confirmado!</h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua reserva na Gold Dream foi enviada via Telegram. Entraremos em contato em breve para finalizar o pagamento.</p>
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua reserva foi processada com sucesso. Você pode acompanhar o status na sua conta.</p>
         <div className="flex flex-col gap-4 max-w-xs mx-auto pt-6">
           <Button asChild size="lg" className="rounded-2xl h-14 text-lg font-bold shadow-xl shadow-primary/20">
-            <Link href="/">Voltar à Loja</Link>
+            <Link href="/account/orders"><ShoppingBag className="w-5 h-5 mr-2" /> Meus Pedidos</Link>
           </Button>
-          {siteSettings?.telegramLink && (
-            <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 border-2">
-              <a href={siteSettings.telegramLink} target="_blank" rel="noopener noreferrer">Falar no Telegram</a>
-            </Button>
-          )}
+          <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 border-2">
+            <Link href="/">Continuar Comprando</Link>
+          </Button>
         </div>
       </div>
     );
@@ -280,8 +278,8 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex items-center gap-4 mb-12">
-        <div className="bg-[#0088cc]/10 p-3 rounded-2xl"><Send className="w-8 h-8 text-[#0088cc]" /></div>
-        <h1 className="text-4xl font-headline font-bold">Finalizar no Telegram</h1>
+        <div className="bg-primary/10 p-3 rounded-2xl"><Zap className="w-8 h-8 text-primary" /></div>
+        <h1 className="text-4xl font-headline font-bold">Finalizar Pedido</h1>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -363,10 +361,13 @@ export default function CheckoutPage() {
               <Button 
                 onClick={handlePlaceOrder} 
                 disabled={isProcessing || items.length === 0} 
-                className="w-full h-16 text-xl font-black rounded-2xl bg-[#0088cc] hover:bg-[#0088cc]/90 text-white shadow-xl shadow-[#0088cc]/20 transition-all hover:scale-[1.02]"
+                className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
               >
-                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-3 w-7 h-7" />} FINALIZAR NO TELEGRAM
+                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} CONFIRMAR PEDIDO
               </Button>
+              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
+                Ao confirmar, seu pedido será enviado para análise.
+              </p>
             </CardContent>
           </Card>
         </div>
