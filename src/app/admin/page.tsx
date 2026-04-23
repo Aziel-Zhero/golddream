@@ -50,6 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pedido, TelegramConfig, FreteRule, Cupom } from '@/types';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/context/AuthContext';
 
 const SUPPORT_PAGES = [
   { id: 'envio-e-frete', title: 'Envio e Frete' },
@@ -76,21 +77,28 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 export default function AdminDashboard() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user, isLoading: isAuthLoading } = useAuth();
   
-  // Queries
-  const ordersQuery = useMemoFirebase(() => query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc')), [firestore]);
+  const isAdmin = user?.papel === 'admin' || user?.papel === 'administrador';
+
+  // Queries - Somente executam se for Admin confirmado
+  const ordersQuery = useMemoFirebase(() => {
+    if (!isAdmin) return null;
+    return query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'));
+  }, [firestore, isAdmin]);
+  
   const { data: allOrders } = useCollection<Pedido>(ordersQuery);
 
-  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
   const { data: config } = useDoc(configRef);
 
-  const telegramRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
+  const telegramRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'telegram') : null, [firestore, isAdmin]);
   const { data: telegramData } = useDoc(telegramRef);
 
-  const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
+  const fretesQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'fretes') : null, [firestore, isAdmin]);
   const { data: fretes } = useCollection<FreteRule>(fretesQuery);
 
-  const cuponsQuery = useMemoFirebase(() => collection(firestore, 'cupons'), [firestore]);
+  const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
   const { data: cupons } = useCollection<Cupom>(cuponsQuery);
 
   // States
@@ -137,6 +145,7 @@ export default function AdminDashboard() {
   };
 
   const handleSaveTelegram = () => {
+    if (!telegramRef) return;
     setDoc(telegramRef, tgConfig, { merge: true });
     toast({ title: "Configurações Telegram Salvas" });
   };
@@ -165,6 +174,7 @@ export default function AdminDashboard() {
   };
 
   const handleSaveSettings = () => {
+    if (!configRef) return;
     setDoc(configRef, siteSettings, { merge: true });
     toast({ title: "Configurações Salvas!" });
   };
@@ -192,7 +202,7 @@ export default function AdminDashboard() {
   };
 
   const [activeSupportTab, setActiveSupportTab] = useState(SUPPORT_PAGES[0].id);
-  const supportRef = useMemoFirebase(() => doc(firestore, 'suporte', activeSupportTab), [firestore, activeSupportTab]);
+  const supportRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'suporte', activeSupportTab) : null, [firestore, isAdmin, activeSupportTab]);
   const { data: supportPage } = useDoc(supportRef);
   const [supportContent, setSupportContent] = useState('');
 
@@ -202,6 +212,7 @@ export default function AdminDashboard() {
   }, [supportPage]);
 
   const handleSaveSupport = () => {
+    if (!supportRef) return;
     setDoc(supportRef, {
       titulo: SUPPORT_PAGES.find(p => p.id === activeSupportTab)?.title,
       conteudo: supportContent,
@@ -209,6 +220,21 @@ export default function AdminDashboard() {
     }, { merge: true });
     toast({ title: "Página de Suporte Salva!" });
   };
+
+  if (isAuthLoading) {
+    return <div className="p-24 text-center">Carregando permissões...</div>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-24 text-center space-y-6">
+        <ShieldCheck className="w-16 h-16 mx-auto text-destructive" />
+        <h1 className="text-3xl font-bold">Acesso Negado</h1>
+        <p className="text-muted-foreground">Você não tem permissão para acessar esta área.</p>
+        <Button asChild><Link href="/">Voltar para a Loja</Link></Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">

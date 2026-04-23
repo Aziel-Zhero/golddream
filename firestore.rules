@@ -5,7 +5,7 @@ service cloud.firestore {
 
     /**
      * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.1.0 - Correção de recursão e permissões de pedidos
+     * Versão: 1.2.0 - Correção de robustez isAdmin e permissões de listagem
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -15,12 +15,12 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário é admin via coleção dedicada ou campo no perfil.
-    // IMPORTANTE: Para evitar recursão infinita, a regra de 'get' da coleção 'usuarios' 
-    // para o próprio usuário não deve chamar isAdmin().
+    // Adicionado exists() antes do get() para evitar erro de execução se o doc não existir.
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'])
       );
     }
 
@@ -37,7 +37,7 @@ service cloud.firestore {
 
     match /usuarios/{usuarioId} {
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // allow get para o dono SEM isAdmin() evita recursão fatal quando isAdmin() chama get()
+      // Permite get para o dono ou admin. isOwner não chama isAdmin, evitando recursão.
       allow get: if isOwner(usuarioId) || exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
       allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
@@ -45,8 +45,9 @@ service cloud.firestore {
 
     match /pedidos/{pedidoId} {
       allow create: if true;
-      // Permite que o dono veja seus próprios pedidos ou o admin veja tudo
-      allow read: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
+      // Permite que o dono veja seus próprios pedidos ou o admin veja tudo.
+      // Para listagem (list), o Firestore verifica se o filtro da query corresponde a esta regra.
+      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.usuarioId == request.auth.uid));
       allow update, delete: if isAdmin();
     }
 
