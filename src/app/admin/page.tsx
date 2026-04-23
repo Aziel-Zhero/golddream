@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { 
   ShoppingBag, 
   Settings, 
@@ -67,6 +66,8 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
 👤 *Cliente:* {{clienteNome}}
 📍 *Endereço:* {{clienteEndereco}}
+
+💳 *Cupom:* {{cupom}}
 
 💰 *TOTAL: R$ {{total}}*`;
 
@@ -145,11 +146,12 @@ export default function AdminDashboard() {
     }
     try {
       const sampleMessage = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
-        .replace('{{codigo}}', 'TEST-1234')
-        .replace('{{itens}}', '• Produto de Teste x1')
+        .replace('{{codigo}}', 'TEST-2024-04-001')
+        .replace('{{itens}}', '• Camiseta Street (G/Preto) x1\n• Calça Cargo (42/Verde) x1')
         .replace('{{clienteNome}}', 'Admin Teste')
-        .replace('{{clienteEndereco}}', 'Rua de Teste, 123')
-        .replace('{{total}}', '100.00');
+        .replace('{{clienteEndereco}}', 'Rua de Teste, 123 - Centro - SP')
+        .replace('{{cupom}}', 'TESTE10')
+        .replace('{{total}}', '234.80');
 
       const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(sampleMessage)}&parse_mode=Markdown`;
       await fetch(url);
@@ -484,7 +486,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-bold">Estrutura do Pedido</Label>
                   <Badge variant="outline" className="flex gap-1 items-center bg-primary/5 border-primary/20">
-                    <Info className="w-3 h-3" /> Tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{total}}"}
+                    <Info className="w-3 h-3" /> Tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{cupom}}"}, {"{{total}}"}
                   </Badge>
                 </div>
                 <Textarea 

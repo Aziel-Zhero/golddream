@@ -27,6 +27,8 @@ const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 👤 *Cliente:* {{clienteNome}}
 📍 *Endereço:* {{clienteEndereco}}
 
+💳 *Cupom:* {{cupom}}
+
 💰 *TOTAL: R$ {{total}}*`;
 
 export default function CheckoutPage() {
@@ -141,7 +143,8 @@ export default function CheckoutPage() {
 
   const generateOrderId = () => {
     const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
     
     let prefix = 'PED';
@@ -149,13 +152,13 @@ export default function CheckoutPage() {
       prefix = activePromo.isBlackFriday ? 'BKF' : 'CAMP';
     }
     
-    return `${prefix}-${dateStr}-${random}`;
+    return `${prefix}-${year}-${month}-${random}`;
   };
 
   const formatMessage = (template: string, order: any) => {
     let itemsText = "";
-    order.itens.forEach((i: any) => {
-      itemsText += `• ${i.nome} (${i.tamanho}/${i.cor}) x${i.quantidade}\n`;
+    order.itens.forEach((i: any, index: number) => {
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nValor: R$ ${i.valor.toFixed(2)} (x${i.quantidade})\n\n`;
     });
 
     return template
@@ -163,6 +166,7 @@ export default function CheckoutPage() {
       .replace('{{itens}}', itemsText.trim())
       .replace('{{clienteNome}}', order.clienteNome)
       .replace('{{clienteEndereco}}', order.clienteEndereco)
+      .replace('{{cupom}}', order.cupomText || 'Não')
       .replace('{{total}}', order.total.toFixed(2));
   };
 
@@ -181,6 +185,9 @@ export default function CheckoutPage() {
     if (!user) return;
     setIsProcessing(true);
     const orderId = generateOrderId();
+    
+    const couponText = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "Não");
+
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
@@ -199,11 +206,13 @@ export default function CheckoutPage() {
       desconto: discountValue,
       total: finalTotal,
       status: 'pendente' as const,
-      dataCriacao: new Date().toISOString()
+      dataCriacao: new Date().toISOString(),
+      cupomText: couponText
     };
 
     addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
     notifyTelegram(pedidoData);
+    
     const template = tgConfig?.messageTemplate || DEFAULT_TEMPLATE;
     const message = formatMessage(template, pedidoData);
     const whatsappNumber = "5512991862651";
