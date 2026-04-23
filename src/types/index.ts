@@ -77,6 +77,8 @@ export type FreteRule = {
   cidade: string;
   bairro: string;
   valor: number;
+  ativo: boolean;
+  isGlobal?: boolean;
 };
 
 export type Cupom = {

@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nome: userData.nome || fbUser.displayName || 'Cliente',
         telefone: userData.telefone || '',
         endereco: userData.endereco,
-        papel: userData.papel || 'cliente',
+        papel: (userData.papel === 'admin' || userData.papel === 'administrador') ? 'admin' : 'cliente',
         dataCriacao: userData.dataCriacao || new Date().toISOString(),
         avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`
       });
@@ -46,15 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fbUser, userData]);
 
   useEffect(() => {
-    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || pathname.startsWith('/category/') || pathname.startsWith('/products/');
+    // Redirecionamento para completar perfil se faltar endereço
+    // Não redireciona se for Admin acessando painel admin ou se for página pública
+    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || 
+                         pathname.startsWith('/category/') || 
+                         pathname.startsWith('/products/') ||
+                         pathname.startsWith('/suporte/');
     const isCompletingProfile = pathname === '/auth/complete-profile';
+    const isAdminArea = pathname.startsWith('/admin');
 
-    if (!isUserLoading && fbUser && !isDocLoading) {
-      if (!userData?.endereco?.cidade && !isCompletingProfile && !isPublicPage) {
+    if (!isUserLoading && fbUser && !isDocLoading && appUser) {
+      const isMissingAddress = !userData?.endereco?.cidade;
+      const isAdmin = appUser.papel === 'admin';
+
+      if (isMissingAddress && !isCompletingProfile && !isPublicPage && (!isAdmin || !isAdminArea)) {
         router.push('/auth/complete-profile');
       }
     }
-  }, [fbUser, userData, isUserLoading, isDocLoading, pathname, router]);
+  }, [fbUser, userData, appUser, isUserLoading, isDocLoading, pathname, router]);
 
   const logout = async () => {
     await signOut(auth);
