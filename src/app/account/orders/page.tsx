@@ -1,21 +1,24 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Pedido } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ShoppingBag, Package, Clock, XCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, ShoppingBag, Package, Clock, XCircle, ArrowLeft, MailWarning, Send } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MyOrdersPage() {
-  const { user } = useAuth();
+  const { user, sendVerification } = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
 
   // Query otimizada para buscar apenas os pedidos do usuário atual
   const ordersQuery = useMemoFirebase(() => {
@@ -29,6 +32,25 @@ export default function MyOrdersPage() {
   }, [firestore, user?.uid]);
 
   const { data: orders, isLoading, error } = useCollection<Pedido>(ordersQuery);
+
+  const handleSendVerification = async () => {
+    setIsSendingVerification(true);
+    try {
+      await sendVerification();
+      toast({
+        title: "E-mail Enviado!",
+        description: "Verifique sua caixa de entrada e spam para confirmar sua conta.",
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar",
+        description: "Aguarde alguns minutos antes de tentar novamente.",
+      });
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -47,7 +69,8 @@ export default function MyOrdersPage() {
         </div>
         <h2 className="text-2xl font-bold">Acesso Restrito</h2>
         <p className="text-muted-foreground max-w-md mx-auto">
-          Não conseguimos carregar seus pedidos. Verifique se você está logado corretamente e se seus dados de perfil estão completos.
+          Não conseguimos carregar seus pedidos. Verifique se você está logado corretamente. 
+          Se o erro persistir, pode ser necessário confirmar seu e-mail.
         </p>
         <div className="flex gap-4 justify-center">
           <Button asChild variant="outline" className="rounded-xl px-8">
@@ -61,6 +84,29 @@ export default function MyOrdersPage() {
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-4xl">
+      {/* Banner de Verificação de E-mail */}
+      {user && !user.emailVerified && (
+        <div className="mb-8 p-6 bg-yellow-50 border-2 border-yellow-100 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-4 text-yellow-800">
+            <div className="p-3 bg-white rounded-2xl shadow-sm">
+              <MailWarning className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <p className="font-bold">Confirme seu E-mail</p>
+              <p className="text-sm opacity-80">Você precisa confirmar seu e-mail para garantir a segurança da sua conta.</p>
+            </div>
+          </div>
+          <Button 
+            onClick={handleSendVerification} 
+            disabled={isSendingVerification}
+            className="rounded-2xl h-12 px-6 bg-yellow-600 hover:bg-yellow-700 text-white font-bold"
+          >
+            {isSendingVerification ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+            Reenviar Confirmação
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
         <div>
           <Button asChild variant="ghost" className="mb-4 -ml-4 hover:bg-primary/5 text-primary font-bold">
@@ -118,6 +164,7 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
+                    {/* Correção de Hidratação: Mudança de <p> para <div> para permitir <div> interno */}
                     <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados

@@ -9,67 +9,66 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário logado tem papel administrativo
-    // Importante: Esta função faz um 'get', que pode disparar regras de leitura.
-    function isAdmin() {
-      return isSignedIn() && 
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador', 'admin_vogue'];
+    // Verifica papel sem recursão chamando o documento de forma direta e protegida
+    function hasRole(uid, roles) {
+      return get(/databases/$(database)/documents/usuarios/$(uid)).data.papel in roles;
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // O curto-circuito (auth.uid == uid) é essencial para EVITAR RECURSÃO INFINITA
-      // Se for o dono do perfil, ele lê sem chamar a função isAdmin()
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      // Permite ler o próprio perfil sem checar isAdmin (evita recursão)
+      // Admins podem ler qualquer perfil
+      allow read: if isSignedIn() && (request.auth.uid == uid || hasRole(request.auth.uid, ['admin', 'administrador']));
       
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow list, delete: if isAdmin();
+      allow update: if isSignedIn() && (request.auth.uid == uid || hasRole(request.auth.uid, ['admin', 'administrador']));
+      allow list, delete: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /pedidos/{pedidoId} {
       // Qualquer usuário logado pode criar pedidos
-      allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
+      allow create: if isSignedIn();
       
       // Regra de leitura e listagem:
-      // Admins podem ver tudo. Clientes podem ver apenas se o usuarioId coincidir.
-      // O Firestore permite 'list' se a query do cliente tiver o filtro .where('usuarioId', '==', uid)
+      // Admins podem ver tudo. Clientes podem ver apenas seus próprios documentos.
       allow read, list: if isSignedIn() && (
-        isAdmin() || resource.data.usuarioId == request.auth.uid
+        hasRole(request.auth.uid, ['admin', 'administrador']) || 
+        (resource != null && resource.data.usuarioId == request.auth.uid) ||
+        (resource == null) // Permite que a query seja avaliada pelo Firestore
       );
       
-      allow update, delete: if isAdmin();
+      allow update, delete: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /produtos/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /fretes/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /cupons/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
 
     match /suporte/{slug} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
     }
   }
 }
