@@ -15,32 +15,30 @@ export function Footer() {
   const firestore = useFirestore();
   const [mounted, setMounted] = useState(false);
   
-  const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
-
-  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: config } = useDoc<SiteConfig>(configRef);
-
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const configRef = useMemoFirebase(() => mounted ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, mounted]);
+  const { data: config } = useDoc<SiteConfig>(configRef);
+
+  const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
+
+  // Evita erros de hidratação renderizando o conteúdo que depende do cliente/banco apenas após a montagem
+  if (!mounted) {
+    return (
+      <footer className="bg-white border-t py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-48" />
+        </div>
+      </footer>
+    );
+  }
 
   const telegramUrl = config?.telegramLink || '#';
   const instagramUrl = config?.instagramLink || '#';
   const facebookUrl = config?.facebookLink || '#';
   const twitterUrl = config?.twitterLink || '#';
-
-  // Evita erros de hidratação renderizando conteúdo dinâmico apenas após montagem no cliente
-  if (!mounted) {
-    return (
-      <footer className="bg-white border-t py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-48 flex items-center justify-center text-muted-foreground opacity-0">
-            Carregando rodapé...
-          </div>
-        </div>
-      </footer>
-    );
-  }
 
   return (
     <footer className="bg-white border-t py-12">

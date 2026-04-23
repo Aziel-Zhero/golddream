@@ -142,6 +142,7 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
+      // Formata a cor para mostrar o nome e o código se disponível
       const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
@@ -202,12 +203,14 @@ export default function CheckoutPage() {
     try {
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
+      // Envio Automático via Bot Telegram API
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatTelegramMessage(pedidoData);
         
         const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
         const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
 
+        // Mensagem Amigável solicitada
         const waMessage = `Olá *${pedidoData.clienteNome}* 👋
 
 Aqui é da *Gold Dream - Multimarcas*.

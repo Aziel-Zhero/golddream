@@ -10,19 +10,20 @@ export function ThemeManager() {
   const firestore = useFirestore();
   const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const activeBFQuery = useMemoFirebase(() => {
+    if (!mounted) return null;
     return query(
       collection(firestore, 'promocoes'),
       where('ativo', '==', true),
       where('isBlackFriday', '==', true)
     );
-  }, [firestore]);
+  }, [firestore, mounted]);
 
   const { data: bfPromos } = useCollection<Promocao>(activeBFQuery);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted) return;
