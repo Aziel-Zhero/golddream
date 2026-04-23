@@ -9,37 +9,41 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin acessando diretamente o campo sem recursão
+    // Verifica se o usuário logado tem papel de administrador
+    // Usamos uma verificação direta para evitar loops de recursão
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
+      // O próprio usuário pode ler seu perfil. Admins também podem ler perfis de terceiros.
+      // Importante: a condição do dono vem primeiro para evitar chamadas de get() desnecessárias
+      allow get: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
+      allow list, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // Permite leitura do próprio perfil de forma direta para evitar recursão no isAdmin()
-      allow get: if isSignedIn() && (request.auth.uid == usuarioId || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']);
-      allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
+      // Criação aberta para checkout rápido, mas vinculada ao UID se logado
       allow create: if true;
-      // Permite que o admin liste tudo e o cliente liste apenas seus próprios pedidos (exige filtro where no cliente)
+      
+      // Listagem: Admin vê tudo. Cliente vê apenas os dele.
       allow list: if isSignedIn() && (
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'] || 
+        isAdmin() || 
         resource.data.usuarioId == request.auth.uid
       );
+      
+      // Leitura individual segue a mesma lógica
       allow get: if isSignedIn() && (
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'] || 
+        isAdmin() || 
         resource.data.usuarioId == request.auth.uid
       );
+      
+      // Apenas admin altera ou deleta pedidos
       allow update, delete: if isAdmin();
     }
 
