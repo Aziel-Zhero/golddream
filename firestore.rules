@@ -5,7 +5,7 @@ service cloud.firestore {
 
     /**
      * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.0.8 - Acesso ao suporte
+     * Versão: 1.1.0 - Correção de recursão e permissões de pedidos
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -14,7 +14,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin via coleção de roles ou via campo no perfil
+    // Verifica se o usuário é admin via coleção dedicada ou campo no perfil.
+    // IMPORTANTE: Para evitar recursão infinita, a regra de 'get' da coleção 'usuarios' 
+    // para o próprio usuário não deve chamar isAdmin().
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
@@ -30,18 +32,22 @@ service cloud.firestore {
 
     match /roles_administrador/{usuarioId} {
       allow get: if isSignedIn();
-      allow list, create, update, delete: if isAdmin();
+      allow list, write: if isAdmin();
     }
 
     match /usuarios/{usuarioId} {
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      allow get, list, update: if isOwner(usuarioId) || isAdmin();
+      // allow get para o dono SEM isAdmin() evita recursão fatal quando isAdmin() chama get()
+      allow get: if isOwner(usuarioId) || exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
+      allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
       allow create: if true;
-      allow read, update, delete: if isAdmin();
+      // Permite que o dono veja seus próprios pedidos ou o admin veja tudo
+      allow read: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     match /fretes/{id} {

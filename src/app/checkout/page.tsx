@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, MessageCircle, LogIn, Send, Zap, ShoppingBag } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -54,9 +54,6 @@ export default function CheckoutPage() {
   const tgRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
   const { data: tgConfig } = useDoc<TelegramConfig>(tgRef);
 
-  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: siteSettings } = useDoc<SiteConfig>(configRef);
-
   const promosQuery = useMemoFirebase(() => {
     return query(collection(firestore, 'promocoes'), where('ativo', '==', true));
   }, [firestore]);
@@ -90,8 +87,8 @@ export default function CheckoutPage() {
       const specificRule = freteRules.find(r => 
         r.ativo &&
         user?.endereco &&
-        r.cidade.toLowerCase() === user.endereco.cidade.toLowerCase() &&
-        r.bairro.toLowerCase() === user.endereco.bairro.toLowerCase()
+        r.cidade?.toLowerCase() === user.endereco.cidade?.toLowerCase() &&
+        r.bairro?.toLowerCase() === user.endereco.bairro?.toLowerCase()
       );
 
       if (specificRule) {
@@ -165,7 +162,6 @@ export default function CheckoutPage() {
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nValor: R$ ${i.valor.toFixed(2)} (x${i.quantidade})\n\n`;
     });
 
-    // Clean phone for link, ensure it has international format if needed
     const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
     const phoneForLink = cleanPhone.length === 11 ? `55${cleanPhone}` : cleanPhone;
 
@@ -197,7 +193,7 @@ export default function CheckoutPage() {
     setIsProcessing(true);
     
     const orderId = generateOrderId();
-    const couponText = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "Não");
+    const couponUsed = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "Não");
 
     const pedidoData = {
       codigo: orderId,
@@ -218,7 +214,7 @@ export default function CheckoutPage() {
       total: finalTotal,
       status: 'pendente' as const,
       dataCriacao: new Date().toISOString(),
-      cupomText: couponText
+      cupomText: couponUsed
     };
 
     try {
@@ -302,7 +298,7 @@ export default function CheckoutPage() {
           )}
 
           <section className="space-y-6">
-            <h2 className="text-2xl font-headline font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Destinatário</h2>
+            <h2 className="text-2xl font-headline font-bold flex items-center gap-2"> Destinatário</h2>
             <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
                  <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Alterar Endereço</Link></Button>
@@ -367,9 +363,6 @@ export default function CheckoutPage() {
               >
                 {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} CONFIRMAR PEDIDO
               </Button>
-              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
-                Ao confirmar, seu pedido será enviado para análise.
-              </p>
             </CardContent>
           </Card>
         </div>
@@ -377,4 +370,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
