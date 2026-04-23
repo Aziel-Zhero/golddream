@@ -538,8 +538,16 @@ export default function AdminDashboard() {
                 <div key={i} className="space-y-3 p-6 border-2 rounded-2xl bg-muted/10 relative">
                   <div className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Card {i}</div>
                   <div className="pt-2 space-y-3">
-                    <Input placeholder="Título do Benefício" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]}): e.target.value})} />
-                    <Input placeholder="Texto Auxiliar" value={siteSettings[`b${i}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} />
+                    <Input 
+                      placeholder="Título do Benefício" 
+                      value={siteSettings[`b${i}_title`]} 
+                      onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]: e.target.value})} 
+                    />
+                    <Input 
+                      placeholder="Texto Auxiliar" 
+                      value={siteSettings[`b${i}_sub`]} 
+                      onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} 
+                    />
                     <select 
                       className="w-full p-2.5 border-2 rounded-xl bg-background text-sm font-bold"
                       value={siteSettings[`b${i}_icon`]}
@@ -609,4 +617,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
