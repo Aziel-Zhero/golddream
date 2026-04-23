@@ -10,34 +10,31 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário logado tem papel de administrador.
-    // O Firestore faz curto-circuito. Se a regra do documento do próprio usuário 
-    // permitir a leitura, o 'get' abaixo não entrará em recursão infinita.
+    // Usamos curto-circuito para evitar recursão infinita.
     function isAdmin() {
-      return isSignedIn() && 
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
+      let userDoc = get(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+      return isSignedIn() && (
+        userDoc.data.papel == 'admin' || 
+        userDoc.data.papel == 'administrador'
+      );
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // O dono sempre lê a si mesmo (essencial para evitar recursão no isAdmin).
-      // Admin pode ler todos.
-      allow read: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
-      allow list, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
+      // O dono sempre pode ler e atualizar seu próprio documento.
+      // Isso é crucial para que o isAdmin() consiga ler o documento do admin sem travar.
+      allow read, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
       allow create: if isSignedIn();
-      allow delete: if isAdmin();
+      allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
+      // Criação aberta para processar o checkout
       allow create: if true;
       
       // Administradores veem tudo. Clientes veem apenas seus próprios pedidos.
-      allow list: if isSignedIn() && (
-        isAdmin() || 
-        (resource.data.usuarioId == request.auth.uid)
-      );
-      
-      allow get: if isSignedIn() && (
+      allow read, list: if isSignedIn() && (
         isAdmin() || 
         (resource.data.usuarioId == request.auth.uid)
       );

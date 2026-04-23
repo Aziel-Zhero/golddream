@@ -39,9 +39,6 @@ export default function CheckoutPage() {
   const tgRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
   const { data: tgConfig } = useDoc<TelegramConfig>(tgRef);
 
-  const siteConfigRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: siteConfig } = useDoc<SiteConfig>(siteConfigRef);
-
   const promosQuery = useMemoFirebase(() => {
     return query(collection(firestore, 'promocoes'), where('ativo', '==', true));
   }, [firestore]);
@@ -101,16 +98,6 @@ export default function CheckoutPage() {
       
       if (!snap.empty) {
         const couponData = snap.docs[0].data() as Cupom;
-        if (couponData.expira && couponData.dataExpiracao) {
-          const expirationDate = new Date(couponData.dataExpiracao);
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          if (expirationDate < today) {
-            toast({ variant: "destructive", title: "Cupom Expirado" });
-            setIsApplying(false);
-            return;
-          }
-        }
         setManualDiscountPercent(couponData.desconto);
         toast({ title: "Cupom Aplicado!" });
       } else {
@@ -142,7 +129,6 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      // Formata a cor para mostrar o nome e o código se disponível
       const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
@@ -203,14 +189,12 @@ export default function CheckoutPage() {
     try {
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // Envio Automático via Bot Telegram API
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatTelegramMessage(pedidoData);
         
         const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
         const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
 
-        // Mensagem Amigável solicitada
         const waMessage = `Olá *${pedidoData.clienteNome}* 👋
 
 Aqui é da *Gold Dream - Multimarcas*.
@@ -235,7 +219,7 @@ E nos informar a forma de pagamento? 💳`;
 
         const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
         
-        fetch(url).catch(err => console.error("Erro Telegram API:", err));
+        fetch(url).catch(err => console.error("Telegram API Error:", err));
       }
       
       setTimeout(() => {
