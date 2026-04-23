@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
+import { ThemeManager } from '@/components/ThemeManager';
 
 export const metadata: Metadata = {
   title: 'Gold Dream Multimarcas | Estilo e Exclusividade',
@@ -27,6 +28,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground" suppressHydrationWarning>
         <FirebaseClientProvider>
+          <ThemeManager />
           <AuthProvider>
             <CartProvider>
               <Navbar />

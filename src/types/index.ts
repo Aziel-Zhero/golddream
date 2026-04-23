@@ -89,6 +89,17 @@ export type Cupom = {
   dataExpiracao?: string;
 };
 
+export type Promocao = {
+  id: string;
+  nome: string;
+  dataInicio: string;
+  dataFim: string;
+  valorDesconto: number;
+  ativo: boolean;
+  isBlackFriday: boolean;
+  dataCriacao: string;
+};
+
 export type CartItem = {
   productId: string;
   product: Product;

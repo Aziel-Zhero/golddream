@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,6 +26,28 @@
     --ring: 268 60% 40%;
     --radius: 0.75rem;
   }
+
+  .dark {
+    --background: 268 60% 3%;
+    --foreground: 0 0% 98%;
+    --card: 268 60% 5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 268 60% 5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 268 60% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 268 30% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 268 30% 15%;
+    --muted-foreground: 268 20% 60%;
+    --accent: 45 90% 50%;
+    --accent-foreground: 268 60% 5%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 268 30% 15%;
+    --input: 268 30% 15%;
+    --ring: 268 60% 50%;
+  }
 }
 
 @layer base {
@@ -32,7 +55,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body transition-colors duration-500;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline tracking-tight;
@@ -46,6 +69,11 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.dark .glass-morphism {
+  background: rgba(15, 5, 25, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .product-card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -53,4 +81,11 @@
 .product-card-hover:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 24px -10px rgba(97, 41, 163, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full;
 }

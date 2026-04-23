@@ -8,14 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle, LogIn, UserPlus, ArrowRight, Send, Globe } from 'lucide-react';
+import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle, LogIn, UserPlus, ArrowRight, Send, Globe, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
-import { TelegramConfig, FreteRule, Cupom } from '@/types';
+import { TelegramConfig, FreteRule, Cupom, Promocao } from '@/types';
 
 const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
@@ -38,20 +38,49 @@ export default function CheckoutPage() {
   const [isOrdered, setIsOrdered] = useState(false);
   const [shippingCost, setShippingCost] = useState(0);
   const [couponCode, setCouponCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
+  const [manualDiscountPercent, setManualDiscountPercent] = useState(0);
+  const [autoDiscountPercent, setAutoDiscountPercent] = useState(0);
+  const [activePromo, setActivePromo] = useState<Promocao | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Queries
   const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
   const { data: freteRules } = useCollection<FreteRule>(fretesQuery);
 
   const tgRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
   const { data: tgConfig } = useDoc<TelegramConfig>(tgRef);
 
-  // Calcula o frete baseado no endereço do usuário e regras ativas
+  const promosQuery = useMemoFirebase(() => {
+    return query(collection(firestore, 'promocoes'), where('ativo', '==', true));
+  }, [firestore]);
+  const { data: allPromos } = useCollection<Promocao>(promosQuery);
+
+  // Identifica campanha auto-aplicável
+  useEffect(() => {
+    if (allPromos) {
+      const now = new Date();
+      const bestPromo = allPromos
+        .filter(p => {
+          const start = new Date(p.dataInicio);
+          const end = new Date(p.dataFim);
+          return now >= start && now <= end;
+        })
+        .sort((a, b) => b.valorDesconto - a.valorDesconto)[0];
+
+      if (bestPromo) {
+        setAutoDiscountPercent(bestPromo.valorDesconto);
+        setActivePromo(bestPromo);
+      } else {
+        setAutoDiscountPercent(0);
+        setActivePromo(null);
+      }
+    }
+  }, [allPromos]);
+
+  // Calcula o frete
   useEffect(() => {
     if (freteRules) {
-      // 1. Procura regra específica ativa (Cidade + Bairro)
       const specificRule = freteRules.find(r => 
         r.ativo &&
         user?.endereco &&
@@ -64,14 +93,12 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Procura regra de Frete Global ativo (Toda a Loja)
       const globalRule = freteRules.find(r => r.ativo && r.isGlobal);
       if (globalRule) {
         setShippingCost(globalRule.valor);
         return;
       }
 
-      // 3. Valor padrão se nenhuma regra ativa for encontrada
       setShippingCost(25); 
     }
   }, [user, freteRules]);
@@ -86,41 +113,43 @@ export default function CheckoutPage() {
       
       if (!snap.empty) {
         const couponData = snap.docs[0].data() as Cupom;
-        
-        // Verifica se o cupom expirou
         if (couponData.expira && couponData.dataExpiracao) {
           const expirationDate = new Date(couponData.dataExpiracao);
           const today = new Date();
           today.setHours(0,0,0,0);
-          
           if (expirationDate < today) {
-            toast({ variant: "destructive", title: "Cupom Expirado", description: "Este código não é mais válido." });
+            toast({ variant: "destructive", title: "Cupom Expirado" });
             setIsApplying(false);
             return;
           }
         }
-
-        setDiscountPercent(couponData.desconto);
-        toast({ title: "Cupom Aplicado!", description: `${couponData.desconto}% de desconto.` });
+        setManualDiscountPercent(couponData.desconto);
+        toast({ title: "Cupom Aplicado!" });
       } else {
-        toast({ variant: "destructive", title: "Cupom Inválido", description: "Verifique o código e tente novamente." });
+        toast({ variant: "destructive", title: "Cupom Inválido" });
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao validar cupom" });
+      toast({ variant: "destructive", title: "Erro ao validar" });
     } finally {
       setIsApplying(false);
     }
   };
 
-  const discountValue = totalPrice * (discountPercent / 100);
+  const finalDiscountPercent = Math.max(manualDiscountPercent, autoDiscountPercent);
+  const discountValue = totalPrice * (finalDiscountPercent / 100);
   const finalTotal = (totalPrice - discountValue) + shippingCost;
 
   const generateOrderId = () => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
     const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-    return `PED-${year}-${month}-${random}`;
+    
+    let prefix = 'PED';
+    if (activePromo) {
+      prefix = activePromo.isBlackFriday ? 'BKF' : 'CAMP';
+    }
+    
+    return `${prefix}-${dateStr}-${random}`;
   };
 
   const formatMessage = (template: string, order: any) => {
@@ -139,25 +168,19 @@ export default function CheckoutPage() {
 
   const notifyTelegram = async (order: any) => {
     if (!tgConfig?.isActive || !tgConfig.botToken || !tgConfig.chatId) return;
-
     const template = tgConfig.messageTemplate || DEFAULT_TEMPLATE;
     const message = formatMessage(template, order);
-
     try {
       const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
       await fetch(url);
-    } catch (e) {
-      console.error("Telegram error", e);
-    }
+    } catch (e) {}
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
     setIsProcessing(true);
     const orderId = generateOrderId();
-
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
@@ -180,14 +203,9 @@ export default function CheckoutPage() {
     };
 
     addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
-    
-    // Notifica Telegram
     notifyTelegram(pedidoData);
-
-    // Formata WhatsApp usando o mesmo modelo
     const template = tgConfig?.messageTemplate || DEFAULT_TEMPLATE;
     const message = formatMessage(template, pedidoData);
-
     const whatsappNumber = "5512991862651";
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
@@ -202,13 +220,11 @@ export default function CheckoutPage() {
   if (isOrdered) {
     return (
       <div className="container mx-auto px-4 py-24 text-center space-y-6">
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center text-green-600 mx-auto shadow-inner">
+        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mx-auto shadow-inner">
           <CheckCircle2 className="w-16 h-16" />
         </div>
         <h1 className="text-5xl font-headline font-bold">Pedido Reservado!</h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">
-          Sua escolha na Gold Dream foi registrada. Confira seu WhatsApp para finalizar os detalhes do pagamento.
-        </p>
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua escolha na Gold Dream foi registrada. Confira seu WhatsApp para finalizar.</p>
         <Button asChild size="lg" className="rounded-full px-12 h-14 text-lg font-bold shadow-xl shadow-primary/20"><Link href="/">Voltar à Loja</Link></Button>
       </div>
     );
@@ -219,13 +235,13 @@ export default function CheckoutPage() {
       <div className="container mx-auto px-4 py-24 max-w-2xl text-center">
         <Card className="border-2 shadow-2xl rounded-3xl overflow-hidden border-primary/10">
           <CardHeader className="bg-primary/5 pb-8 pt-12">
-            <div className="bg-white w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border">
+            <div className="bg-white dark:bg-slate-800 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border">
               <LogIn className="w-10 h-10 text-primary" />
             </div>
             <CardTitle className="text-3xl font-headline font-bold">Falta pouco!</CardTitle>
             <CardDescription className="text-lg">Você precisa estar logado para enviarmos seu pedido.</CardDescription>
           </CardHeader>
-          <CardContent className="p-12 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
+          <CardContent className="p-12 grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button asChild size="lg" className="h-16 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"><Link href="/auth/login">Entrar</Link></Button>
             <Button asChild variant="outline" size="lg" className="h-16 rounded-2xl text-lg font-bold border-2"><Link href="/auth/register">Criar Conta</Link></Button>
           </CardContent>
@@ -243,9 +259,24 @@ export default function CheckoutPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-12">
+          {activePromo && (
+            <div className={`p-6 rounded-3xl border-2 flex items-center justify-between gap-4 ${activePromo.isBlackFriday ? 'bg-black border-yellow-500 text-white shadow-xl shadow-yellow-500/10' : 'bg-primary/5 border-primary/20'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-2xl ${activePromo.isBlackFriday ? 'bg-yellow-500 text-black' : 'bg-primary text-white'}`}>
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
+                  <p className="text-sm opacity-80">Desconto de {activePromo.valorDesconto}% aplicado automaticamente.</p>
+                </div>
+              </div>
+              <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
+            </div>
+          )}
+
           <section className="space-y-6">
             <h2 className="text-2xl font-headline font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Destinatário</h2>
-            <div className="p-8 bg-white rounded-3xl border-2 shadow-sm relative overflow-hidden">
+            <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
                  <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Alterar Endereço</Link></Button>
                </div>
@@ -261,19 +292,12 @@ export default function CheckoutPage() {
               </div>
             </div>
           </section>
-          <section className="bg-green-50 p-8 rounded-3xl border-2 border-green-100 flex flex-col sm:flex-row items-center gap-6 text-green-800">
-            <div className="bg-green-100 p-4 rounded-2xl"><ShieldCheck className="w-10 h-10" /></div>
-            <div>
-              <p className="font-bold text-lg leading-tight mb-1">Compra Protegida</p>
-              <p className="text-sm opacity-90">Sua reserva será processada via WhatsApp. O pagamento é combinado diretamente com nossa equipe para sua segurança total.</p>
-            </div>
-          </section>
         </div>
 
         <div className="space-y-8">
           <Card className="border-2 shadow-xl rounded-3xl overflow-hidden border-primary/5">
             <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Resumo do Pedido</CardTitle></CardHeader>
-            <CardContent className="space-y-6 pt-8 bg-white">
+            <CardContent className="space-y-6 pt-8">
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
                   <div key={`${item.productId}-${item.selectedSize}`} className="flex justify-between items-center gap-4 group">
@@ -296,7 +320,7 @@ export default function CheckoutPage() {
 
               <div className="space-y-3 pt-4 text-sm font-medium">
                 <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-bold">R$ {totalPrice.toFixed(2)}</p></div>
-                {discountPercent > 0 && <div className="flex justify-between text-green-600"><p>Desconto ({discountPercent}%)</p><p className="font-bold">- R$ {discountValue.toFixed(2)}</p></div>}
+                {finalDiscountPercent > 0 && <div className="flex justify-between text-green-600"><p>Desconto total ({finalDiscountPercent}%)</p><p className="font-bold">- R$ {discountValue.toFixed(2)}</p></div>}
                 <div className="flex justify-between"><p className="text-muted-foreground">Taxa de Entrega</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
               </div>
               
@@ -312,10 +336,6 @@ export default function CheckoutPage() {
               <Button onClick={handlePlaceOrder} disabled={isProcessing || items.length === 0} className="w-full h-16 text-xl font-black rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-200 transition-all hover:scale-[1.02]">
                 {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-3 w-7 h-7" />} ENVIAR NO WHATSAPP
               </Button>
-              
-              <p className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-widest">
-                Finalizado por Gold Dream Multimarcas
-              </p>
             </CardContent>
           </Card>
         </div>
