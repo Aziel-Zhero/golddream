@@ -25,7 +25,7 @@ export type User = {
     cep: string;
     numero: string;
   };
-  papel: 'cliente' | 'administrador';
+  papel: 'cliente' | 'administrador' | 'admin';
   dataCriacao: string;
   avatarUrl?: string;
 };
@@ -37,17 +37,31 @@ export type Pedido = {
   clienteNome: string;
   clienteTelefone: string;
   clienteEndereco: string;
-  itens: CartItem[];
+  itens: {
+    nome: string;
+    tamanho: string;
+    cor: string;
+    valor: number;
+    quantidade: number;
+  }[];
   subtotal: number;
   frete: number;
   desconto: number;
   total: number;
-  status: 'pendente' | 'enviado' | 'cancelado';
+  status: 'pendente' | 'entregue' | 'cancelado';
   dataCriacao: string;
 };
 
+export type TelegramConfig = {
+  botToken?: string;
+  chatId?: string;
+  testChatId?: string;
+  headerImage?: string;
+  isActive?: boolean;
+};
+
 export type SiteConfig = {
-  heroBadgeText?: string;
+  heroBadge?: string;
   heroTitle?: string;
   heroDescription?: string;
   heroImage?: string;

@@ -35,8 +35,19 @@
         "frete": { "type": "number" },
         "desconto": { "type": "number" },
         "total": { "type": "number" },
-        "status": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "entregue", "cancelado"] },
         "dataCriacao": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ConfiguracaoTelegram": {
+      "title": "ConfiguracaoTelegram",
+      "type": "object",
+      "properties": {
+        "botToken": { "type": "string" },
+        "chatId": { "type": "string" },
+        "testChatId": { "type": "string" },
+        "headerImage": { "type": "string" },
+        "isActive": { "type": "boolean" }
       }
     },
     "ConfiguracaoSite": {
@@ -95,6 +106,7 @@
     "structure": [
       { "path": "/usuarios/{uid}", "definition": { "entityName": "Usuario", "schema": { "$ref": "#/backend/entities/Usuario" } } },
       { "path": "/configuracoes/geral", "definition": { "entityName": "ConfiguracaoSite", "schema": { "$ref": "#/backend/entities/ConfiguracaoSite" } } },
+      { "path": "/configuracoes/telegram", "definition": { "entityName": "ConfiguracaoTelegram", "schema": { "$ref": "#/backend/entities/ConfiguracaoTelegram" } } },
       { "path": "/fretes/{freteId}", "definition": { "entityName": "Frete", "schema": { "$ref": "#/backend/entities/Frete" } } },
       { "path": "/cupons/{cupomId}", "definition": { "entityName": "Cupom", "schema": { "$ref": "#/backend/entities/Cupom" } } },
       { "path": "/produtos/{produtoId}", "definition": { "entityName": "Produto", "schema": { "$ref": "#/backend/entities/Produto" } } },
