@@ -20,7 +20,7 @@ export default function MyOrdersPage() {
   const { toast } = useToast();
   const [isSendingVerification, setIsSendingVerification] = useState(false);
 
-  // Query otimizada para buscar apenas os pedidos do usuário atual
+  // Query otimizada e sincronizada com as regras de segurança
   const ordersQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
     return query(
@@ -63,16 +63,16 @@ export default function MyOrdersPage() {
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-4xl">
-      {/* Banner de Verificação de E-mail */}
+      {/* Banner de Verificação de E-mail - Corrigido para aparecer sempre que não verificado */}
       {user && !user.emailVerified && (
         <div className="mb-8 p-6 bg-yellow-50 border-2 border-yellow-100 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
           <div className="flex items-center gap-4 text-yellow-800">
             <div className="p-3 bg-white rounded-2xl shadow-sm">
               <MailWarning className="w-6 h-6 text-yellow-600" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="font-bold">Confirme seu E-mail</p>
-              <p className="text-sm opacity-80">Você precisa confirmar seu e-mail para garantir a segurança da sua conta.</p>
+              <p className="text-sm opacity-80">Você precisa confirmar seu e-mail para garantir a segurança e o acompanhamento total da sua conta.</p>
             </div>
           </div>
           <Button 
@@ -109,8 +109,9 @@ export default function MyOrdersPage() {
           </div>
           <div className="space-y-2">
             <p className="text-xl font-bold text-red-800">Erro de Acesso</p>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Não conseguimos listar seus pedidos. Certifique-se de que sua conta está ativa e tente atualizar a página.
+            <p className="text-muted-foreground max-w-md mx-auto text-sm leading-relaxed">
+              Não conseguimos listar seus pedidos. Certifique-se de que sua conta está ativa. 
+              {user && !user.emailVerified && " Lembre-se de confirmar seu e-mail no banner acima."}
             </p>
           </div>
           <Button onClick={() => window.location.reload()} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-2">
@@ -158,6 +159,7 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
+                    {/* Corrigido Hydration Error: Trocado <p> por <div> */}
                     <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados

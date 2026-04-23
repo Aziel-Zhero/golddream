@@ -26,16 +26,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [appUser, setAppUser] = useState<(AppUser & { emailVerified: boolean }) | null>(null);
 
-  // Monitora o estado de e-mail verificado em tempo real
-  const [emailVerified, setEmailVerified] = useState(false);
-
   const userDocRef = useMemoFirebase(() => fbUser ? doc(firestore, 'usuarios', fbUser.uid) : null, [fbUser, firestore]);
   const { data: userData, isLoading: isDocLoading } = useDoc(userDocRef);
 
   useEffect(() => {
     if (fbUser) {
-      setEmailVerified(fbUser.emailVerified);
-      
       if (userData) {
         setAppUser({
           uid: fbUser.uid,
@@ -51,20 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       setAppUser(null);
-      setEmailVerified(false);
     }
   }, [fbUser, userData]);
 
   useEffect(() => {
-    // Redirecionamento para completar perfil se faltar endereço
-    const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || 
-                         pathname.startsWith('/category/') || 
-                         pathname.startsWith('/products/') ||
-                         pathname.startsWith('/suporte/');
-    const isCompletingProfile = pathname === '/auth/complete-profile';
-    const isAdminArea = pathname.startsWith('/admin');
-
+    // Redirecionamento inteligente: Só redireciona se logado, se perfil existir e se faltar endereço
     if (!isUserLoading && fbUser && !isDocLoading && appUser) {
+      const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || 
+                           pathname.startsWith('/category/') || 
+                           pathname.startsWith('/products/') ||
+                           pathname.startsWith('/suporte/');
+      const isCompletingProfile = pathname === '/auth/complete-profile';
+      const isAdminArea = pathname.startsWith('/admin');
+
       const isMissingAddress = !userData?.endereco?.cidade;
       const isAdmin = appUser.papel === 'admin';
 

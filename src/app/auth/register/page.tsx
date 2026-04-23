@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -8,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useAuth as useFirebaseAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, ArrowLeft, ShieldCheck, Eye, EyeOff, Mail } from 'lucide-react';
+import { Loader2, ShieldCheck, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -68,12 +69,12 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // 2. Envia e-mail de verificação imediatamente
+      // 2. Envia e-mail de verificação IMEDIATAMENTE
       await sendEmailVerification(user);
 
-      // 3. Cria o documento do usuário no Firestore (Non-blocking)
+      // 3. Cria o documento do usuário no Firestore (Aguardamos para garantir que o perfil esteja pronto)
       const userRef = doc(firestore, 'usuarios', user.uid);
-      setDocumentNonBlocking(userRef, {
+      await setDoc(userRef, {
         id: user.uid,
         email: formData.email,
         telefone: formData.telefone,
@@ -83,7 +84,7 @@ export default function RegisterPage() {
       
       toast({ 
         title: "Conta Criada!", 
-        description: "Enviamos um e-mail de confirmação. Verifique sua caixa de entrada." 
+        description: "Verifique sua caixa de entrada para confirmar seu e-mail." 
       });
       
       // 4. Redireciona para completar o perfil
@@ -169,7 +170,7 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full h-12 font-bold" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="mr-2 w-4 h-4" />} Cadastrar
+              {isLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck className="mr-2 w-4 h-4" />} Cadastrar e Confirmar E-mail
             </Button>
           </form>
           <div className="mt-6 text-center text-sm">

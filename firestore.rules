@@ -9,70 +9,69 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário tem um papel específico
-    // IMPORTANTE: Esta função só deve ser chamada após garantir que não há recursão
-    function hasRole(roles) {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in roles;
+    // Verifica se o usuário é administrador buscando o documento no banco
+    function isAdmin() {
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // PERMISSÃO CRÍTICA: Permite ler o próprio perfil sem chamar hasRole() para evitar recursão infinita
+      // Regra fundamental: O dono SEMPRE pode ler seu perfil (evita recursão)
       allow read: if isSignedIn() && request.auth.uid == uid;
       
-      // Permite que administradores leiam outros perfis
-      allow read: if isSignedIn() && hasRole(['admin', 'administrador']);
+      // Administradores podem ler qualquer perfil
+      allow read: if isSignedIn() && isAdmin();
       
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == uid || hasRole(['admin', 'administrador']));
-      allow list, delete: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isSignedIn() && isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Qualquer usuário logado pode criar pedidos
-      allow create: if isSignedIn();
+      // Qualquer logado pode criar seu pedido
+      allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
       
-      // Regra de leitura e listagem:
-      // 1. O dono do pedido pode ler/listar seus próprios documentos (usuarioId deve bater com o UID)
-      // 2. Administradores podem ler/listar tudo
+      // Leitura e Listagem: Permitido se for o dono do pedido (usuarioId) ou admin
+      // Nota: O método list exige que a query do app tenha where('usuarioId', '==', uid)
       allow read, list: if isSignedIn() && (
-        (resource != null && resource.data.usuarioId == request.auth.uid) ||
-        hasRole(['admin', 'administrador']) ||
-        (resource == null) // Permite que a query inicial de listagem seja avaliada
+        (resource != null && resource.data.usuarioId == request.auth.uid) || 
+        isAdmin() ||
+        (resource == null)
       );
       
-      allow update, delete: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow update, delete: if isSignedIn() && isAdmin();
     }
 
     match /produtos/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
 
     match /fretes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
 
     match /cupons/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
 
     match /suporte/{slug} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
+      allow write: if isSignedIn() && isAdmin();
     }
   }
 }

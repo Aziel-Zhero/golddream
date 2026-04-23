@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, MapPin } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -52,6 +52,8 @@ export default function CompleteProfilePage() {
 
     try {
       const userRef = doc(firestore, 'usuarios', user.uid);
+      
+      // Preservamos o papel (papel) e a data de criação para não perder acesso admin
       const updateData = {
         id: user.uid,
         email: user.email,
@@ -68,20 +70,15 @@ export default function CompleteProfilePage() {
         dataCriacao: user.dataCriacao || new Date().toISOString()
       };
 
-      // Salva no Firestore usando setDoc com merge para garantir persistência
       await setDoc(userRef, updateData, { merge: true });
-      
-      // Atualiza o estado local do contexto
       updateUser(updateData as any);
       
-      toast({ title: "Perfil Atualizado!", description: "Seus dados foram salvos com sucesso." });
+      toast({ title: "Perfil Atualizado!", description: "Seus dados de entrega foram salvos." });
       
-      // Redireciona para o início após um pequeno delay
       setTimeout(() => {
         router.push('/');
       }, 500);
     } catch (error: any) {
-      console.error(error);
       toast({ variant: "destructive", title: "Erro ao salvar", description: error.message || "Tente novamente." });
     } finally {
       setIsLoading(false);
@@ -128,7 +125,7 @@ export default function CompleteProfilePage() {
               </div>
             </div>
             <Button type="submit" className="w-full h-16 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} ATUALIZAR DADOS
+              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} SALVAR INFORMAÇÕES
             </Button>
           </form>
         </CardContent>
