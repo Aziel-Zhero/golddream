@@ -81,8 +81,12 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user, isLoading: isAuthLoading } = useAuth();
   
-  const isAdmin = user?.papel === 'admin' || user?.papel === 'administrador';
+  // Verifica se o usuário tem cargo de admin de forma segura
+  const isAdmin = useMemo(() => {
+    return user?.papel === 'admin' || user?.papel === 'administrador';
+  }, [user]);
 
+  // Só executa a query se o usuário for admin confirmado
   const ordersQuery = useMemoFirebase(() => {
     if (!isAdmin) return null;
     return query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'));
@@ -237,7 +241,7 @@ E nos informar a forma de pagamento? 💳`;
       <div className="container mx-auto px-4 py-24 text-center space-y-6">
         <ShieldCheck className="w-16 h-16 mx-auto text-destructive" />
         <h1 className="text-3xl font-bold">Acesso Restrito</h1>
-        <p className="text-muted-foreground">Área exclusiva para administradores da Gold Dream.</p>
+        <p className="text-muted-foreground">Área exclusiva para administradores da Gold Dream. Se você é um administrador, certifique-se de que seu cargo foi configurado no banco de dados.</p>
         <Button asChild><Link href="/">Voltar para a Loja</Link></Button>
       </div>
     );

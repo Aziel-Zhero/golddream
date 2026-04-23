@@ -9,7 +9,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Regra refinada para evitar recursão infinita no isAdmin()
+    // Função central de admin - usa get() para verificar o campo 'papel' no documento do usuário
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
@@ -18,9 +18,12 @@ service cloud.firestore {
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // PERMITIR que o usuário leia seu próprio perfil SEM chamar isAdmin() para quebrar a recursão
-      allow read: if isSignedIn() && (request.auth.uid == usuarioId || 
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']);
+      // PERMITIR que o usuário leia seu próprio perfil SEM chamar isAdmin() para evitar recursão infinita
+      // Se for o próprio dono do UID, permite. Se não for, verifica se quem está lendo é um administrador.
+      allow read: if isSignedIn() && (
+        request.auth.uid == usuarioId || 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
+      );
       
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
@@ -28,11 +31,17 @@ service cloud.firestore {
     }
 
     match /pedidos/{pedidoId} {
+      // Criar pedido é livre (ou pode restringir para isSignedIn() se desejar)
       allow create: if true;
+      
+      // Regra de leitura/listagem:
+      // 1. Administradores podem ler tudo.
+      // 2. Clientes podem ler apenas documentos onde o usuarioId coincide com seu UID.
       allow read, list: if isSignedIn() && (
-        isAdmin() || 
+        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']) || 
         (resource.data.usuarioId == request.auth.uid)
       );
+      
       allow update, delete: if isAdmin();
     }
 
