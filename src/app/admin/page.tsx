@@ -152,7 +152,7 @@ export default function AdminDashboard() {
         .replace('{{itens}}', '1️⃣ *Camiseta Street (G/Preto)*\nValor: R$ 89.90 (x1)\n\n2️⃣ *Calça Cargo (42/Verde)*\nValor: R$ 144.90 (x1)')
         .replace('{{clienteNome}}', 'Admin Teste')
         .replace('{{clienteEndereco}}', 'Rua de Teste, 123 - Centro - SP')
-        .replace('{{telefone}}', '12991862651')
+        .replace('{{telefone}}', '5512991862651')
         .replace('{{cupom}}', 'TESTE10')
         .replace('{{total}}', '234.80');
 
@@ -538,7 +538,7 @@ export default function AdminDashboard() {
                 <div key={i} className="space-y-3 p-6 border-2 rounded-2xl bg-muted/10 relative">
                   <div className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Card {i}</div>
                   <div className="pt-2 space-y-3">
-                    <Input placeholder="Título do Benefício" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]: e.target.value})} />
+                    <Input placeholder="Título do Benefício" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]}): e.target.value})} />
                     <Input placeholder="Texto Auxiliar" value={siteSettings[`b${i}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} />
                     <select 
                       className="w-full p-2.5 border-2 rounded-xl bg-background text-sm font-bold"
@@ -609,3 +609,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

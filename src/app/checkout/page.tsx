@@ -165,14 +165,16 @@ export default function CheckoutPage() {
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nValor: R$ ${i.valor.toFixed(2)} (x${i.quantidade})\n\n`;
     });
 
+    // Clean phone for link, ensure it has international format if needed
     const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
+    const phoneForLink = cleanPhone.length === 11 ? `55${cleanPhone}` : cleanPhone;
 
     return template
       .replace('{{codigo}}', order.codigo)
       .replace('{{itens}}', itemsText.trim())
       .replace('{{clienteNome}}', order.clienteNome)
       .replace('{{clienteEndereco}}', order.clienteEndereco)
-      .replace('{{telefone}}', cleanPhone)
+      .replace('{{telefone}}', phoneForLink)
       .replace('{{cupom}}', order.cupomText || 'Não')
       .replace('{{total}}', order.total.toFixed(2));
   };
@@ -375,3 +377,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
