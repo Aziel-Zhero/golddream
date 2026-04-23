@@ -19,7 +19,7 @@
             "numero": { "type": "string" }
           }
         },
-        "papel": { "type": "string", "enum": ["cliente", "administrador"] },
+        "papel": { "type": "string", "enum": ["cliente", "administrador", "admin"] },
         "dataCriacao": { "type": "string", "format": "date-time" }
       }
     },
@@ -46,7 +46,7 @@
         "botToken": { "type": "string" },
         "chatId": { "type": "string" },
         "testChatId": { "type": "string" },
-        "headerImage": { "type": "string" },
+        "messageTemplate": { "type": "string" },
         "isActive": { "type": "boolean" }
       }
     },

@@ -56,7 +56,7 @@ export type TelegramConfig = {
   botToken?: string;
   chatId?: string;
   testChatId?: string;
-  headerImage?: string;
+  messageTemplate?: string;
   isActive?: boolean;
 };
 

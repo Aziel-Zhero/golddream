@@ -17,6 +17,18 @@ import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
 import { TelegramConfig } from '@/types';
 
+const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
+
+🧾 *Código:* #{{codigo}}
+
+📦 *Itens:*
+{{itens}}
+
+👤 *Cliente:* {{clienteNome}}
+📍 *Endereço:* {{clienteEndereco}}
+
+💰 *TOTAL: R$ {{total}}*`;
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
@@ -74,18 +86,25 @@ export default function CheckoutPage() {
     return `PED-${year}-${month}-${random}`;
   };
 
+  const formatMessage = (template: string, order: any) => {
+    let itemsText = "";
+    order.itens.forEach((i: any) => {
+      itemsText += `• ${i.nome} (${i.tamanho}/${i.cor}) x${i.quantidade}\n`;
+    });
+
+    return template
+      .replace('{{codigo}}', order.codigo)
+      .replace('{{itens}}', itemsText.trim())
+      .replace('{{clienteNome}}', order.clienteNome)
+      .replace('{{clienteEndereco}}', order.clienteEndereco)
+      .replace('{{total}}', order.total.toFixed(2));
+  };
+
   const notifyTelegram = async (order: any) => {
     if (!tgConfig?.isActive || !tgConfig.botToken || !tgConfig.chatId) return;
 
-    let message = `🛍️ *NOVO PEDIDO - GOLD DREAM*\n\n`;
-    message += `🧾 *Código:* #${order.codigo}\n\n`;
-    message += `📦 *Itens:*\n`;
-    order.itens.forEach((i: any) => {
-      message += `• ${i.nome} (${i.tamanho}/${i.cor}) x${i.quantidade}\n`;
-    });
-    message += `\n👤 *Cliente:* ${order.clienteNome}\n`;
-    message += `📍 *Endereço:* ${order.clienteEndereco}\n\n`;
-    message += `💰 *TOTAL: R$ ${order.total.toFixed(2)}*`;
+    const template = tgConfig.messageTemplate || DEFAULT_TEMPLATE;
+    const message = formatMessage(template, order);
 
     try {
       const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
@@ -128,24 +147,11 @@ export default function CheckoutPage() {
     // Notifica Telegram
     notifyTelegram(pedidoData);
 
-    // Formata WhatsApp
-    const whatsappNumber = "5512991862651";
-    let message = `🛍️ *NOVO PEDIDO*\n\n`;
-    message += `🧾 *Código do Pedido:* #${orderId}\n\n`;
-    message += `📦 *Produtos*\n\n`;
-    pedidoData.itens.forEach((item, idx) => {
-      message += `${idx + 1}️⃣ ${item.nome}\n`;
-      message += `Tamanho: ${item.tamanho} | Cor: ${item.cor}\n`;
-      message += `Valor: R$ ${item.valor.toFixed(2)} | Qtd: ${item.quantidade}\n\n`;
-    });
-    message += `👤 *Cliente:* ${user.nome}\n\n`;
-    message += `📍 *Endereço de Entrega:*\n${pedidoData.clienteEndereco}\n\n`;
-    message += `💳 *Resumo*\n`;
-    message += `Subtotal: R$ ${totalPrice.toFixed(2)}\n`;
-    if (discountValue > 0) message += `Desconto: -R$ ${discountValue.toFixed(2)}\n`;
-    message += `Frete: R$ ${shippingCost.toFixed(2)}\n\n`;
-    message += `💰 *TOTAL A PAGAR:* R$ ${finalTotal.toFixed(2)}`;
+    // Formata WhatsApp usando o mesmo modelo
+    const template = tgConfig?.messageTemplate || DEFAULT_TEMPLATE;
+    const message = formatMessage(template, pedidoData);
 
+    const whatsappNumber = "5512991862651";
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
     setTimeout(() => {

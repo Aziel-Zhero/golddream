@@ -31,7 +31,8 @@ import {
   TrendingUp,
   MessageSquare,
   Send,
-  Camera
+  Camera,
+  Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,14 +48,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pedido, TelegramConfig } from '@/types';
 
-const ICONS = ['Truck', 'ShieldCheck', 'Zap', 'ArrowRight', 'Star', 'Package', 'Heart'];
-
 const SUPPORT_PAGES = [
   { id: 'envio-e-frete', title: 'Envio e Frete' },
   { id: 'trocas-e-devolucoes', title: 'Trocas e Devoluções' },
   { id: 'guia-de-tamanhos', title: 'Guia de Tamanhos' },
   { id: 'faq', title: 'FAQ (Perguntas Frequentes)' }
 ];
+
+const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
+
+🧾 *Código:* #{{codigo}}
+
+📦 *Itens:*
+{{itens}}
+
+👤 *Cliente:* {{clienteNome}}
+📍 *Endereço:* {{clienteEndereco}}
+
+💰 *TOTAL: R$ {{total}}*`;
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -87,10 +98,9 @@ export default function AdminDashboard() {
   });
 
   const [tgConfig, setTgConfig] = useState<TelegramConfig>({
-    botToken: '', chatId: '', testChatId: '', headerImage: '', isActive: false
+    botToken: '', chatId: '', testChatId: '', messageTemplate: DEFAULT_TEMPLATE, isActive: false
   });
 
-  const [supportContents, setSupportContents] = useState<Record<string, string>>({});
   const [newFrete, setNewFrete] = useState({ cidade: '', bairro: '', valor: 0 });
   const [newCupom, setNewCupom] = useState({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
 
@@ -108,11 +118,11 @@ export default function AdminDashboard() {
   }, [allOrders]);
 
   useEffect(() => {
-    if (config) setSiteSettings({ ...siteSettings, ...config });
+    if (config) setSiteSettings((prev: any) => ({ ...prev, ...config }));
   }, [config]);
 
   useEffect(() => {
-    if (telegramData) setTgConfig({ ...tgConfig, ...telegramData });
+    if (telegramData) setTgConfig((prev: any) => ({ ...prev, ...telegramData }));
   }, [telegramData]);
 
   const handleUpdateStatus = (id: string, newStatus: 'entregue' | 'cancelado') => {
@@ -131,8 +141,14 @@ export default function AdminDashboard() {
       return;
     }
     try {
-      const text = encodeURIComponent("🔔 *TESTE GOLD DREAM*\nIntegração configurada com sucesso!");
-      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${text}&parse_mode=Markdown`;
+      const sampleMessage = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
+        .replace('{{codigo}}', 'TEST-1234')
+        .replace('{{itens}}', '• Produto de Teste x1')
+        .replace('{{clienteNome}}', 'Admin Teste')
+        .replace('{{clienteEndereco}}', 'Rua de Teste, 123')
+        .replace('{{total}}', '100.00');
+
+      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(sampleMessage)}&parse_mode=Markdown`;
       await fetch(url);
       toast({ title: "Teste Enviado!", description: "Verifique seu Telegram." });
     } catch (e) {
@@ -152,6 +168,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const [activeSupportTab, setActiveSupportTab] = useState(SUPPORT_PAGES[0].id);
+  const supportRef = useMemoFirebase(() => doc(firestore, 'suporte', activeSupportTab), [firestore, activeSupportTab]);
+  const { data: supportPage } = useDoc(supportRef);
+  const [supportContent, setSupportContent] = useState('');
+
+  useEffect(() => {
+    if (supportPage) setSupportContent(supportPage.conteudo || '');
+    else setSupportContent('');
+  }, [supportPage]);
+
+  const handleSaveSupport = () => {
+    setDoc(supportRef, {
+      titulo: SUPPORT_PAGES.find(p => p.id === activeSupportTab)?.title,
+      conteudo: supportContent,
+      slug: activeSupportTab
+    }, { merge: true });
+    toast({ title: "Página de Suporte Salva!" });
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
@@ -169,7 +204,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Metrics Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <Card className="border-2 border-primary/10">
           <CardContent className="p-6 flex items-center gap-4">
@@ -290,14 +324,14 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Send className="w-6 h-6 text-[#0088cc]" />
-                Integração Telegram Bot
+                Configuração de Mensagens (Telegram & WhatsApp)
               </CardTitle>
-              <CardDescription>Configure as notificações de pedidos para seu grupo.</CardDescription>
+              <CardDescription>Configure como as notificações de novos pedidos serão enviadas.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label>Bot Token (HTTP API)</Label>
+                  <Label>Bot Token (Telegram)</Label>
                   <Input type="password" value={tgConfig.botToken} onChange={e => setTgConfig({...tgConfig, botToken: e.target.value})} placeholder="00000000:AA..."/>
                 </div>
                 <div className="space-y-2">
@@ -305,30 +339,36 @@ export default function AdminDashboard() {
                   <Input value={tgConfig.chatId} onChange={e => setTgConfig({...tgConfig, chatId: e.target.value})} placeholder="-100..."/>
                 </div>
                 <div className="space-y-2">
-                  <Label>Chat ID de Teste (Seu ID Pessoal)</Label>
+                  <Label>ID de Teste (Seu ID)</Label>
                   <Input value={tgConfig.testChatId} onChange={e => setTgConfig({...tgConfig, testChatId: e.target.value})} placeholder="12345678"/>
                 </div>
-                <div className="space-y-2">
-                  <Label>Imagem de Cabeçalho (URL)</Label>
-                  <div className="flex gap-2">
-                    <Input value={tgConfig.headerImage} onChange={e => setTgConfig({...tgConfig, headerImage: e.target.value})} placeholder="https://..."/>
-                    <div className="w-10 h-10 border rounded bg-muted flex items-center justify-center shrink-0">
-                      {tgConfig.headerImage ? <img src={tgConfig.headerImage} className="w-full h-full object-cover" /> : <Camera className="w-4 h-4" />}
-                    </div>
-                  </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg font-bold">Modelo da Mensagem</Label>
+                  <Badge variant="outline" className="flex gap-1 items-center">
+                    <Info className="w-3 h-3" /> Use tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{total}}"}
+                  </Badge>
                 </div>
+                <Textarea 
+                  value={tgConfig.messageTemplate} 
+                  onChange={e => setTgConfig({...tgConfig, messageTemplate: e.target.value})}
+                  placeholder="Escreva como a mensagem deve chegar..."
+                  className="min-h-[200px] font-mono text-sm leading-relaxed"
+                />
               </div>
               
               <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-xl">
                 <input type="checkbox" id="tgactive" checked={tgConfig.isActive} onChange={e => setTgConfig({...tgConfig, isActive: e.target.checked})} className="w-5 h-5 accent-[#0088cc]" />
-                <Label htmlFor="tgactive" className="cursor-pointer font-bold">Ativar Notificações no Telegram</Label>
+                <Label htmlFor="tgactive" className="cursor-pointer font-bold">Ativar Notificações Externas</Label>
               </div>
 
               <div className="flex gap-4">
-                <Button onClick={handleSaveTelegram} className="flex-1 bg-[#0088cc] hover:bg-[#0088cc]/90 h-12">
+                <Button onClick={handleSaveTelegram} className="flex-1 bg-[#0088cc] hover:bg-[#0088cc]/90 h-12 rounded-xl">
                   <Save className="w-4 h-4 mr-2" /> Salvar Configurações
                 </Button>
-                <Button onClick={handleTestTelegram} variant="outline" className="h-12">
+                <Button onClick={handleTestTelegram} variant="outline" className="h-12 rounded-xl">
                   <MessageSquare className="w-4 h-4 mr-2" /> Enviar Teste
                 </Button>
               </div>
@@ -337,15 +377,41 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="home" className="space-y-8">
-           {/* Conteúdo já existente de home settings */}
            <Card className="border-2">
             <CardHeader><CardTitle>Seção Hero (Banner)</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2"><Label>Badge</Label><Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} /></div>
               <div className="space-y-2"><Label>Título</Label><Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} /></div>
               <div className="space-y-2"><Label>Descrição</Label><Input value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} /></div>
-              <div className="space-y-2"><Label>Hero Image URL</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Hero Image URL (1200x600)</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} /></div>
               <Button onClick={handleSaveSettings} className="w-full mt-4"><Save className="w-4 h-4 mr-2" /> Salvar Hero</Button>
+            </CardContent>
+           </Card>
+
+           <Card className="border-2">
+            <CardHeader><CardTitle>Cards de Benefícios</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="space-y-3 p-4 border rounded-xl bg-muted/20">
+                  <Label className="font-black text-xs uppercase">Benefício {i}</Label>
+                  <Input placeholder="Título" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]: e.target.value})} />
+                  <Input placeholder="Subtítulo" value={siteSettings[`b${i}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} />
+                  <select 
+                    className="w-full p-2 border rounded-md bg-background text-sm"
+                    value={siteSettings[`b${i}_icon`]}
+                    onChange={e => setSiteSettings({...siteSettings, [`b${i}_icon`]: e.target.value})}
+                  >
+                    <option value="Truck">Caminhão (Frete)</option>
+                    <option value="ShieldCheck">Escudo (Segurança)</option>
+                    <option value="Zap">Raio (Velocidade)</option>
+                    <option value="Star">Estrela (Qualidade)</option>
+                    <option value="Package">Pacote (Entrega)</option>
+                    <option value="Heart">Coração (Favoritos)</option>
+                    <option value="ArrowRight">Seta (Novidades)</option>
+                  </select>
+                </div>
+              ))}
+              <Button onClick={handleSaveSettings} className="md:col-span-2 w-full"><Save className="w-4 h-4 mr-2" /> Salvar Benefícios</Button>
             </CardContent>
            </Card>
         </TabsContent>
@@ -360,7 +426,6 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* ... manter abas de frete, cupons e suporte ... */}
         <TabsContent value="frete" className="space-y-6">
           <Card className="border-2">
             <CardHeader><CardTitle>Tabela de Fretes</CardTitle></CardHeader>
@@ -387,6 +452,60 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="coupons" className="space-y-6">
+          <Card className="border-2">
+            <CardHeader><CardTitle>Cupons de Desconto</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 items-end bg-muted/30 p-4 rounded-xl">
+                <div className="space-y-2"><Label>Código</Label><Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value.toUpperCase()})} /></div>
+                <div className="space-y-2"><Label>Desconto (%)</Label><Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseInt(e.target.value)})} /></div>
+                <div className="flex items-center gap-2 h-10"><input type="checkbox" checked={newCupom.expira} onChange={e => setNewCupom({...newCupom, expira: e.target.checked})} /> <Label>Expira?</Label></div>
+                <Button onClick={() => {
+                  setDoc(doc(firestore, 'cupons', newCupom.codigo), newCupom);
+                  setNewCupom({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
+                }} className="rounded-xl">Criar Cupom</Button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {cupons?.map(c => (
+                  <Card key={c.id} className="p-4 flex justify-between items-center border-2 border-dashed">
+                    <div><p className="font-black text-lg">{c.codigo}</p><p className="text-sm text-muted-foreground">{c.desconto}% OFF</p></div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="support" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-2">
+              {SUPPORT_PAGES.map(page => (
+                <Button 
+                  key={page.id} 
+                  variant={activeSupportTab === page.id ? "default" : "outline"} 
+                  className="w-full justify-start rounded-xl"
+                  onClick={() => setActiveSupportTab(page.id)}
+                >
+                  <FileText className="w-4 h-4 mr-2" /> {page.title}
+                </Button>
+              ))}
+            </div>
+            <Card className="md:col-span-3 border-2">
+              <CardHeader><CardTitle>Conteúdo: {SUPPORT_PAGES.find(p => p.id === activeSupportTab)?.title}</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea 
+                  value={supportContent} 
+                  onChange={e => setSupportContent(e.target.value)} 
+                  className="min-h-[400px] text-base leading-relaxed" 
+                  placeholder="Escreva o conteúdo da página aqui..."
+                />
+                <Button onClick={handleSaveSupport} className="w-full h-12 rounded-xl"><Save className="w-4 h-4 mr-2" /> Salvar Conteúdo</Button>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
