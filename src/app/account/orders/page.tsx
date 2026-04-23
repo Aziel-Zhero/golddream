@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -164,7 +163,6 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    {/* Correção de Hidratação: Mudança de <p> para <div> para permitir <div> interno */}
                     <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados

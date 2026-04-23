@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth as useFirebaseAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Loader2, UserPlus, ArrowLeft, ShieldCheck, Eye, EyeOff, Mail } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -68,7 +68,10 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // 2. Cria o documento do usuário no Firestore (Non-blocking)
+      // 2. Envia e-mail de verificação imediatamente
+      await sendEmailVerification(user);
+
+      // 3. Cria o documento do usuário no Firestore (Non-blocking)
       const userRef = doc(firestore, 'usuarios', user.uid);
       setDocumentNonBlocking(userRef, {
         id: user.uid,
@@ -80,10 +83,10 @@ export default function RegisterPage() {
       
       toast({ 
         title: "Conta Criada!", 
-        description: "Seja bem-vindo à Gold Dream Multimarcas." 
+        description: "Enviamos um e-mail de confirmação. Verifique sua caixa de entrada." 
       });
       
-      // 3. Redireciona para completar o perfil
+      // 4. Redireciona para completar o perfil
       router.push('/auth/complete-profile');
     } catch (error: any) {
       let message = "Tente novamente mais tarde.";
