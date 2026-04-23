@@ -9,35 +9,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Obtém o papel do usuário sem causar recursão
-    function getUserRole() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel;
-    }
-
+    // Verifica se o usuário é admin acessando diretamente os dados sem chamar recursão
     function isAdmin() {
-      return isSignedIn() && (getUserRole() == "admin" || getUserRole() == "administrador");
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador', 'admin_vogue'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // PERMISSÃO: O dono lê seu perfil primeiro para evitar recursão ao chamar isAdmin()
-      allow read: if isSignedIn() && (request.auth.uid == uid || (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']));
+      // O segredo para evitar recursão: se o UID for o do próprio usuário, permite ler direto.
+      // Se for outro UID, verifica se quem está pedindo é admin consultando o perfil do pedinte.
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid || 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
+      );
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criar pedido é livre (ou isSignedIn()) para visitantes/clientes
       allow create: if true;
       
-      // Regra de leitura/listagem:
-      // 1. Administradores podem ler TUDO.
-      // 2. Clientes podem ler apenas documentos onde o usuarioId coincide com seu UID.
+      // Administradores veem tudo. Clientes veem apenas onde o usuarioId coincide.
       allow read, list: if isSignedIn() && (
         (request.auth.uid == resource.data.usuarioId) || 
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'])
+        isAdmin()
       );
       
       allow update, delete: if isAdmin();

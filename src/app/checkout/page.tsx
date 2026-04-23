@@ -129,6 +129,7 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
+      // Formata cor para mostrar código e nome se disponíveis
       const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
