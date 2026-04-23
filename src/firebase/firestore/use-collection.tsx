@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -64,8 +65,12 @@ export function useCollection<T = any>(
         let path = 'unknown';
 
         try {
-          if ('path' in targetRefOrQuery) {
-            path = (targetRefOrQuery as CollectionReference).path;
+          // Tenta extrair o caminho de forma segura para depuração
+          if ('path' in (targetRefOrQuery as any)) {
+            path = (targetRefOrQuery as any).path;
+          } else if ('_query' in (targetRefOrQuery as any)) {
+            // Fallback para objetos Query internos do SDK
+            path = (targetRefOrQuery as any)._query.path.canonicalString();
           }
         } catch {
           path = 'unknown';
