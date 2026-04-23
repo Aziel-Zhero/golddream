@@ -9,11 +9,12 @@ import { signOut, sendEmailVerification } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 
 type AuthContextType = {
-  user: (AppUser & { emailVerified: boolean }) | null;
+  user: (AppUser & { emailVerified: boolean; isAdmin: boolean }) | null;
   isLoading: boolean;
   logout: () => Promise<void>;
   updateUser: (data: Partial<AppUser>) => void;
   sendVerification: () => Promise<void>;
+  isAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,10 +25,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const pathname = usePathname();
   const router = useRouter();
-  const [appUser, setAppUser] = useState<(AppUser & { emailVerified: boolean }) | null>(null);
+  const [appUser, setAppUser] = useState<(AppUser & { emailVerified: boolean; isAdmin: boolean }) | null>(null);
 
   const userDocRef = useMemoFirebase(() => fbUser ? doc(firestore, 'usuarios', fbUser.uid) : null, [fbUser, firestore]);
   const { data: userData, isLoading: isDocLoading } = useDoc(userDocRef);
+
+  const isAdminStatus = userData?.papel === 'admin' || userData?.papel === 'administrador';
 
   useEffect(() => {
     if (fbUser) {
@@ -39,30 +42,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           nome: userData.nome || fbUser.displayName || 'Cliente',
           telefone: userData.telefone || fbUser.phoneNumber || '',
           endereco: userData.endereco,
-          papel: (userData.papel === 'admin' || userData.papel === 'administrador') ? 'admin' : 'cliente',
+          papel: isAdminStatus ? 'admin' : 'cliente',
           dataCriacao: userData.dataCriacao || new Date().toISOString(),
-          avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`
+          avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`,
+          isAdmin: isAdminStatus
         });
       }
     } else {
       setAppUser(null);
     }
-  }, [fbUser, userData]);
+  }, [fbUser, userData, isAdminStatus]);
 
   useEffect(() => {
-    // Redirecionamento inteligente: Só redireciona se logado, se perfil existir e se faltar endereço
     if (!isUserLoading && fbUser && !isDocLoading && appUser) {
-      const isPublicPage = ['/auth/login', '/auth/register', '/'].includes(pathname) || 
+      const isPublicPage = ['/auth/login', '/auth/register', '/', '/auth/complete-profile'].includes(pathname) || 
                            pathname.startsWith('/category/') || 
                            pathname.startsWith('/products/') ||
                            pathname.startsWith('/suporte/');
-      const isCompletingProfile = pathname === '/auth/complete-profile';
-      const isAdminArea = pathname.startsWith('/admin');
-
+      
       const isMissingAddress = !userData?.endereco?.cidade;
-      const isAdmin = appUser.papel === 'admin';
+      const isAdmin = appUser.isAdmin;
 
-      if (isMissingAddress && !isCompletingProfile && !isPublicPage && (!isAdmin || !isAdminArea)) {
+      if (isMissingAddress && !isPublicPage && !isAdmin) {
         router.push('/auth/complete-profile');
       }
     }
@@ -92,7 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: isUserLoading || isDocLoading, 
       logout, 
       updateUser,
-      sendVerification
+      sendVerification,
+      isAdmin: isAdminStatus
     }}>
       {children}
     </AuthContext.Provider>

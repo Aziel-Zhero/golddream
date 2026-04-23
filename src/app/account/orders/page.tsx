@@ -4,32 +4,38 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, QueryConstraint } from 'firebase/firestore';
 import { Pedido } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ShoppingBag, Package, Clock, XCircle, ArrowLeft, MailWarning, Send } from 'lucide-react';
+import { Loader2, ShoppingBag, Package, Clock, XCircle, ArrowLeft, MailWarning, Send, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MyOrdersPage() {
-  const { user, sendVerification } = useAuth();
+  const { user, sendVerification, isAdmin } = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSendingVerification, setIsSendingVerification] = useState(false);
 
-  // Query otimizada e sincronizada com as regras de segurança
+  // Hook específico para pedidos que aplica o filtro automaticamente baseando-se no papel
   const ordersQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
-    return query(
-      collection(firestore, 'pedidos'),
-      where('usuarioId', '==', user.uid),
-      orderBy('dataCriacao', 'desc'),
-      limit(50)
-    );
-  }, [firestore, user?.uid]);
+    
+    const constraints: QueryConstraint[] = [];
+    
+    // Se não for admin, filtra apenas os pedidos dele para satisfazer as regras de segurança
+    if (!isAdmin) {
+      constraints.push(where('usuarioId', '==', user.uid));
+    }
+    
+    constraints.push(orderBy('dataCriacao', 'desc'));
+    constraints.push(limit(50));
+
+    return query(collection(firestore, 'pedidos'), ...constraints);
+  }, [firestore, user?.uid, isAdmin]);
 
   const { data: orders, isLoading, error } = useCollection<Pedido>(ordersQuery);
 
@@ -56,7 +62,7 @@ export default function MyOrdersPage() {
     return (
       <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Carregando seu histórico...</p>
+        <p className="text-muted-foreground font-medium">Carregando histórico de pedidos...</p>
       </div>
     );
   }
@@ -86,17 +92,28 @@ export default function MyOrdersPage() {
         </div>
       )}
 
+      {isAdmin && (
+        <div className="mb-8 p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl flex items-center gap-3 text-blue-800">
+          <ShieldCheck className="w-5 h-5 text-blue-600" />
+          <p className="text-sm font-bold">👑 Modo Administrativo: Visualizando todos os pedidos da Gold Dream.</p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12">
         <div>
           <Button asChild variant="ghost" className="mb-4 -ml-4 hover:bg-primary/5 text-primary font-bold">
             <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a Loja</Link>
           </Button>
-          <h1 className="text-4xl font-headline font-bold">Meus Pedidos</h1>
-          <p className="text-muted-foreground">Acompanhe o status de suas compras na Gold Dream.</p>
+          <h1 className="text-4xl font-headline font-bold">
+            {isAdmin ? 'Gestão de Pedidos' : 'Meus Pedidos'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'Acompanhe as vendas em tempo real.' : 'Acompanhe o status de suas compras na Gold Dream.'}
+          </p>
         </div>
         {orders && orders.length > 0 && (
           <div className="bg-primary/5 px-6 py-4 rounded-2xl border-2 border-primary/10 shadow-sm">
-            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Total de Compras</p>
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Total Exibido</p>
             <p className="text-3xl font-black">{orders.length}</p>
           </div>
         )}
@@ -110,7 +127,7 @@ export default function MyOrdersPage() {
           <div className="space-y-2">
             <p className="text-xl font-bold text-red-800">Erro de Acesso</p>
             <p className="text-muted-foreground max-w-md mx-auto text-sm leading-relaxed">
-              Não conseguimos listar seus pedidos. Certifique-se de que sua conta está ativa. 
+              Não conseguimos listar os pedidos. Certifique-se de que sua conta está ativa. 
               {user && !user.emailVerified && " Lembre-se de confirmar seu e-mail no banner acima."}
             </p>
           </div>
@@ -124,12 +141,14 @@ export default function MyOrdersPage() {
             <ShoppingBag className="w-10 h-10 text-muted-foreground opacity-40" />
           </div>
           <div className="space-y-2">
-            <p className="text-xl font-bold text-muted-foreground">Sua sacola está te esperando!</p>
-            <p className="text-muted-foreground">Você ainda não realizou nenhum pedido em nossa loja.</p>
+            <p className="text-xl font-bold text-muted-foreground">Nada por aqui ainda.</p>
+            <p className="text-muted-foreground">Nenhum pedido foi encontrado em nossa base de dados.</p>
           </div>
-          <Button asChild className="rounded-2xl h-14 px-10 text-lg font-bold shadow-lg">
-            <Link href="/">Começar a Comprar</Link>
-          </Button>
+          {!isAdmin && (
+            <Button asChild className="rounded-2xl h-14 px-10 text-lg font-bold shadow-lg">
+              <Link href="/">Começar a Comprar</Link>
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -159,13 +178,12 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    {/* CORREÇÃO HYDRATION: Alterado de <p> para <div> pois contém uma <div> interna */}
                     <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados
                     </div>
                     <div className="space-y-4">
-                      {order.itens.map((item, idx) => (
+                      {order.itens?.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-start group">
                           <div>
                             <p className="font-bold text-sm group-hover:text-primary transition-colors">{item.nome}</p>
@@ -184,16 +202,23 @@ export default function MyOrdersPage() {
                       Resumo Financeiro
                     </div>
                     <div className="bg-muted/10 p-5 rounded-2xl border-2 border-primary/5 space-y-3 text-sm">
-                      <div className="flex justify-between"><span className="text-muted-foreground">Subtotal:</span><span className="font-bold">R$ {order.subtotal.toFixed(2)}</span></div>
-                      {order.desconto > 0 && <div className="flex justify-between text-green-600"><span className="font-bold uppercase text-[10px] tracking-widest">Desconto Aplicado:</span><span className="font-bold">- R$ {order.desconto.toFixed(2)}</span></div>}
-                      <div className="flex justify-between"><span className="text-muted-foreground">Taxa de Entrega:</span><span className="font-bold">R$ {order.frete.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Subtotal:</span><span className="font-bold">R$ {order.subtotal?.toFixed(2)}</span></div>
+                      {order.desconto > 0 && <div className="flex justify-between text-green-600"><span className="font-bold uppercase text-[10px] tracking-widest">Desconto Aplicado:</span><span className="font-bold">- R$ {order.desconto?.toFixed(2)}</span></div>}
+                      <div className="flex justify-between"><span className="text-muted-foreground">Taxa de Entrega:</span><span className="font-bold">R$ {order.frete?.toFixed(2)}</span></div>
                       <Separator className="my-2 bg-primary/10" />
-                      <div className="flex justify-between items-end"><span className="font-black text-xs uppercase tracking-tighter">Valor Final:</span><span className="font-black text-2xl text-primary leading-none">R$ {order.total.toFixed(2)}</span></div>
+                      <div className="flex justify-between items-end"><span className="font-black text-xs uppercase tracking-tighter">Valor Final:</span><span className="font-black text-2xl text-primary leading-none">R$ {order.total?.toFixed(2)}</span></div>
                     </div>
-                    <div className="flex items-center gap-2 pt-2 px-1">
-                      <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        Realizado em: {new Date(order.dataCriacao).toLocaleDateString()} às {new Date(order.dataCriacao).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    <div className="flex flex-col gap-1 pt-2">
+                       {isAdmin && (
+                         <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1 mb-1">
+                           <ShieldCheck className="w-3 h-3" /> Cliente: {order.clienteNome} ({order.clienteTelefone})
+                         </div>
+                       )}
+                       <div className="flex items-center gap-2 px-1">
+                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          Realizado em: {new Date(order.dataCriacao).toLocaleDateString()} às {new Date(order.dataCriacao).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
                       </div>
                     </div>
                   </div>

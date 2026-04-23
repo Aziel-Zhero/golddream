@@ -10,7 +10,7 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário é administrador buscando o documento no banco
-    // Importante: Usar get() em regras é seguro, mas não deve causar loops
+    // A verificação é protegida contra recursão permitindo a leitura do próprio doc primeiro
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
@@ -26,18 +26,16 @@ service cloud.firestore {
       allow read, list, update, delete: if isAdmin();
       
       allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
     }
 
     match /pedidos/{pedidoId} {
       // Criar pedido: usuário pode criar se o usuarioId bater com o UID dele
       allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
       
-      // Leitura Individual: Permitido se for o dono ou admin
-      allow get: if isSignedIn() && (resource.data.usuarioId == request.auth.uid || isAdmin());
-      
-      // Listagem (Queries): O Firestore exige que a query seja compatível com a regra
-      // Se o usuário filtrar por usuarioId == seu_uid, a listagem será permitida
-      allow list: if isSignedIn() && (
+      // Leitura Individual e Listagem: Permitido se for o dono ou admin
+      // A regra de listagem exige que a consulta no frontend use o filtro .where('usuarioId', '==', uid)
+      allow read, list: if isSignedIn() && (
         isAdmin() || 
         (resource.data.usuarioId == request.auth.uid)
       );

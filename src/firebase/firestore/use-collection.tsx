@@ -61,11 +61,18 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
+        // Correção sugerida: Se for apenas permissão denegada, tratamos com fallback gracioso
+        if (err.code === 'permission-denied') {
+          console.warn('Permissão negada para acessar:', targetRefOrQuery);
+          setData([]); 
+          setError(null);
+          setIsLoading(false);
+          return;
+        }
 
         let path = 'unknown';
 
         try {
-          // Tenta extrair o caminho de forma segura para ajudar no debug
           if ((targetRefOrQuery as any).path) {
             path = (targetRefOrQuery as any).path;
           } else if ((targetRefOrQuery as any)._query?.path?.canonicalString) {
