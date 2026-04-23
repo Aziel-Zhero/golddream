@@ -65,20 +65,21 @@ export function useCollection<T = any>(
         let path = 'unknown';
 
         try {
-          // Tenta extrair o caminho de forma segura para depuração
-          if ('path' in (targetRefOrQuery as any)) {
+          // Tenta extrair o caminho de forma segura
+          if ((targetRefOrQuery as any).path) {
             path = (targetRefOrQuery as any).path;
-          } else if ('_query' in (targetRefOrQuery as any)) {
-            // Fallback para objetos Query internos do SDK
+          } else if ((targetRefOrQuery as any)._query?.path?.canonicalString) {
             path = (targetRefOrQuery as any)._query.path.canonicalString();
+          } else if ((targetRefOrQuery as any).query?.endpoint?.path?.canonicalString) {
+             path = (targetRefOrQuery as any).query.endpoint.path.canonicalString();
           }
-        } catch {
-          path = 'unknown';
+        } catch (e) {
+          path = 'collection_query';
         }
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
+          path: path,
         });
 
         setError(contextualError);

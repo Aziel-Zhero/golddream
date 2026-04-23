@@ -46,9 +46,9 @@ export default function MyOrdersPage() {
         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto border-2 border-red-100">
           <XCircle className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-bold">Erro ao carregar pedidos</h2>
+        <h2 className="text-2xl font-bold">Erro de Permissão</h2>
         <p className="text-muted-foreground max-w-md mx-auto">
-          Não conseguimos acessar seu histórico de compras. Por favor, tente recarregar a página ou entre em contato com o suporte.
+          Não conseguimos acessar seu histórico de compras. Verifique se você está logado corretamente.
         </p>
         <Button onClick={() => window.location.reload()} className="rounded-xl px-8">Tentar Novamente</Button>
       </div>
