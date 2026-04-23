@@ -1,45 +1,32 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- FUNÇÕES AUXILIARES ---
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é administrador buscando o documento no banco
-    // A verificação é protegida contra recursão permitindo a leitura do próprio doc primeiro
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
-
     match /usuarios/{uid} {
-      // O dono SEMPRE pode ler seu perfil - isso evita que o isAdmin() entre em recursão
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      
-      // Administradores podem ler e gerenciar qualquer perfil
-      allow read, list, update, delete: if isAdmin();
-      
+      // Regra de curto-circuito para evitar recursão: dono lê antes de checar admin
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criar pedido: usuário pode criar se o usuarioId bater com o UID dele
       allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
-      
-      // Leitura Individual e Listagem: Permitido se for o dono ou admin
-      // A regra de listagem exige que a consulta no frontend use o filtro .where('usuarioId', '==', uid)
-      allow read, list: if isSignedIn() && (
+      allow read: if isSignedIn() && (
         isAdmin() || 
-        (resource.data.usuarioId == request.auth.uid)
+        resource.data.usuarioId == request.auth.uid
       );
-      
       allow update, delete: if isAdmin();
     }
 
