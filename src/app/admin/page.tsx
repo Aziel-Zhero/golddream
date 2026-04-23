@@ -165,7 +165,19 @@ export default function AdminDashboard() {
       .replace('{{total}}', '89,90');
 
     try {
-      const waUrl = `https://wa.me/5512999999999?text=${encodeURIComponent('Teste de Mensagem')}`;
+      const waMessage = `Olá *Administrador Teste* 👋
+
+Aqui é da *Gold Dream - Multimarcas*.
+
+Seu pedido já está sendo preparado 🛍️
+
+Poderia confirmar se este endereço está correto?
+
+📍 Endereço Teste
+
+E nos informar a forma de pagamento? 💳`;
+
+      const waUrl = `https://wa.me/5512999999999?text=${encodeURIComponent(waMessage)}`;
       const confirmUrl = `${window.location.origin}/admin/orders/TEST-2024-001/confirm`;
 
       const replyMarkup = JSON.stringify({

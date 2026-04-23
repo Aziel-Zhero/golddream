@@ -10,37 +10,33 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário logado tem papel de administrador.
-    // Para evitar recursão, usamos uma verificação direta.
-    // Ao acessar o documento do próprio usuário autenticado (request.auth.uid),
-    // a regra de leitura do documento de usuário deve permitir sem chamar isAdmin novamente.
+    // Usamos exists() antes de get() para evitar erros se o documento não existir.
     function isAdmin() {
       return isSignedIn() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // O segredo para evitar a recursão infinita no isAdmin() é permitir que o usuário
-      // leia seu próprio documento sem depender de uma chamada recursiva a isAdmin().
-      // O curto-circuito do OR (||) garante que se for o dono, a verificação para por ali.
-      allow read: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
+      // Regra crucial: o usuário pode ler seu próprio documento sem disparar a função isAdmin()
+      // Isso evita a recursão infinita (get() chamando regra que chama get()).
+      allow read: if isSignedIn() && (request.auth.uid == usuarioId || (request.auth.uid != usuarioId && isAdmin()));
       allow list, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
+      // Qualquer um pode criar um pedido (checkout)
       allow create: if true;
       
-      allow list: if isSignedIn() && (
+      // Administradores veem tudo. Clientes veem apenas seus próprios pedidos.
+      allow list, get: if isSignedIn() && (
         isAdmin() || 
-        resource.data.usuarioId == request.auth.uid
-      );
-      
-      allow get: if isSignedIn() && (
-        isAdmin() || 
-        resource.data.usuarioId == request.auth.uid
+        (exists(resource.data.usuarioId) && resource.data.usuarioId == request.auth.uid) ||
+        (request.query.limit <= 50 && request.query.filters.usuarioId == request.auth.uid)
       );
       
       allow update, delete: if isAdmin();
