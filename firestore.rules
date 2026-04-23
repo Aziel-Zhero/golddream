@@ -9,8 +9,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin. 
-    // Usamos 'get' mas o match de usuarios garante o curto-circuito para o dono
+    // Verifica se o usuário logado tem papel administrativo
+    // Importante: Esta função faz um 'get', que pode disparar regras de leitura.
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador', 'admin_vogue'];
@@ -19,22 +19,24 @@ service cloud.firestore {
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // Dono lê e edita sempre. Admin lê e lista todos.
-      // O curto-circuito (auth.uid == uid) evita a recursão no isAdmin()
+      // O curto-circuito (auth.uid == uid) é essencial para EVITAR RECURSÃO INFINITA
+      // Se for o dono do perfil, ele lê sem chamar a função isAdmin()
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      allow create: if isSignedIn();
+      // Qualquer usuário logado pode criar pedidos
+      allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
       
-      // Regra de listagem/leitura:
-      // Admins podem tudo. Clientes podem ver se o usuarioId bater com o UID deles.
-      // Firestore exige que queries filtrem por usuarioId para autorizar o 'list'.
+      // Regra de leitura e listagem:
+      // Admins podem ver tudo. Clientes podem ver apenas se o usuarioId coincidir.
+      // O Firestore permite 'list' se a query do cliente tiver o filtro .where('usuarioId', '==', uid)
       allow read, list: if isSignedIn() && (
-        isAdmin() || (resource != null && resource.data.usuarioId == request.auth.uid)
+        isAdmin() || resource.data.usuarioId == request.auth.uid
       );
       
       allow update, delete: if isAdmin();

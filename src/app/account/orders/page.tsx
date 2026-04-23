@@ -6,9 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Pedido } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ShoppingBag, Package, Clock, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, ShoppingBag, Package, Clock, XCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -45,11 +45,16 @@ export default function MyOrdersPage() {
         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto border-2 border-red-100">
           <XCircle className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-bold">Erro de Permissão</h2>
+        <h2 className="text-2xl font-bold">Acesso Restrito</h2>
         <p className="text-muted-foreground max-w-md mx-auto">
-          Não conseguimos acessar seu histórico de compras. Verifique se você está logado corretamente.
+          Não conseguimos carregar seus pedidos. Verifique se você está logado corretamente e se seus dados de perfil estão completos.
         </p>
-        <Button onClick={() => window.location.reload()} className="rounded-xl px-8">Tentar Novamente</Button>
+        <div className="flex gap-4 justify-center">
+          <Button asChild variant="outline" className="rounded-xl px-8">
+            <Link href="/auth/complete-profile">Completar Perfil</Link>
+          </Button>
+          <Button onClick={() => window.location.reload()} className="rounded-xl px-8">Tentar Novamente</Button>
+        </div>
       </div>
     );
   }
