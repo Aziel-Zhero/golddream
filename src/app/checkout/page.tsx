@@ -1,21 +1,21 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, ShieldCheck, CheckCircle2, Ticket, Loader2, MessageCircle, LogIn, UserPlus, ArrowRight, Send, Globe, Zap } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, MessageCircle, LogIn, Send, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
-import { TelegramConfig, FreteRule, Cupom, Promocao } from '@/types';
+import { TelegramConfig, FreteRule, Cupom, Promocao, SiteConfig } from '@/types';
 
 const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
@@ -52,6 +52,9 @@ export default function CheckoutPage() {
 
   const tgRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
   const { data: tgConfig } = useDoc<TelegramConfig>(tgRef);
+
+  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: siteSettings } = useDoc<SiteConfig>(configRef);
 
   const promosQuery = useMemoFirebase(() => {
     return query(collection(firestore, 'promocoes'), where('ativo', '==', true));
@@ -177,15 +180,17 @@ export default function CheckoutPage() {
     try {
       const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
       await fetch(url);
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erro ao enviar para Telegram:", e);
+    }
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsProcessing(true);
-    const orderId = generateOrderId();
     
+    const orderId = generateOrderId();
     const couponText = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "Não");
 
     const pedidoData = {
@@ -210,20 +215,24 @@ export default function CheckoutPage() {
       cupomText: couponText
     };
 
-    addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
-    notifyTelegram(pedidoData);
-    
-    const template = tgConfig?.messageTemplate || DEFAULT_TEMPLATE;
-    const message = formatMessage(template, pedidoData);
-    const whatsappNumber = "5512991862651";
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-
-    setTimeout(() => {
-      window.open(whatsappUrl, '_blank');
-      setIsOrdered(true);
-      clearCart();
+    try {
+      // 1. Salva no banco
+      addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
+      
+      // 2. Notifica o dono da loja via Telegram Bot
+      await notifyTelegram(pedidoData);
+      
+      // 3. Finaliza visualmente para o cliente
+      setTimeout(() => {
+        setIsOrdered(true);
+        clearCart();
+        setIsProcessing(false);
+      }, 800);
+      
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro ao processar", description: "Tente novamente." });
       setIsProcessing(false);
-    }, 1000);
+    }
   };
 
   if (isOrdered) {
@@ -232,9 +241,18 @@ export default function CheckoutPage() {
         <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mx-auto shadow-inner">
           <CheckCircle2 className="w-16 h-16" />
         </div>
-        <h1 className="text-5xl font-headline font-bold">Pedido Reservado!</h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua escolha na Gold Dream foi registrada. Confira seu WhatsApp para finalizar.</p>
-        <Button asChild size="lg" className="rounded-full px-12 h-14 text-lg font-bold shadow-xl shadow-primary/20"><Link href="/">Voltar à Loja</Link></Button>
+        <h1 className="text-5xl font-headline font-bold">Pedido Confirmado!</h1>
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua reserva na Gold Dream foi enviada via Telegram. Entraremos em contato em breve para finalizar o pagamento.</p>
+        <div className="flex flex-col gap-4 max-w-xs mx-auto pt-6">
+          <Button asChild size="lg" className="rounded-2xl h-14 text-lg font-bold shadow-xl shadow-primary/20">
+            <Link href="/">Voltar à Loja</Link>
+          </Button>
+          {siteSettings?.telegramLink && (
+            <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 border-2">
+              <a href={siteSettings.telegramLink} target="_blank" rel="noopener noreferrer">Falar no Telegram</a>
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -262,8 +280,8 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex items-center gap-4 mb-12">
-        <div className="bg-primary/10 p-3 rounded-2xl"><MessageCircle className="w-8 h-8 text-primary" /></div>
-        <h1 className="text-4xl font-headline font-bold">Resumo e WhatsApp</h1>
+        <div className="bg-[#0088cc]/10 p-3 rounded-2xl"><Send className="w-8 h-8 text-[#0088cc]" /></div>
+        <h1 className="text-4xl font-headline font-bold">Finalizar no Telegram</h1>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -309,7 +327,7 @@ export default function CheckoutPage() {
             <CardContent className="space-y-6 pt-8">
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
-                  <div key={`${item.productId}-${item.selectedSize}`} className="flex justify-between items-center gap-4 group">
+                  <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-center gap-4 group">
                     <div className="flex-1">
                       <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">{item.product.nome}</p>
                       <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">TAM: {item.selectedSize} | COR: {item.selectedColor} | QTD: {item.quantity}</p>
@@ -342,8 +360,12 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <Button onClick={handlePlaceOrder} disabled={isProcessing || items.length === 0} className="w-full h-16 text-xl font-black rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-200 transition-all hover:scale-[1.02]">
-                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <MessageCircle className="mr-3 w-7 h-7" />} ENVIAR NO WHATSAPP
+              <Button 
+                onClick={handlePlaceOrder} 
+                disabled={isProcessing || items.length === 0} 
+                className="w-full h-16 text-xl font-black rounded-2xl bg-[#0088cc] hover:bg-[#0088cc]/90 text-white shadow-xl shadow-[#0088cc]/20 transition-all hover:scale-[1.02]"
+              >
+                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-3 w-7 h-7" />} FINALIZAR NO TELEGRAM
               </Button>
             </CardContent>
           </Card>
