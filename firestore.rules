@@ -9,33 +9,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Função central de admin - usa get() para verificar o campo 'papel' no documento do usuário
+    // Função interna para obter o papel do usuário logado
+    function getPapel() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel;
+    }
+
+    // Verifica se o usuário é administrador
     function isAdmin() {
-      return isSignedIn() && 
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
+      return isSignedIn() && getPapel() in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
-    match /usuarios/{usuarioId} {
-      // PERMITIR que o usuário leia seu próprio perfil SEM chamar isAdmin() para evitar recursão infinita
-      // Se for o próprio dono do UID, permite. Se não for, verifica se quem está lendo é um administrador.
-      allow read: if isSignedIn() && (
-        request.auth.uid == usuarioId || 
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
-      );
+    match /usuarios/{uid} {
+      // PERMISSÃO CRÍTICA: O dono sempre lê seu próprio documento SEM chamar isAdmin() para evitar recursão
+      allow read: if isSignedIn() && (request.auth.uid == uid || getPapel() in ['admin', 'administrador']);
       
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criar pedido é livre (ou pode restringir para isSignedIn() se desejar)
+      // Criar pedido é livre para que visitantes possam comprar
       allow create: if true;
       
       // Regra de leitura/listagem:
-      // 1. Administradores podem ler tudo.
+      // 1. Administradores podem ler TUDO (necessário para o Painel Admin).
       // 2. Clientes podem ler apenas documentos onde o usuarioId coincide com seu UID.
       allow read, list: if isSignedIn() && (
         (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']) || 

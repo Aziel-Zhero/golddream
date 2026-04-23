@@ -358,7 +358,7 @@ E nos informar a forma de pagamento? 💳`;
                               variant="outline" 
                               className={
                                 order.status === 'entregue' ? 'bg-green-50 text-green-700 border-green-200' :
-                                order.status === 'cancelado' ? 'bg-red-50 text-red-700 border-red-200' :
+                                order.status === 'cancelado' ? 'bg-red-700 text-white border-red-800' :
                                 order.status === 'confirmado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                 order.status === 'em_separacao' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                                 'bg-yellow-50 text-yellow-700 border-yellow-200'
