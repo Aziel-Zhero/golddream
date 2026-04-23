@@ -4,7 +4,7 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Pedido } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,8 @@ export default function MyOrdersPage() {
     return query(
       collection(firestore, 'pedidos'),
       where('usuarioId', '==', user.uid),
-      orderBy('dataCriacao', 'desc')
+      orderBy('dataCriacao', 'desc'),
+      limit(50)
     );
   }, [firestore, user]);
 
@@ -32,7 +33,7 @@ export default function MyOrdersPage() {
     return (
       <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando seus pedidos...</p>
+        <p className="text-muted-foreground">Carregando histórico...</p>
       </div>
     );
   }
@@ -45,12 +46,14 @@ export default function MyOrdersPage() {
             <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Início</Link>
           </Button>
           <h1 className="text-4xl font-headline font-bold">Meus Pedidos</h1>
-          <p className="text-muted-foreground">Acompanhe o status das suas compras na Gold Dream.</p>
+          <p className="text-muted-foreground">Acompanhe suas compras na Gold Dream Multimarcas.</p>
         </div>
-        <div className="bg-primary/5 px-6 py-4 rounded-2xl border border-primary/10">
-          <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Total de Pedidos</p>
-          <p className="text-3xl font-black">{orders?.length || 0}</p>
-        </div>
+        {orders && orders.length > 0 && (
+          <div className="bg-primary/5 px-6 py-4 rounded-2xl border border-primary/10">
+            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Pedidos Realizados</p>
+            <p className="text-3xl font-black">{orders.length}</p>
+          </div>
+        )}
       </div>
 
       {!orders || orders.length === 0 ? (
@@ -64,14 +67,14 @@ export default function MyOrdersPage() {
       ) : (
         <div className="space-y-8">
           {orders.map((order) => (
-            <Card key={order.id} className="border-2 shadow-sm rounded-3xl overflow-hidden hover:border-primary/20 transition-colors">
+            <Card key={order.id} className="border-2 shadow-sm rounded-3xl overflow-hidden hover:border-primary/20 transition-colors bg-white">
               <CardHeader className="bg-muted/30 border-b flex flex-row justify-between items-center py-4">
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-white rounded-xl shadow-sm border">
                     <Package className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Código do Pedido</p>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">ID do Pedido</p>
                     <p className="font-black text-primary">#{order.codigo}</p>
                   </div>
                 </div>
@@ -88,7 +91,7 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Itens do Pedido</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Produtos</p>
                     <div className="space-y-3">
                       {order.itens.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-start">
@@ -102,7 +105,7 @@ export default function MyOrdersPage() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Resumo e Entrega</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Resumo Financeiro</p>
                     <div className="bg-muted/20 p-4 rounded-2xl border space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-muted-foreground">Subtotal:</span><span className="font-bold">R$ {order.subtotal.toFixed(2)}</span></div>
                       {order.desconto > 0 && <div className="flex justify-between text-green-600"><span className="font-bold">Desconto:</span><span className="font-bold">- R$ {order.desconto.toFixed(2)}</span></div>}
@@ -110,8 +113,8 @@ export default function MyOrdersPage() {
                       <Separator className="my-2" />
                       <div className="flex justify-between text-lg"><span className="font-black">Total:</span><span className="font-black text-primary">R$ {order.total.toFixed(2)}</span></div>
                     </div>
-                    <div className="flex items-start gap-2 pt-2">
-                      <Clock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex items-center gap-2 pt-2">
+                      <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Realizado em: {new Date(order.dataCriacao).toLocaleString()}</p>
                     </div>
                   </div>

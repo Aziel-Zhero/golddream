@@ -3,19 +3,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.3.0 - Resolução de recursão infinita e permissões de listagem
-     */
-
     // --- FUNÇÕES AUXILIARES ---
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin. 
-    // IMPORTANTE: Não chamamosisAdmin dentro das regras de /usuarios para evitar loop.
+    // Verifica se o usuário é admin sem causar recursão
+    // 1. Checa a coleção dedicada de papéis (mais rápido e seguro)
+    // 2. Ou checa o campo 'papel' no documento do usuário (fallback)
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
@@ -37,16 +33,23 @@ service cloud.firestore {
 
     match /usuarios/{usuarioId} {
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // Removida a chamada isAdmin() aqui para evitar recursão
+      // get: permite ao dono ou admin
       allow get: if isOwner(usuarioId) || exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
+      // list/update: permite ao dono ou admin
       allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
+      // Qualquer um pode criar um pedido (checkout aberto)
       allow create: if true;
-      // Correção na listagem: Permite ler se for admin ou se o filtro da query for o próprio usuarioId
-      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.usuarioId == request.auth.uid));
+      
+      // Listagem: Cliente vê apenas os seus. Admin vê todos.
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && resource.data.usuarioId == request.auth.uid);
+      
+      // Get: Cliente vê o seu. Admin vê qualquer um.
+      allow get: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
+      
       allow update, delete: if isAdmin();
     }
 

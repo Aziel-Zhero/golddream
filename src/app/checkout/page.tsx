@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -16,21 +16,6 @@ import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
 import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido } from '@/types';
-
-const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
-
-🧾 *Código:* #{{codigo}}
-
-📦 *Itens:*
-{{itens}}
-
-👤 *Cliente:* {{clienteNome}}
-📍 *Endereço:* {{clienteEndereco}}
-📞 *Contato:* https://wa.me/{{telefone}}
-
-💳 *Cupom:* {{cupom}}
-
-💰 *TOTAL: R$ {{total}}*`;
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -81,12 +66,11 @@ export default function CheckoutPage() {
   }, [allPromos]);
 
   useEffect(() => {
-    if (freteRules) {
+    if (freteRules && user?.endereco) {
       const specificRule = freteRules.find(r => 
         r.ativo &&
-        user?.endereco &&
-        r.cidade?.toLowerCase() === user.endereco.cidade?.toLowerCase() &&
-        r.bairro?.toLowerCase() === user.endereco.bairro?.toLowerCase()
+        r.cidade?.toLowerCase() === user.endereco?.cidade?.toLowerCase() &&
+        r.bairro?.toLowerCase() === user.endereco?.bairro?.toLowerCase()
       );
 
       if (specificRule) {
@@ -161,41 +145,32 @@ export default function CheckoutPage() {
     });
 
     const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
-    const phoneForLink = cleanPhone.length === 11 ? `55${cleanPhone}` : cleanPhone;
+    const phoneForLink = cleanPhone.length >= 10 ? `55${cleanPhone}` : cleanPhone;
 
-    const template = `🛍️ *NOVO PEDIDO - GOLD DREAM*
+    const message = `
+🛍️ *NOVO PEDIDO - GOLD DREAM*
 
-🧾 *Código do Pedido:* #{{codigo}}
+🧾 *Código do Pedido:* # ${order.codigo}
 
 📦 *Itens do Pedido*
-{{itens}}
+${itemsText.trim()}
 
-👤 *Cliente:* {{clienteNome}}
+👤 *Cliente:* ${order.clienteNome}
 
 📍 *Endereço de Entrega:*
-{{clienteEndereco}}
+${order.clienteEndereco}
 
-📞 *Contato:* https://wa.me/{{telefone}}
+📞 *Contato:* https://wa.me/${phoneForLink}
 
 💳 *Resumo do Pedido*
-Subtotal: R$ {{subtotal}}
-Cupom aplicado: {{cupom}}
-Desconto: -R$ {{descontoValue}}
-Frete: R$ {{frete}}
+Subtotal: R$ ${order.subtotal.toFixed(2)}
+Cupom aplicado: ${order.cupomText || 'Não'}
+Desconto: -R$ ${order.desconto.toFixed(2)}
+Frete: R$ ${order.frete.toFixed(2)}
 
-💰 *TOTAL A PAGAR: R$ {{total}}*`;
-
-    return template
-      .replace('{{codigo}}', order.codigo)
-      .replace('{{itens}}', itemsText.trim())
-      .replace('{{clienteNome}}', order.clienteNome)
-      .replace('{{clienteEndereco}}', order.clienteEndereco)
-      .replace('{{telefone}}', phoneForLink)
-      .replace('{{cupom}}', order.cupomText || 'Não')
-      .replace('{{subtotal}}', order.subtotal.toFixed(2))
-      .replace('{{descontoValue}}', order.desconto.toFixed(2))
-      .replace('{{frete}}', order.frete.toFixed(2))
-      .replace('{{total}}', order.total.toFixed(2));
+💰 *TOTAL A PAGAR: R$ ${order.total.toFixed(2)}*
+`;
+    return message.trim();
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -209,9 +184,9 @@ Frete: R$ {{frete}}
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
-      clienteNome: user.nome,
+      clienteNome: user.nome || 'Cliente',
       clienteTelefone: user.telefone || '',
-      clienteEndereco: `${user.endereco?.rua}, ${user.endereco?.numero} - ${user.endereco?.bairro}, ${user.endereco?.cidade} - ${user.endereco?.cep}`,
+      clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade} - ${user.endereco.cep}` : 'Endereço não informado',
       itens: items.map(i => ({
         nome: i.product.nome,
         tamanho: i.selectedSize,
@@ -231,7 +206,7 @@ Frete: R$ {{frete}}
     try {
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // Notificação Silenciosa Telegram (Admin)
+      // Notificação Automática Telegram Admin (Opcional se configurado)
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatSocialMessage(pedidoData);
         const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
@@ -246,14 +221,14 @@ Frete: R$ {{frete}}
       }, 800);
       
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao processar", description: "Tente novamente." });
+      toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique suas permissões." });
       setIsProcessing(false);
     }
   };
 
   if (isOrdered && lastOrder) {
     const messageEncoded = encodeURIComponent(formatSocialMessage(lastOrder));
-    const whatsappLink = `https://wa.me/5512991862651?text=${messageEncoded}`; // Substitua pelo seu numero fixo se desejar
+    const whatsappLink = `https://wa.me/5512991862651?text=${messageEncoded}`; 
     const telegramLink = `https://t.me/share/url?url=&text=${messageEncoded}`;
 
     return (
@@ -262,26 +237,26 @@ Frete: R$ {{frete}}
           <CheckCircle2 className="w-16 h-16" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-5xl font-headline font-bold">Pedido Realizado!</h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">Para agilizar seu atendimento, escolha um canal abaixo para nos enviar os detalhes do seu pedido.</p>
+          <h1 className="text-5xl font-headline font-bold">Pedido Confirmado!</h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">Seu pedido foi salvo em nosso sistema. Agora, escolha um canal para nos enviar os detalhes e agilizar o atendimento.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-6">
-          <Button asChild size="lg" className="h-20 rounded-2xl bg-[#25D366] hover:bg-[#25D366]/90 text-white font-black text-xl shadow-xl shadow-[#25D366]/20 transition-all hover:scale-[1.02]">
+          <Button asChild size="lg" className="h-24 rounded-3xl bg-[#25D366] hover:bg-[#25D366]/90 text-white font-black text-xl shadow-xl shadow-[#25D366]/20 transition-all hover:scale-[1.02]">
             <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <MessageSquare className="w-6 h-6 mr-3" /> ENVIAR NO WHATSAPP
+              <MessageSquare className="w-7 h-7 mr-3" /> ENVIAR NO WHATSAPP
             </a>
           </Button>
-          <Button asChild size="lg" className="h-20 rounded-2xl bg-[#229ED9] hover:bg-[#229ED9]/90 text-white font-black text-xl shadow-xl shadow-[#229ED9]/20 transition-all hover:scale-[1.02]">
+          <Button asChild size="lg" className="h-24 rounded-3xl bg-[#229ED9] hover:bg-[#229ED9]/90 text-white font-black text-xl shadow-xl shadow-[#229ED9]/20 transition-all hover:scale-[1.02]">
             <a href={telegramLink} target="_blank" rel="noopener noreferrer">
-              <Send className="w-6 h-6 mr-3" /> ENVIAR NO TELEGRAM
+              <Send className="w-7 h-7 mr-3" /> ENVIAR NO TELEGRAM
             </a>
           </Button>
         </div>
 
         <div className="flex flex-col gap-4 max-w-xs mx-auto pt-12">
-          <Button asChild variant="link" className="text-primary font-bold">
-            <Link href="/account/orders">Ver Meus Pedidos</Link>
+          <Button asChild variant="link" className="text-primary font-bold h-12 text-lg">
+            <Link href="/account/orders">Acompanhar Meus Pedidos <ArrowRight className="w-4 h-4 ml-2" /></Link>
           </Button>
         </div>
       </div>
@@ -296,8 +271,8 @@ Frete: R$ {{frete}}
             <div className="bg-white dark:bg-slate-800 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border">
               <LogIn className="w-10 h-10 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-headline font-bold">Falta pouco!</CardTitle>
-            <CardDescription className="text-lg">Você precisa estar logado para enviarmos seu pedido.</CardDescription>
+            <CardTitle className="text-3xl font-headline font-bold">Acesse sua Conta</CardTitle>
+            <CardDescription className="text-lg">Faça login para finalizar sua compra na Gold Dream.</CardDescription>
           </CardHeader>
           <CardContent className="p-12 grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button asChild size="lg" className="h-16 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"><Link href="/auth/login">Entrar</Link></Button>
@@ -324,7 +299,7 @@ Frete: R$ {{frete}}
                   <Zap className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
+                  <p className="font-black text-lg uppercase tracking-tight">Oferta Ativa: {activePromo.nome}</p>
                   <p className="text-sm opacity-80">Desconto de {activePromo.valorDesconto}% aplicado automaticamente.</p>
                 </div>
               </div>
@@ -333,20 +308,26 @@ Frete: R$ {{frete}}
           )}
 
           <section className="space-y-6">
-            <h2 className="text-2xl font-headline font-bold">Destinatário</h2>
+            <h2 className="text-2xl font-headline font-bold">Dados de Entrega</h2>
             <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
-                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Alterar Endereço</Link></Button>
+                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Editar</Link></Button>
                </div>
               <div className="flex flex-col gap-1 mb-6">
-                <p className="font-black text-2xl text-primary">{user.nome}</p>
-                <p className="text-muted-foreground font-mono text-sm">{user.telefone}</p>
+                <p className="font-black text-2xl text-primary">{user.nome || 'Nome não definido'}</p>
+                <p className="text-muted-foreground font-mono text-sm">{user.telefone || 'Telefone não definido'}</p>
               </div>
               <Separator />
               <div className="mt-6 space-y-1 text-base">
-                <p className="font-bold">{user.endereco?.rua}, {user.endereco?.numero}</p>
-                <p className="text-muted-foreground">{user.endereco?.bairro} — {user.endereco?.cidade}</p>
-                <p className="text-xs font-mono uppercase tracking-widest bg-muted w-fit px-2 py-1 rounded mt-2">CEP: {user.endereco?.cep}</p>
+                {user.endereco?.cidade ? (
+                  <>
+                    <p className="font-bold">{user.endereco.rua}, {user.endereco.numero}</p>
+                    <p className="text-muted-foreground">{user.endereco.bairro} — {user.endereco.cidade}</p>
+                    <p className="text-xs font-mono uppercase tracking-widest bg-muted w-fit px-2 py-1 rounded mt-2">CEP: {user.endereco.cep}</p>
+                  </>
+                ) : (
+                  <p className="text-red-500 font-bold">Endereço incompleto. Por favor, atualize seus dados.</p>
+                )}
               </div>
             </div>
           </section>
@@ -393,7 +374,7 @@ Frete: R$ {{frete}}
 
               <Button 
                 onClick={handlePlaceOrder} 
-                disabled={isProcessing || items.length === 0} 
+                disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
                 className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
               >
                 {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} CONFIRMAR PEDIDO
