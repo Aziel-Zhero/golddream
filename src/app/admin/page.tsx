@@ -177,10 +177,11 @@ Poderia confirmar se este endereço está correto?
 E nos informar a forma de pagamento? 💳`;
 
     const waUrl = `https://wa.me/${testPhone}?text=${encodeURIComponent(waMessage)}`;
+    const confirmUrl = `${window.location.origin}/admin/orders/TEST-2024-001/confirm`;
 
     const replyMarkup = JSON.stringify({
       inline_keyboard: [
-        [{ text: "✅ Pegar Pedido (Confirmar)", url: window.location.origin + "/admin/orders/test-2024-001/confirm" }],
+        [{ text: "✅ Pegar Pedido", url: confirmUrl }],
         [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
       ]
     });

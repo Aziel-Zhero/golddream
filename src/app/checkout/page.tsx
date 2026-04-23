@@ -139,9 +139,7 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      // Formata a cor: se for HEX, tenta mostrar o nome se disponível ou apenas o código
-      const corDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
-      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${corDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
 
     const template = (tgConfig?.messageTemplate || `🛍️ *NOVO PEDIDO - GOLD DREAM*
@@ -181,13 +179,17 @@ export default function CheckoutPage() {
       clienteNome: user.nome || 'Cliente',
       clienteTelefone: user.telefone || '',
       clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade}` : 'Não informado',
-      itens: items.map(i => ({
-        nome: i.product.nome,
-        tamanho: i.selectedSize,
-        cor: i.selectedColor,
-        valor: i.product.preco,
-        quantidade: i.quantity
-      })),
+      itens: items.map(i => {
+        // Se a cor for um código HEX, tentamos manter o formato amigável se possível
+        const colorName = i.selectedColor;
+        return {
+          nome: i.product.nome,
+          tamanho: i.selectedSize,
+          cor: colorName,
+          valor: i.product.preco,
+          quantidade: i.quantity
+        };
+      }),
       subtotal: totalPrice,
       frete: shippingCost,
       desconto: discountValue,
@@ -219,12 +221,11 @@ Poderia confirmar se este endereço está correto?
 E nos informar a forma de pagamento? 💳`;
 
         const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
-        // Link especial para confirmar o pedido diretamente
         const confirmUrl = `${window.location.origin}/admin/orders/${orderId}/confirm`;
 
         const replyMarkup = JSON.stringify({
           inline_keyboard: [
-            [{ text: "✅ Pegar Pedido (Confirmar)", url: confirmUrl }],
+            [{ text: "✅ Pegar Pedido", url: confirmUrl }],
             [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
           ]
         });

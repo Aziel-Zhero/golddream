@@ -3,9 +3,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle, ArrowLeft, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -64,7 +64,7 @@ export default function ConfirmOrderAction() {
             <CheckCircle className="w-12 h-12" />
           </div>
           <h1 className="text-4xl font-black text-green-700">PEDIDO CONFIRMADO!</h1>
-          <p className="text-muted-foreground text-lg max-w-md">O status foi atualizado com sucesso. O cliente já pode ver a mudança no histórico.</p>
+          <p className="text-muted-foreground text-lg max-w-md">O status foi atualizado com sucesso no banco de dados.</p>
           <div className="flex gap-4 pt-8">
             <Button asChild className="rounded-xl h-12 px-8">
               <Link href="/admin">Ir para o Painel</Link>
@@ -88,5 +88,3 @@ export default function ConfirmOrderAction() {
     </div>
   );
 }
-
-import { XCircle } from 'lucide-react';
