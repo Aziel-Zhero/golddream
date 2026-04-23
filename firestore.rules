@@ -9,36 +9,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário logado tem papel de administrador.
-    // Usamos curto-circuito para evitar recursão infinita.
+    // Regra refinada para evitar recursão infinita no isAdmin()
     function isAdmin() {
-      let userDoc = get(/databases/$(database)/documents/usuarios/$(request.auth.uid));
-      return isSignedIn() && (
-        userDoc.data.papel == 'admin' || 
-        userDoc.data.papel == 'administrador'
-      );
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // O dono sempre pode ler e atualizar seu próprio documento.
-      // Isso é crucial para que o isAdmin() consiga ler o documento do admin sem travar.
-      allow read, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
+      // PERMITIR que o usuário leia seu próprio perfil SEM chamar isAdmin() para quebrar a recursão
+      allow read: if isSignedIn() && (request.auth.uid == usuarioId || 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']);
+      
       allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
       allow list, delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Criação aberta para processar o checkout
       allow create: if true;
-      
-      // Administradores veem tudo. Clientes veem apenas seus próprios pedidos.
       allow read, list: if isSignedIn() && (
         isAdmin() || 
         (resource.data.usuarioId == request.auth.uid)
       );
-      
       allow update, delete: if isAdmin();
     }
 

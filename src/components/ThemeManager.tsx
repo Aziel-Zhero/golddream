@@ -8,25 +8,25 @@ import { Promocao } from '@/types';
 
 export function ThemeManager() {
   const firestore = useFirestore();
-  const [mounted, setMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true);
   }, []);
 
   const activeBFQuery = useMemoFirebase(() => {
-    if (!mounted) return null;
+    if (!isClient) return null;
     return query(
       collection(firestore, 'promocoes'),
       where('ativo', '==', true),
       where('isBlackFriday', '==', true)
     );
-  }, [firestore, mounted]);
+  }, [firestore, isClient]);
 
   const { data: bfPromos } = useCollection<Promocao>(activeBFQuery);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!isClient) return;
 
     const checkActiveTheme = () => {
       const currentTime = new Date();
@@ -44,10 +44,10 @@ export function ThemeManager() {
     };
 
     checkActiveTheme();
-    const interval = setInterval(checkActiveTheme, 60000); // Verifica a cada minuto
+    const interval = setInterval(checkActiveTheme, 60000);
 
     return () => clearInterval(interval);
-  }, [bfPromos, mounted]);
+  }, [bfPromos, isClient]);
 
   return null;
 }

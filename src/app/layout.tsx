@@ -1,13 +1,13 @@
 
 import type {Metadata} from 'next';
 import './globals.css';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeManager } from '@/components/ThemeManager';
+import { NavbarWrapper as Navbar } from '@/components/NavbarWrapper';
+import { FooterWrapper as Footer } from '@/components/FooterWrapper';
 
 export const metadata: Metadata = {
   title: 'Gold Dream Multimarcas | Estilo e Exclusividade',
