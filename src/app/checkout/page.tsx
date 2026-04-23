@@ -142,7 +142,9 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
+      // Formata a cor para ser legível se for HEX
+      const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
 
     const template = (tgConfig?.messageTemplate || `🛍️ *NOVO PEDIDO - GOLD DREAM*
@@ -182,16 +184,13 @@ export default function CheckoutPage() {
       clienteNome: user.nome || 'Cliente',
       clienteTelefone: user.telefone || '',
       clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade}` : 'Não informado',
-      itens: items.map(i => {
-        const colorName = i.selectedColor;
-        return {
-          nome: i.product.nome,
-          tamanho: i.selectedSize,
-          cor: colorName,
-          valor: i.product.preco,
-          quantidade: i.quantity
-        };
-      }),
+      itens: items.map(i => ({
+        nome: i.product.nome,
+        tamanho: i.selectedSize,
+        cor: i.selectedColor,
+        valor: i.product.preco,
+        quantidade: i.quantity
+      })),
       subtotal: totalPrice,
       frete: shippingCost,
       desconto: discountValue,

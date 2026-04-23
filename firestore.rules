@@ -10,18 +10,18 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário logado tem papel de administrador.
-    // Usamos exists() antes de get() para evitar erros se o documento não existir.
+    // Importante: Não chamamos esta função dentro da regra de leitura do próprio usuário para evitar recursão.
     function isAdmin() {
       return isSignedIn() && 
-        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{usuarioId} {
-      // Regra crucial: o usuário pode ler seu próprio documento sem disparar a função isAdmin()
-      // Isso evita a recursão infinita (get() chamando regra que chama get()).
+      // Regra crucial para evitar recursão: 
+      // O usuário pode ler seu próprio documento SEMPRE se estiver logado e for o dono.
+      // Se não for o dono, aí sim verificamos se é admin.
       allow read: if isSignedIn() && (request.auth.uid == usuarioId || (request.auth.uid != usuarioId && isAdmin()));
       allow list, update: if isSignedIn() && (request.auth.uid == usuarioId || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
@@ -33,10 +33,14 @@ service cloud.firestore {
       allow create: if true;
       
       // Administradores veem tudo. Clientes veem apenas seus próprios pedidos.
-      allow list, get: if isSignedIn() && (
+      allow list: if isSignedIn() && (
         isAdmin() || 
-        (exists(resource.data.usuarioId) && resource.data.usuarioId == request.auth.uid) ||
         (request.query.limit <= 50 && request.query.filters.usuarioId == request.auth.uid)
+      );
+      
+      allow get: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.usuarioId == request.auth.uid)
       );
       
       allow update, delete: if isAdmin();

@@ -1,9 +1,11 @@
 
 "use client";
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Instagram, Twitter, Facebook, Send, LayoutDashboard } from 'lucide-react';
-import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { SiteConfig } from '@/types';
@@ -11,16 +13,34 @@ import { SiteConfig } from '@/types';
 export function Footer() {
   const { user } = useAuth();
   const firestore = useFirestore();
+  const [mounted, setMounted] = useState(false);
   
   const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
 
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
   const { data: config } = useDoc<SiteConfig>(configRef);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const telegramUrl = config?.telegramLink || '#';
   const instagramUrl = config?.instagramLink || '#';
   const facebookUrl = config?.facebookLink || '#';
   const twitterUrl = config?.twitterLink || '#';
+
+  // Evita erros de hidratação renderizando conteúdo dinâmico apenas após montagem no cliente
+  if (!mounted) {
+    return (
+      <footer className="bg-white border-t py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-48 flex items-center justify-center text-muted-foreground opacity-0">
+            Carregando rodapé...
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="bg-white border-t py-12">
@@ -32,9 +52,30 @@ export function Footer() {
               Gold Dream Multimarcas - O melhor da moda premium. Elegância e exclusividade para quem sabe o que quer.
             </p>
             <div className="flex space-x-4">
-              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600 transition-colors"><Instagram size={20}/></a>
-              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-sky-500 transition-colors"><Twitter size={20}/></a>
-              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-blue-600 transition-colors"><Facebook size={20}/></a>
+              <a 
+                href={instagramUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-pink-600 transition-colors"
+              >
+                <Instagram size={20}/>
+              </a>
+              <a 
+                href={twitterUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-sky-500 transition-colors"
+              >
+                <Twitter size={20}/>
+              </a>
+              <a 
+                href={facebookUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-blue-600 transition-colors"
+              >
+                <Facebook size={20}/>
+              </a>
             </div>
           </div>
           
