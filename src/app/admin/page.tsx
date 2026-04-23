@@ -35,7 +35,8 @@ import {
   Power,
   PowerOff,
   Globe,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,14 +77,16 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user, isLoading: isAuthLoading } = useAuth();
   
+  // Verificação rigorosa de admin
   const isAdmin = user?.papel === 'admin' || user?.papel === 'administrador';
 
   const ordersQuery = useMemoFirebase(() => {
+    // Só inicia a consulta se tivermos certeza que o usuário é admin
     if (!isAdmin) return null;
     return query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc'));
   }, [firestore, isAdmin]);
   
-  const { data: allOrders } = useCollection<Pedido>(ordersQuery);
+  const { data: allOrders, error: ordersError } = useCollection<Pedido>(ordersQuery);
 
   const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
   const { data: config } = useDoc(configRef);
@@ -316,67 +319,77 @@ E nos informar a forma de pagamento? 💳`;
               <ClipboardList className="w-8 h-8 text-primary opacity-20" />
             </CardHeader>
             <CardContent>
-              <div className="border rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead>Código</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allOrders?.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Aguardando novos pedidos...</TableCell></TableRow>
-                    ) : allOrders?.map(order => (
-                      <TableRow key={order.id} className="hover:bg-muted/20">
-                        <TableCell className="font-bold text-primary">{order.codigo}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-foreground">{order.clienteNome}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono">{order.clienteTelefone}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-black text-foreground">R$ {order.total.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="outline" 
-                            className={
-                              order.status === 'entregue' ? 'bg-green-50 text-green-700 border-green-200' :
-                              order.status === 'cancelado' ? 'bg-red-50 text-red-700 border-red-200' :
-                              order.status === 'confirmado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              order.status === 'em_separacao' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                              'bg-yellow-50 text-yellow-700 border-yellow-200'
-                            }
-                          >
-                            {order.status.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="outline" className="rounded-xl h-9">Status</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-xl p-2">
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmado</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'em_separacao')}>Em Separação</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-red-600">Cancelado</DropdownMenuItem>
-                                </DropdownMenuContent>
-                             </DropdownMenu>
-                            <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('pedidos', order.id)} className="text-muted-foreground hover:text-destructive rounded-xl">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              {ordersError ? (
+                <div className="p-8 text-center text-red-500 bg-red-50 rounded-2xl border-2 border-red-100">
+                  <XCircle className="w-12 h-12 mx-auto mb-2" />
+                  <p className="font-bold">Erro de Permissão</p>
+                  <p className="text-sm">Seu cargo de administrador ainda não foi confirmado no banco de dados.</p>
+                </div>
+              ) : (
+                <div className="border rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {!allOrders ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Carregando pedidos...</TableCell></TableRow>
+                      ) : allOrders.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Aguardando novos pedidos...</TableCell></TableRow>
+                      ) : allOrders.map(order => (
+                        <TableRow key={order.id} className="hover:bg-muted/20">
+                          <TableCell className="font-bold text-primary">{order.codigo}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-foreground">{order.clienteNome}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono">{order.clienteTelefone}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-black text-foreground">R$ {order.total.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                order.status === 'entregue' ? 'bg-green-50 text-green-700 border-green-200' :
+                                order.status === 'cancelado' ? 'bg-red-50 text-red-700 border-red-200' :
+                                order.status === 'confirmado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                order.status === 'em_separacao' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              }
+                            >
+                              {order.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                               <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="outline" className="rounded-xl h-9">Status <ChevronDown className="w-4 h-4 ml-1" /></Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="rounded-xl p-2">
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmado</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'em_separacao')}>Em Separação</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-red-600">Cancelado</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                               </DropdownMenu>
+                              <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('pedidos', order.id)} className="text-muted-foreground hover:text-destructive rounded-xl">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
