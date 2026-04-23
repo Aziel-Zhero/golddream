@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -60,27 +61,6 @@ export default function MyOrdersPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-24 text-center space-y-6">
-        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto border-2 border-red-100">
-          <XCircle className="w-10 h-10" />
-        </div>
-        <h2 className="text-2xl font-bold">Acesso Restrito</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Não conseguimos carregar seus pedidos. Verifique se você está logado corretamente. 
-          Se o erro persistir, pode ser necessário confirmar seu e-mail.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Button asChild variant="outline" className="rounded-xl px-8">
-            <Link href="/auth/complete-profile">Completar Perfil</Link>
-          </Button>
-          <Button onClick={() => window.location.reload()} className="rounded-xl px-8">Tentar Novamente</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-16 max-w-4xl">
       {/* Banner de Verificação de E-mail */}
@@ -122,7 +102,22 @@ export default function MyOrdersPage() {
         )}
       </div>
 
-      {!orders || orders.length === 0 ? (
+      {error ? (
+        <div className="text-center py-24 border-2 border-red-100 rounded-3xl space-y-6 bg-red-50/50">
+          <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto">
+            <XCircle className="w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-xl font-bold text-red-800">Erro de Acesso</p>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Não conseguimos listar seus pedidos. Certifique-se de que sua conta está ativa e tente atualizar a página.
+            </p>
+          </div>
+          <Button onClick={() => window.location.reload()} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-2">
+            Atualizar Página
+          </Button>
+        </div>
+      ) : !orders || orders.length === 0 ? (
         <div className="text-center py-24 border-2 border-dashed rounded-3xl space-y-6 bg-muted/5">
           <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
             <ShoppingBag className="w-10 h-10 text-muted-foreground opacity-40" />

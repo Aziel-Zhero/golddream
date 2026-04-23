@@ -9,21 +9,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica papel sem recursão chamando o documento de forma direta e protegida
-    function hasRole(uid, roles) {
-      return get(/databases/$(database)/documents/usuarios/$(uid)).data.papel in roles;
+    // Verifica se o usuário tem um papel específico
+    // IMPORTANTE: Esta função só deve ser chamada após garantir que não há recursão
+    function hasRole(roles) {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in roles;
     }
 
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // Permite ler o próprio perfil sem checar isAdmin (evita recursão)
-      // Admins podem ler qualquer perfil
-      allow read: if isSignedIn() && (request.auth.uid == uid || hasRole(request.auth.uid, ['admin', 'administrador']));
+      // PERMISSÃO CRÍTICA: Permite ler o próprio perfil sem chamar hasRole() para evitar recursão infinita
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      
+      // Permite que administradores leiam outros perfis
+      allow read: if isSignedIn() && hasRole(['admin', 'administrador']);
       
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == uid || hasRole(request.auth.uid, ['admin', 'administrador']));
-      allow list, delete: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow update: if isSignedIn() && (request.auth.uid == uid || hasRole(['admin', 'administrador']));
+      allow list, delete: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /pedidos/{pedidoId} {
@@ -31,44 +34,45 @@ service cloud.firestore {
       allow create: if isSignedIn();
       
       // Regra de leitura e listagem:
-      // Admins podem ver tudo. Clientes podem ver apenas seus próprios documentos.
+      // 1. O dono do pedido pode ler/listar seus próprios documentos (usuarioId deve bater com o UID)
+      // 2. Administradores podem ler/listar tudo
       allow read, list: if isSignedIn() && (
-        hasRole(request.auth.uid, ['admin', 'administrador']) || 
         (resource != null && resource.data.usuarioId == request.auth.uid) ||
-        (resource == null) // Permite que a query seja avaliada pelo Firestore
+        hasRole(['admin', 'administrador']) ||
+        (resource == null) // Permite que a query inicial de listagem seja avaliada
       );
       
-      allow update, delete: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow update, delete: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /produtos/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /fretes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /cupons/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
 
     match /suporte/{slug} {
       allow read: if true;
-      allow write: if isSignedIn() && hasRole(request.auth.uid, ['admin', 'administrador']);
+      allow write: if isSignedIn() && hasRole(['admin', 'administrador']);
     }
   }
 }

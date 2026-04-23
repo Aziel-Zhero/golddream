@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -25,24 +26,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [appUser, setAppUser] = useState<(AppUser & { emailVerified: boolean }) | null>(null);
 
+  // Monitora o estado de e-mail verificado em tempo real
+  const [emailVerified, setEmailVerified] = useState(false);
+
   const userDocRef = useMemoFirebase(() => fbUser ? doc(firestore, 'usuarios', fbUser.uid) : null, [fbUser, firestore]);
   const { data: userData, isLoading: isDocLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    if (fbUser && userData) {
-      setAppUser({
-        uid: fbUser.uid,
-        email: fbUser.email || '',
-        emailVerified: fbUser.emailVerified,
-        nome: userData.nome || fbUser.displayName || 'Cliente',
-        telefone: userData.telefone || fbUser.phoneNumber || '',
-        endereco: userData.endereco,
-        papel: (userData.papel === 'admin' || userData.papel === 'administrador') ? 'admin' : 'cliente',
-        dataCriacao: userData.dataCriacao || new Date().toISOString(),
-        avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`
-      });
-    } else if (!fbUser) {
+    if (fbUser) {
+      setEmailVerified(fbUser.emailVerified);
+      
+      if (userData) {
+        setAppUser({
+          uid: fbUser.uid,
+          email: fbUser.email || '',
+          emailVerified: fbUser.emailVerified,
+          nome: userData.nome || fbUser.displayName || 'Cliente',
+          telefone: userData.telefone || fbUser.phoneNumber || '',
+          endereco: userData.endereco,
+          papel: (userData.papel === 'admin' || userData.papel === 'administrador') ? 'admin' : 'cliente',
+          dataCriacao: userData.dataCriacao || new Date().toISOString(),
+          avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`
+        });
+      }
+    } else {
       setAppUser(null);
+      setEmailVerified(false);
     }
   }, [fbUser, userData]);
 
