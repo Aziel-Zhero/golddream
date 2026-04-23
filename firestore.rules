@@ -9,15 +9,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin sem causar recursão
-    // 1. Checa a coleção dedicada de papéis (mais rápido e seguro)
-    // 2. Ou checa o campo 'papel' no documento do usuário (fallback)
+    // Verifica se o usuário é admin verificando o campo papel no documento do usuário
+    // Usamos get() de forma cautelosa para evitar recursão
     function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'])
-      );
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
     function isOwner(userId) {
@@ -26,28 +22,25 @@ service cloud.firestore {
 
     // --- REGRAS DE COLEÇÃO ---
 
-    match /roles_administrador/{usuarioId} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
-    }
-
     match /usuarios/{usuarioId} {
+      // Permite criar se estiver logado e for o próprio
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // get: permite ao dono ou admin
-      allow get: if isOwner(usuarioId) || exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
-      // list/update: permite ao dono ou admin
+      // Permite ler se for o próprio (essencial para evitar erro no check de isAdmin)
+      allow get: if isOwner(usuarioId) || isAdmin();
+      // Outras operações apenas admin ou dono
       allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Qualquer um pode criar um pedido (checkout aberto)
+      // Criação permitida para todos (checkout aberto)
       allow create: if true;
       
       // Listagem: Cliente vê apenas os seus. Admin vê todos.
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && resource.data.usuarioId == request.auth.uid);
+      // Importante: O cliente deve usar query(..., where('usuarioId', '==', uid))
+      allow list: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
       
-      // Get: Cliente vê o seu. Admin vê qualquer um.
+      // Get individual
       allow get: if isAdmin() || (isSignedIn() && resource.data.usuarioId == request.auth.uid);
       
       allow update, delete: if isAdmin();

@@ -32,8 +32,7 @@ export default function CompleteProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
         nome: user.nome || '',
         telefone: user.telefone || '',
         rua: user.endereco?.rua || '',
@@ -41,7 +40,7 @@ export default function CompleteProfilePage() {
         bairro: user.endereco?.bairro || '',
         cidade: user.endereco?.cidade || '',
         cep: user.endereco?.cep || ''
-      }));
+      });
     }
   }, [user]);
 
@@ -69,19 +68,21 @@ export default function CompleteProfilePage() {
         dataCriacao: user.dataCriacao || new Date().toISOString()
       };
 
-      // Usando setDoc com merge para garantir persistência total
+      // Salva no Firestore usando setDoc com merge para garantir persistência
       await setDoc(userRef, updateData, { merge: true });
+      
+      // Atualiza o estado local do contexto
       updateUser(updateData as any);
       
-      toast({ title: "Perfil Salvo!", description: "Dados atualizados com sucesso." });
+      toast({ title: "Perfil Atualizado!", description: "Seus dados foram salvos com sucesso." });
       
-      // Pequeno atraso para garantir que o estado local foi atualizado
+      // Redireciona para o início após um pequeno delay
       setTimeout(() => {
         router.push('/');
       }, 500);
     } catch (error: any) {
       console.error(error);
-      toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao salvar", description: error.message || "Tente novamente." });
     } finally {
       setIsLoading(false);
     }
@@ -92,22 +93,22 @@ export default function CompleteProfilePage() {
       <Card className="w-full max-w-2xl border-2 shadow-2xl rounded-3xl overflow-hidden">
         <CardHeader className="text-center bg-muted/20 pb-8">
           <CardTitle className="text-3xl font-headline font-bold">Dados de Entrega</CardTitle>
-          <CardDescription>Precisamos dessas informações para enviar seus pedidos.</CardDescription>
+          <CardDescription>Mantenha seus dados atualizados para facilitar seus pedidos.</CardDescription>
         </CardHeader>
         <CardContent className="pt-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
                 <Label>Nome Completo</Label>
-                <Input required value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="Seu nome completo" />
+                <Input required value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="João Silva" />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>WhatsApp (Telefone)</Label>
-                <Input required value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} placeholder="(00) 00000-0000" />
+                <Input required value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} placeholder="(12) 99186-2651" />
               </div>
               <div className="space-y-2">
                 <Label>CEP</Label>
-                <Input required value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="00000-000" />
+                <Input required value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="12345-678" />
               </div>
               <div className="space-y-2">
                 <Label>Cidade</Label>
@@ -127,7 +128,7 @@ export default function CompleteProfilePage() {
               </div>
             </div>
             <Button type="submit" className="w-full h-16 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} SALVAR INFORMAÇÕES
+              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} ATUALIZAR DADOS
             </Button>
           </form>
         </CardContent>

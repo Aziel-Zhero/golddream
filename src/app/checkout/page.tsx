@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -24,7 +24,6 @@ export default function CheckoutPage() {
   const firestore = useFirestore();
 
   const [isOrdered, setIsOrdered] = useState(false);
-  const [lastOrder, setLastOrder] = useState<any>(null);
   const [shippingCost, setShippingCost] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [manualDiscountPercent, setManualDiscountPercent] = useState(0);
@@ -128,49 +127,40 @@ export default function CheckoutPage() {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-    
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     let prefix = 'PED';
     if (activePromo) {
       prefix = activePromo.isBlackFriday ? 'BKF' : 'CAMP';
     }
-    
-    return `${prefix}-${year}-${month}-${random}`;
+    return `${prefix}-${year}${month}-${random}`;
   };
 
-  const formatSocialMessage = (order: any) => {
+  const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
 
     const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
-    const phoneForLink = cleanPhone.length >= 10 ? `55${cleanPhone}` : cleanPhone;
+    const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
 
-    const message = `
-🛍️ *NOVO PEDIDO - GOLD DREAM*
+    // Template fixo conforme solicitado
+    const template = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
-🧾 *Código do Pedido:* # ${order.codigo}
+🧾 *Código:* #${order.codigo}
 
-📦 *Itens do Pedido*
+📦 *Itens:*
 ${itemsText.trim()}
 
 👤 *Cliente:* ${order.clienteNome}
-
-📍 *Endereço de Entrega:*
-${order.clienteEndereco}
-
+📍 *Endereço:* ${order.clienteEndereco}
 📞 *Contato:* https://wa.me/${phoneForLink}
 
-💳 *Resumo do Pedido*
-Subtotal: R$ ${order.subtotal.toFixed(2)}
-Cupom aplicado: ${order.cupomText || 'Não'}
-Desconto: -R$ ${order.desconto.toFixed(2)}
-Frete: R$ ${order.frete.toFixed(2)}
+💳 *Cupom:* ${order.cupomText || 'Não'}
 
-💰 *TOTAL A PAGAR: R$ ${order.total.toFixed(2)}*
-`;
-    return message.trim();
+💰 *TOTAL: R$ ${order.total.toFixed(2)}*`;
+
+    return template;
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -179,14 +169,14 @@ Frete: R$ ${order.frete.toFixed(2)}
     setIsProcessing(true);
     
     const orderId = generateOrderId();
-    const couponUsed = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "Não");
+    const couponUsed = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "");
 
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
       clienteNome: user.nome || 'Cliente',
       clienteTelefone: user.telefone || '',
-      clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade} - ${user.endereco.cep}` : 'Endereço não informado',
+      clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade}` : 'Não informado',
       itens: items.map(i => ({
         nome: i.product.nome,
         tamanho: i.selectedSize,
@@ -200,63 +190,54 @@ Frete: R$ ${order.frete.toFixed(2)}
       total: finalTotal,
       status: 'pendente' as const,
       dataCriacao: new Date().toISOString(),
-      cupomText: couponUsed
+      cupomText: couponUsed || 'Não'
     };
 
     try {
+      // 1. Salva no Firestore
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // Notificação Automática Telegram Admin (Opcional se configurado)
+      // 2. Disparo Automático API Telegram
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
-        const message = formatSocialMessage(pedidoData);
+        const message = formatTelegramMessage(pedidoData);
         const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
-        fetch(url).catch(console.error);
+        
+        // Disparo "fire and forget" para não travar a UI
+        fetch(url).catch(err => console.error("Erro Telegram API:", err));
       }
       
-      setLastOrder(pedidoData);
+      // 3. Sucesso e Limpeza
       setTimeout(() => {
         setIsOrdered(true);
         clearCart();
         setIsProcessing(false);
-      }, 800);
+      }, 500);
       
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique suas permissões." });
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique sua conexão." });
       setIsProcessing(false);
     }
   };
 
-  if (isOrdered && lastOrder) {
-    const messageEncoded = encodeURIComponent(formatSocialMessage(lastOrder));
-    const whatsappLink = `https://wa.me/5512991862651?text=${messageEncoded}`; 
-    const telegramLink = `https://t.me/share/url?url=&text=${messageEncoded}`;
-
+  if (isOrdered) {
     return (
-      <div className="container mx-auto px-4 py-24 text-center space-y-8">
-        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mx-auto shadow-inner">
-          <CheckCircle2 className="w-16 h-16" />
+      <div className="container mx-auto px-4 py-32 text-center space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto shadow-inner">
+          <PackageCheck className="w-16 h-16" />
         </div>
         <div className="space-y-4">
-          <h1 className="text-5xl font-headline font-bold">Pedido Confirmado!</h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">Seu pedido foi salvo em nosso sistema. Agora, escolha um canal para nos enviar os detalhes e agilizar o atendimento.</p>
+          <h1 className="text-5xl font-headline font-bold">Pedido Recebido!</h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            Nossa equipe já foi notificada via Telegram. Em breve entraremos em contato para combinar a entrega.
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-6">
-          <Button asChild size="lg" className="h-24 rounded-3xl bg-[#25D366] hover:bg-[#25D366]/90 text-white font-black text-xl shadow-xl shadow-[#25D366]/20 transition-all hover:scale-[1.02]">
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <MessageSquare className="w-7 h-7 mr-3" /> ENVIAR NO WHATSAPP
-            </a>
+        <div className="flex flex-col gap-4 max-w-xs mx-auto pt-8">
+          <Button asChild className="h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
+            <Link href="/account/orders">Acompanhar Meus Pedidos <ArrowRight className="ml-2 w-4 h-4" /></Link>
           </Button>
-          <Button asChild size="lg" className="h-24 rounded-3xl bg-[#229ED9] hover:bg-[#229ED9]/90 text-white font-black text-xl shadow-xl shadow-[#229ED9]/20 transition-all hover:scale-[1.02]">
-            <a href={telegramLink} target="_blank" rel="noopener noreferrer">
-              <Send className="w-7 h-7 mr-3" /> ENVIAR NO TELEGRAM
-            </a>
-          </Button>
-        </div>
-
-        <div className="flex flex-col gap-4 max-w-xs mx-auto pt-12">
-          <Button asChild variant="link" className="text-primary font-bold h-12 text-lg">
-            <Link href="/account/orders">Acompanhar Meus Pedidos <ArrowRight className="w-4 h-4 ml-2" /></Link>
+          <Button asChild variant="ghost" className="h-12 font-bold">
+            <Link href="/">Voltar para a Loja</Link>
           </Button>
         </div>
       </div>
@@ -266,16 +247,16 @@ Frete: R$ ${order.frete.toFixed(2)}
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-24 max-w-2xl text-center">
-        <Card className="border-2 shadow-2xl rounded-3xl overflow-hidden border-primary/10">
+        <Card className="border-2 shadow-2xl rounded-3xl overflow-hidden">
           <CardHeader className="bg-primary/5 pb-8 pt-12">
-            <div className="bg-white dark:bg-slate-800 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border">
+            <div className="bg-white w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border">
               <LogIn className="w-10 h-10 text-primary" />
             </div>
             <CardTitle className="text-3xl font-headline font-bold">Acesse sua Conta</CardTitle>
-            <CardDescription className="text-lg">Faça login para finalizar sua compra na Gold Dream.</CardDescription>
+            <CardDescription className="text-lg">Você precisa estar logado para finalizar o pedido.</CardDescription>
           </CardHeader>
           <CardContent className="p-12 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button asChild size="lg" className="h-16 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"><Link href="/auth/login">Entrar</Link></Button>
+            <Button asChild size="lg" className="h-16 rounded-2xl text-lg font-bold"><Link href="/auth/login">Entrar</Link></Button>
             <Button asChild variant="outline" size="lg" className="h-16 rounded-2xl text-lg font-bold border-2"><Link href="/auth/register">Criar Conta</Link></Button>
           </CardContent>
         </Card>
@@ -299,8 +280,8 @@ Frete: R$ ${order.frete.toFixed(2)}
                   <Zap className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-black text-lg uppercase tracking-tight">Oferta Ativa: {activePromo.nome}</p>
-                  <p className="text-sm opacity-80">Desconto de {activePromo.valorDesconto}% aplicado automaticamente.</p>
+                  <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
+                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF aplicado.</p>
                 </div>
               </div>
               <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
@@ -308,14 +289,14 @@ Frete: R$ ${order.frete.toFixed(2)}
           )}
 
           <section className="space-y-6">
-            <h2 className="text-2xl font-headline font-bold">Dados de Entrega</h2>
+            <h2 className="text-2xl font-headline font-bold">Resumo de Entrega</h2>
             <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
-                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Editar</Link></Button>
+                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold"><Link href="/auth/complete-profile">Editar Endereço</Link></Button>
                </div>
               <div className="flex flex-col gap-1 mb-6">
-                <p className="font-black text-2xl text-primary">{user.nome || 'Nome não definido'}</p>
-                <p className="text-muted-foreground font-mono text-sm">{user.telefone || 'Telefone não definido'}</p>
+                <p className="font-black text-2xl text-primary">{user.nome || 'Nome incompleto'}</p>
+                <p className="text-muted-foreground font-mono text-sm">{user.telefone || 'Telefone incompleto'}</p>
               </div>
               <Separator />
               <div className="mt-6 space-y-1 text-base">
@@ -326,7 +307,9 @@ Frete: R$ ${order.frete.toFixed(2)}
                     <p className="text-xs font-mono uppercase tracking-widest bg-muted w-fit px-2 py-1 rounded mt-2">CEP: {user.endereco.cep}</p>
                   </>
                 ) : (
-                  <p className="text-red-500 font-bold">Endereço incompleto. Por favor, atualize seus dados.</p>
+                  <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 font-bold">
+                    Atenção: Seu endereço está incompleto! Clique em editar para atualizar.
+                  </div>
                 )}
               </div>
             </div>
@@ -335,14 +318,14 @@ Frete: R$ ${order.frete.toFixed(2)}
 
         <div className="space-y-8">
           <Card className="border-2 shadow-xl rounded-3xl overflow-hidden border-primary/5">
-            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Resumo do Pedido</CardTitle></CardHeader>
+            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Itens e Valores</CardTitle></CardHeader>
             <CardContent className="space-y-6 pt-8">
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
-                  <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-center gap-4 group">
+                  <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">{item.product.nome}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">TAM: {item.selectedSize} | COR: {item.selectedColor} | QTD: {item.quantity}</p>
+                      <p className="font-bold text-sm truncate">{item.product.nome}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">{item.selectedSize} | {item.selectedColor} (x{item.quantity})</p>
                     </div>
                     <p className="font-black text-sm">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
                   </div>
@@ -350,26 +333,24 @@ Frete: R$ ${order.frete.toFixed(2)}
               </div>
               
               <div className="pt-6 border-t space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cupom de Desconto</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tem um cupom?</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="CÓDIGO" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="h-12 rounded-xl border-2 font-black" />
-                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">VALIDAR</Button>
+                  <Input placeholder="CÓDIGO" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="h-12 rounded-xl font-black" />
+                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">OK</Button>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4 text-sm font-medium">
+              <div className="space-y-3 pt-4 text-sm">
                 <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-bold">R$ {totalPrice.toFixed(2)}</p></div>
-                {finalDiscountPercent > 0 && <div className="flex justify-between text-green-600"><p>Desconto total ({finalDiscountPercent}%)</p><p className="font-bold">- R$ {discountValue.toFixed(2)}</p></div>}
-                <div className="flex justify-between"><p className="text-muted-foreground">Taxa de Entrega</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
+                {finalDiscountPercent > 0 && <div className="flex justify-between text-green-600"><p>Desconto ({finalDiscountPercent}%)</p><p className="font-bold">- R$ {discountValue.toFixed(2)}</p></div>}
+                <div className="flex justify-between"><p className="text-muted-foreground">Taxa de Frete</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
               </div>
               
               <Separator className="h-[2px] bg-primary/5" />
               
-              <div className="flex justify-between items-end py-2">
-                <div>
-                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Total à Pagar</p>
-                   <p className="text-3xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
-                </div>
+              <div className="py-2">
+                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Total a Pagar</p>
+                 <p className="text-3xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
               </div>
 
               <Button 
