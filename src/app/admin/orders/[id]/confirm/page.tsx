@@ -70,6 +70,7 @@ export default function ConfirmOrderAction() {
               <Link href="/admin">Ir para o Painel</Link>
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground animate-pulse">Você já pode fechar esta aba.</p>
         </>
       )}
 
