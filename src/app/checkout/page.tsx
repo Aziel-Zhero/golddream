@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   const [activePromo, setActivePromo] = useState<Promocao | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastPhoneUsed, setLastPhoneUsed] = useState('');
 
   const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
   const { data: freteRules } = useCollection<FreteRule>(fretesQuery);
@@ -168,6 +169,7 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!user) return;
     setIsProcessing(true);
+    setLastPhoneUsed(user.telefone || '');
     
     const orderId = generateOrderId();
     const couponUsed = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "");
@@ -216,9 +218,12 @@ Poderia confirmar se este endereço está correto?
 E nos informar a forma de pagamento? 💳`;
 
         const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
+        // Link para gerenciar o pedido no painel
+        const adminUrl = `${window.location.origin}/admin`;
 
         const replyMarkup = JSON.stringify({
           inline_keyboard: [
+            [{ text: "✅ Gerenciar Pedido (Admin)", url: adminUrl }],
             [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
           ]
         });
@@ -249,8 +254,8 @@ E nos informar a forma de pagamento? 💳`;
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-headline font-bold">Pedido Recebido!</h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Nossa equipe já foi notificada via Telegram. Em breve entraremos em contato para combinar a entrega.
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto font-medium">
+            Aguarde, vamos entrar em contato no seu whatsapp no telefone <span className="text-primary font-bold">{lastPhoneUsed}</span>.
           </p>
         </div>
         <div className="flex flex-col gap-4 max-w-xs mx-auto pt-8">

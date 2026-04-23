@@ -34,7 +34,8 @@ import {
   Info,
   Power,
   PowerOff,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -133,9 +134,9 @@ export default function AdminDashboard() {
     if (telegramData) setTgConfig((prev: any) => ({ ...prev, ...telegramData }));
   }, [telegramData]);
 
-  const handleUpdateStatus = (id: string, newStatus: 'entregue' | 'cancelado') => {
+  const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
     updateDocumentNonBlocking(doc(firestore, 'pedidos', id), { status: newStatus });
-    toast({ title: `Pedido ${newStatus === 'entregue' ? 'Entregue' : 'Cancelado'}` });
+    toast({ title: `Status Atualizado`, description: `Pedido movido para ${newStatus.replace('_', ' ')}.` });
   };
 
   const handleSaveTelegram = () => {
@@ -180,6 +181,7 @@ E nos informar a forma de pagamento? 💳`;
 
     const replyMarkup = JSON.stringify({
       inline_keyboard: [
+        [{ text: "✅ Gerenciar Pedido (Admin)", url: window.location.origin + "/admin" }],
         [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
       ]
     });
@@ -187,7 +189,7 @@ E nos informar a forma de pagamento? 💳`;
     try {
       const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
       await fetch(url);
-      toast({ title: "Teste Enviado!", description: "Verifique seu Telegram com o botão de WhatsApp." });
+      toast({ title: "Teste Enviado!", description: "Verifique seu Telegram." });
     } catch (e) {
       toast({ variant: "destructive", title: "Falha no Teste" });
     }
@@ -242,7 +244,12 @@ E nos informar a forma de pagamento? 💳`;
   };
 
   if (isAuthLoading) {
-    return <div className="p-24 text-center">Validando acesso...</div>;
+    return (
+      <div className="p-24 text-center flex flex-col items-center gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="font-bold">Validando acesso administrativo...</p>
+      </div>
+    );
   }
 
   if (!isAdmin) {
@@ -360,20 +367,27 @@ E nos informar a forma de pagamento? 💳`;
                             className={
                               order.status === 'entregue' ? 'bg-green-50 text-green-700 border-green-200' :
                               order.status === 'cancelado' ? 'bg-red-50 text-red-700 border-red-200' :
+                              order.status === 'confirmado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              order.status === 'em_separacao' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                               'bg-yellow-50 text-yellow-700 border-yellow-200'
                             }
                           >
-                            {order.status === 'entregue' ? 'Entregue' : order.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
+                            {order.status.replace('_', ' ').toUpperCase()}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" className="text-green-600 h-9 rounded-xl border-green-200" onClick={() => handleUpdateStatus(order.id, 'entregue')}>
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Entregue
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-red-600 h-9 rounded-xl border-red-200" onClick={() => handleUpdateStatus(order.id, 'cancelado')}>
-                              <XCircle className="w-3.5 h-3.5 mr-1.5" /> Cancelar
-                            </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline" className="rounded-xl h-9">Status</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl p-2">
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmado</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'em_separacao')}>Em Separação</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-red-600">Cancelado</DropdownMenuItem>
+                                </DropdownMenuContent>
+                             </DropdownMenu>
                             <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('pedidos', order.id)} className="text-muted-foreground hover:text-destructive rounded-xl">
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -417,8 +431,13 @@ E nos informar a forma de pagamento? 💳`;
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-bold">Estrutura da Mensagem</Label>
                   <Badge variant="outline" className="flex gap-1 items-center bg-primary/5 border-primary/20">
-                    <Info className="w-3 h-3" /> Tags: {"{{codigo}}"}, {"{{itens}}"}, {"{{clienteNome}}"}, {"{{clienteEndereco}}"}, {"{{telefone}}"}, {"{{cupom}}"}, {"{{total}}"}
+                    <span className="text-[10px] font-black uppercase">Tags Disponíveis</span>
                   </Badge>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {['codigo', 'itens', 'clienteNome', 'clienteEndereco', 'telefone', 'cupom', 'total'].map(tag => (
+                    <Badge key={tag} variant="secondary" className="font-mono text-[10px]">{`{{${tag}}}`}</Badge>
+                  ))}
                 </div>
                 <Textarea 
                   value={tgConfig.messageTemplate} 

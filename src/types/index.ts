@@ -48,7 +48,7 @@ export type Pedido = {
   frete: number;
   desconto: number;
   total: number;
-  status: 'pendente' | 'entregue' | 'cancelado';
+  status: 'pendente' | 'confirmado' | 'em_separacao' | 'entregue' | 'cancelado';
   dataCriacao: string;
   cupomText?: string;
 };

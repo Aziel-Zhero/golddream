@@ -35,7 +35,7 @@
         "frete": { "type": "number" },
         "desconto": { "type": "number" },
         "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["pendente", "entregue", "cancelado"] },
+        "status": { "type": "string", "enum": ["pendente", "confirmado", "em_separacao", "entregue", "cancelado"] },
         "dataCriacao": { "type": "string", "format": "date-time" }
       }
     },
