@@ -72,7 +72,7 @@ export default function RegisterPage() {
       // 2. Envia e-mail de verificação IMEDIATAMENTE
       await sendEmailVerification(user);
 
-      // 3. Cria o documento do usuário no Firestore (Aguardamos para garantir que o perfil esteja pronto)
+      // 3. Cria o documento do usuário no Firestore
       const userRef = doc(firestore, 'usuarios', user.uid);
       await setDoc(userRef, {
         id: user.uid,

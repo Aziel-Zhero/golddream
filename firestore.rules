@@ -10,6 +10,7 @@ service cloud.firestore {
     }
 
     // Verifica se o usuário é administrador buscando o documento no banco
+    // Importante: Usar get() em regras é seguro, mas não deve causar loops
     function isAdmin() {
       return isSignedIn() && 
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
@@ -18,60 +19,60 @@ service cloud.firestore {
     // --- REGRAS DE COLEÇÃO ---
 
     match /usuarios/{uid} {
-      // Regra fundamental: O dono SEMPRE pode ler seu perfil (evita recursão)
+      // O dono SEMPRE pode ler seu perfil - isso evita que o isAdmin() entre em recursão
       allow read: if isSignedIn() && request.auth.uid == uid;
       
-      // Administradores podem ler qualquer perfil
-      allow read: if isSignedIn() && isAdmin();
+      // Administradores podem ler e gerenciar qualquer perfil
+      allow read, list, update, delete: if isAdmin();
       
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow delete: if isSignedIn() && isAdmin();
     }
 
     match /pedidos/{pedidoId} {
-      // Qualquer logado pode criar seu pedido
+      // Criar pedido: usuário pode criar se o usuarioId bater com o UID dele
       allow create: if isSignedIn() && request.resource.data.usuarioId == request.auth.uid;
       
-      // Leitura e Listagem: Permitido se for o dono do pedido (usuarioId) ou admin
-      // Nota: O método list exige que a query do app tenha where('usuarioId', '==', uid)
-      allow read, list: if isSignedIn() && (
-        (resource != null && resource.data.usuarioId == request.auth.uid) || 
-        isAdmin() ||
-        (resource == null)
+      // Leitura Individual: Permitido se for o dono ou admin
+      allow get: if isSignedIn() && (resource.data.usuarioId == request.auth.uid || isAdmin());
+      
+      // Listagem (Queries): O Firestore exige que a query seja compatível com a regra
+      // Se o usuário filtrar por usuarioId == seu_uid, a listagem será permitida
+      allow list: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.usuarioId == request.auth.uid)
       );
       
-      allow update, delete: if isSignedIn() && isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     match /produtos/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
 
     match /fretes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
 
     match /cupons/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
 
     match /suporte/{slug} {
       allow read: if true;
-      allow write: if isSignedIn() && isAdmin();
+      allow write: if isAdmin();
     }
   }
 }

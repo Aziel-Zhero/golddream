@@ -63,7 +63,7 @@ export default function MyOrdersPage() {
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-4xl">
-      {/* Banner de Verificação de E-mail - Corrigido para aparecer sempre que não verificado */}
+      {/* Banner de Verificação de E-mail */}
       {user && !user.emailVerified && (
         <div className="mb-8 p-6 bg-yellow-50 border-2 border-yellow-100 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
           <div className="flex items-center gap-4 text-yellow-800">
@@ -159,7 +159,7 @@ export default function MyOrdersPage() {
               <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    {/* Corrigido Hydration Error: Trocado <p> por <div> */}
+                    {/* CORREÇÃO HYDRATION: Alterado de <p> para <div> pois contém uma <div> interna */}
                     <div className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                       Produtos Selecionados
