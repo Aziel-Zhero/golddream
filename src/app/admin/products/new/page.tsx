@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -14,7 +13,8 @@ import {
   X, 
   Save, 
   Loader2,
-  Image as ImageIcon
+  Palette,
+  Ruler
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -36,11 +36,13 @@ export default function NewProductPage() {
     categoriaId: 'feminino',
     imagens: [] as string[],
     isFeatured: false,
-    tamanhosDisponiveis: ['P', 'M', 'G'],
-    coresDisponiveis: ['Preto', 'Branco']
+    tamanhosDisponiveis: [] as string[],
+    coresDisponiveis: [] as string[]
   });
   
   const [imageUrl, setImageUrl] = useState('');
+  const [newSize, setNewSize] = useState('');
+  const [newColor, setNewColor] = useState('#000000');
 
   const handleAddImage = () => {
     if (imageUrl && formData.imagens.length < 5) {
@@ -49,8 +51,24 @@ export default function NewProductPage() {
     }
   };
 
-  const removeImage = (index: number) => {
-    setFormData({ ...formData, imagens: formData.imagens.filter((_, i) => i !== index) });
+  const handleAddSize = () => {
+    if (newSize && !formData.tamanhosDisponiveis.includes(newSize)) {
+      setFormData({ ...formData, tamanhosDisponiveis: [...formData.tamanhosDisponiveis, newSize] });
+      setNewSize('');
+    }
+  };
+
+  const handleAddColor = () => {
+    if (!formData.coresDisponiveis.includes(newColor)) {
+      setFormData({ ...formData, coresDisponiveis: [...formData.coresDisponiveis, newColor] });
+    }
+  };
+
+  const removeItem = (field: 'imagens' | 'tamanhosDisponiveis' | 'coresDisponiveis', index: number) => {
+    setFormData({ 
+      ...formData, 
+      [field]: formData[field].filter((_, i) => i !== index) 
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,20 +91,20 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
+    <div className="container mx-auto px-4 py-12 max-w-5xl">
       <div className="mb-8">
         <Button asChild variant="ghost" className="mb-4">
           <Link href="/admin/products">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
           </Link>
         </Button>
-        <h1 className="text-4xl font-headline font-bold">Novo Produto</h1>
-        <p className="text-muted-foreground">Cadastre novos itens em seu catálogo de moda.</p>
+        <h1 className="text-4xl font-headline font-bold text-primary">Novo Produto</h1>
+        <p className="text-muted-foreground">Cadastre novos itens em seu catálogo Gold Dream.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <Card>
+          <Card className="border-2">
             <CardHeader>
               <CardTitle>Informações Gerais</CardTitle>
             </CardHeader>
@@ -97,7 +115,7 @@ export default function NewProductPage() {
                   id="name" 
                   value={formData.nome}
                   onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                  placeholder="Ex: Camiseta Oversized" 
+                  placeholder="Ex: Camiseta Oversized Premium" 
                   required 
                 />
               </div>
@@ -107,7 +125,7 @@ export default function NewProductPage() {
                   id="description" 
                   value={formData.descricao}
                   onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                  placeholder="Detalhes do material e caimento..." 
+                  placeholder="Detalhes do material, caimento e estilo..." 
                   className="min-h-[120px]" 
                   required 
                 />
@@ -138,10 +156,79 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle>Atributos (Variações)</CardTitle>
+              <CardDescription>Defina os tamanhos e cores disponíveis para este produto.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              {/* Tamanhos */}
+              <div className="space-y-4">
+                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={newSize} 
+                    onChange={(e) => setNewSize(e.target.value.toUpperCase())}
+                    placeholder="Ex: P, M, G, 42" 
+                  />
+                  <Button type="button" onClick={handleAddSize} variant="secondary">Adicionar</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.tamanhosDisponiveis.map((size, idx) => (
+                    <div key={idx} className="flex items-center gap-1 bg-muted px-3 py-1 rounded-full text-sm font-bold">
+                      {size}
+                      <button type="button" onClick={() => removeItem('tamanhosDisponiveis', idx)} className="text-destructive hover:text-red-700">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cores */}
+              <div className="space-y-4">
+                <Label className="flex items-center gap-2"><Palette className="w-4 h-4" /> Cores</Label>
+                <div className="flex gap-2 items-center">
+                  <Input 
+                    type="color" 
+                    value={newColor} 
+                    onChange={(e) => setNewColor(e.target.value)}
+                    className="w-20 h-10 p-1 rounded-lg"
+                  />
+                  <Input 
+                    value={newColor} 
+                    onChange={(e) => setNewColor(e.target.value)}
+                    placeholder="#000000"
+                    className="font-mono"
+                  />
+                  <Button type="button" onClick={handleAddColor} variant="secondary">Adicionar Cor</Button>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {formData.coresDisponiveis.map((color, idx) => (
+                    <div key={idx} className="group relative flex items-center justify-center">
+                      <div 
+                        className="w-8 h-8 rounded-full border shadow-sm" 
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => removeItem('coresDisponiveis', idx)}
+                        className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2">
             <CardHeader>
               <CardTitle>Imagens</CardTitle>
-              <CardDescription>Adicione URLs de imagens (máx 5).</CardDescription>
+              <CardDescription>Adicione URLs de imagens de alta qualidade (máx 5).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex gap-2">
@@ -157,11 +244,11 @@ export default function NewProductPage() {
 
               <div className="grid grid-cols-5 gap-4">
                 {formData.imagens.map((url, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden">
+                  <div key={idx} className="relative aspect-square rounded-lg border overflow-hidden bg-muted">
                     <img src={url} alt="Preview" className="w-full h-full object-cover" />
                     <button 
                       type="button"
-                      onClick={() => removeImage(idx)}
+                      onClick={() => removeItem('imagens', idx)}
                       className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
                     >
                       <X className="w-3 h-3" />
@@ -174,13 +261,13 @@ export default function NewProductPage() {
         </div>
 
         <div className="space-y-8">
-          <Card>
+          <Card className="border-2">
             <CardHeader>
               <CardTitle>Configurações</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label>Categoria Principal</Label>
                 <select 
                   className="w-full p-2 border rounded-md bg-background"
                   value={formData.categoriaId}
@@ -192,7 +279,7 @@ export default function NewProductPage() {
                 </select>
               </div>
               <div className="flex items-center justify-between pt-4 border-t">
-                <Label htmlFor="feat">Destaque?</Label>
+                <Label htmlFor="feat">Produto em Destaque?</Label>
                 <input 
                   id="feat"
                   type="checkbox" 
@@ -204,7 +291,7 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={isLoading} className="w-full h-14 text-lg font-bold">
+          <Button type="submit" disabled={isLoading} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20">
             {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
             Salvar Produto
           </Button>
