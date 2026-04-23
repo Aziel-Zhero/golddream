@@ -15,7 +15,7 @@ import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
-import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido } from '@/types';
+import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig } from '@/types';
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -38,6 +38,9 @@ export default function CheckoutPage() {
 
   const tgRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'telegram'), [firestore]);
   const { data: tgConfig } = useDoc<TelegramConfig>(tgRef);
+
+  const siteConfigRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: siteConfig } = useDoc<SiteConfig>(siteConfigRef);
 
   const promosQuery = useMemoFirebase(() => {
     return query(collection(firestore, 'promocoes'), where('ativo', '==', true));
@@ -180,7 +183,6 @@ export default function CheckoutPage() {
       clienteTelefone: user.telefone || '',
       clienteEndereco: user.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}, ${user.endereco.cidade}` : 'Não informado',
       itens: items.map(i => {
-        // Se a cor for um código HEX, tentamos manter o formato amigável se possível
         const colorName = i.selectedColor;
         return {
           nome: i.product.nome,

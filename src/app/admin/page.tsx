@@ -39,7 +39,8 @@ import {
   ChevronDown,
   Instagram,
   Facebook,
-  Twitter
+  Twitter,
+  RefreshCcw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
   const [siteSettings, setSiteSettings] = useState<SiteConfig>({
     heroBadge: '', heroTitle: '', heroDescription: '', heroImage: '',
     telegramLink: '', instagramLink: '', facebookLink: '', twitterLink: '',
+    exchangeDays: 30,
     b1_title: '', b1_sub: '', b1_icon: 'Truck', b1_active: true,
     b2_title: '', b2_sub: '', b2_icon: 'ShieldCheck', b2_active: true,
     b3_title: '', b3_sub: '', b3_icon: 'Zap', b3_active: true,
@@ -154,7 +156,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto\nQtd: 1\nValor: R$ 89,90";
+    const testItems = "1️⃣ *Camiseta Premium*\nTamanho: M\nCor: Preto (#000000)\nQtd: 1\nValor: R$ 89,90";
     const message = (tgConfig.messageTemplate || DEFAULT_TEMPLATE)
       .replace('{{codigo}}', 'TEST-2024-001')
       .replace('{{itens}}', testItems)
@@ -163,7 +165,17 @@ export default function AdminDashboard() {
       .replace('{{total}}', '89,90');
 
     try {
-      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+      const waUrl = `https://wa.me/5512999999999?text=${encodeURIComponent('Teste de Mensagem')}`;
+      const confirmUrl = `${window.location.origin}/admin/orders/TEST-2024-001/confirm`;
+
+      const replyMarkup = JSON.stringify({
+        inline_keyboard: [
+          [{ text: "✅ Pegar Pedido", url: confirmUrl }],
+          [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
+        ]
+      });
+
+      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.testChatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
       await fetch(url);
       toast({ title: "Teste Enviado!", description: "Verifique seu Telegram." });
     } catch (e) {
@@ -379,7 +391,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="pt-8 border-t">
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Globe className="w-5 h-5 text-primary" /> Redes Sociais</h3>
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><Globe className="w-5 h-5 text-primary" /> Redes Sociais & Links VIP</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2"><Send className="w-4 h-4 text-[#0088cc]" /> Telegram (Grupo VIP)</Label>
@@ -396,6 +408,16 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2"><Twitter className="w-4 h-4 text-sky-500" /> Twitter (X)</Label>
                     <Input value={siteSettings.twitterLink} onChange={e => setSiteSettings({...siteSettings, twitterLink: e.target.value})} placeholder="https://twitter.com/seu-perfil" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t">
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2"><RefreshCcw className="w-5 h-5 text-primary" /> Políticas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Prazo de Troca (Dias)</Label>
+                    <Input type="number" value={siteSettings.exchangeDays} onChange={e => setSiteSettings({...siteSettings, exchangeDays: parseInt(e.target.value)})} placeholder="30" />
                   </div>
                 </div>
               </div>

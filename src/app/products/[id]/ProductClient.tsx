@@ -1,15 +1,24 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { Product } from '@/types';
+import { Product, SiteConfig } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Star, Share2, Heart, ShieldCheck, RefreshCcw, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/ProductCard';
 import { Separator } from '@/components/ui/separator';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export function ProductClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
+  const firestore = useFirestore();
+  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: config } = useDoc<SiteConfig>(configRef);
+
+  const exchangeDays = config?.exchangeDays || 30;
+
   const tamanhos = product.tamanhosDisponiveis || ['P', 'M', 'G'];
   const cores = product.coresDisponiveis || [];
   
@@ -22,7 +31,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
     addItem(product, quantity, selectedSize, selectedColor);
   };
 
-  // Função para verificar se a string é uma cor hexadecimal
   const isHexColor = (color: string) => /^#[0-9A-F]{6}$/i.test(color);
 
   return (
@@ -156,7 +164,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               </div>
               <div className="text-sm">
                 <p className="font-black uppercase tracking-tighter">Troca Sem Custo</p>
-                <p className="text-muted-foreground text-xs font-medium">Até 30 dias corridos</p>
+                <p className="text-muted-foreground text-xs font-medium">Até {exchangeDays} dias corridos</p>
               </div>
             </div>
           </div>

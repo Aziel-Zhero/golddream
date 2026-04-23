@@ -70,6 +70,7 @@ export type SiteConfig = {
   instagramLink?: string;
   facebookLink?: string;
   twitterLink?: string;
+  exchangeDays?: number;
   b1_title?: string; b1_sub?: string; b1_icon?: string; b1_active?: boolean;
   b2_title?: string; b2_sub?: string; b2_icon?: string; b2_active?: boolean;
   b3_title?: string; b3_sub?: string; b3_icon?: string; b3_active?: boolean;
