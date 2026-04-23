@@ -59,13 +59,6 @@ import { Pedido, TelegramConfig, FreteRule, Cupom } from '@/types';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/context/AuthContext';
 
-const SUPPORT_PAGES = [
-  { id: 'envio-e-frete', title: 'Envio e Frete' },
-  { id: 'trocas-e-devolucoes', title: 'Trocas e Devoluções' },
-  { id: 'guia-de-tamanhos', title: 'Guia de Tamanhos' },
-  { id: 'faq', title: 'FAQ (Perguntas Frequentes)' }
-];
-
 const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
 🧾 *Código:* #{{codigo}}
@@ -187,7 +180,7 @@ E nos informar a forma de pagamento? 💳`;
 
     const replyMarkup = JSON.stringify({
       inline_keyboard: [
-        [{ text: "✅ Gerenciar Pedido (Admin)", url: window.location.origin + "/admin" }],
+        [{ text: "✅ Pegar Pedido (Confirmar)", url: window.location.origin + "/admin/orders/test-2024-001/confirm" }],
         [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
       ]
     });
@@ -227,26 +220,6 @@ E nos informar a forma de pagamento? 💳`;
     });
     await batch.commit();
     toast({ title: "Todos os fretes foram desativados." });
-  };
-
-  const [activeSupportTab, setActiveSupportTab] = useState(SUPPORT_PAGES[0].id);
-  const supportRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'suporte', activeSupportTab) : null, [firestore, isAdmin, activeSupportTab]);
-  const { data: supportPage } = useDoc(supportRef);
-  const [supportContent, setSupportContent] = useState('');
-
-  useEffect(() => {
-    if (supportPage) setSupportContent(supportPage.conteudo || '');
-    else setSupportContent('');
-  }, [supportPage]);
-
-  const handleSaveSupport = () => {
-    if (!supportRef) return;
-    setDoc(supportRef, {
-      titulo: SUPPORT_PAGES.find(p => p.id === activeSupportTab)?.title,
-      conteudo: supportContent,
-      slug: activeSupportTab
-    }, { merge: true });
-    toast({ title: "Página de Suporte Salva!" });
   };
 
   if (isAuthLoading) {
@@ -323,14 +296,13 @@ E nos informar a forma de pagamento? 💳`;
       </div>
 
       <Tabs defaultValue="orders" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 bg-muted/50 p-1 rounded-2xl h-auto">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 bg-muted/50 p-1 rounded-2xl h-auto">
           <TabsTrigger value="orders">Pedidos</TabsTrigger>
           <TabsTrigger value="home">Site</TabsTrigger>
           <TabsTrigger value="catalog">Estoque</TabsTrigger>
           <TabsTrigger value="frete">Fretes</TabsTrigger>
           <TabsTrigger value="coupons">Cupons</TabsTrigger>
           <TabsTrigger value="api">API Telegram</TabsTrigger>
-          <TabsTrigger value="support">Suporte</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="space-y-6">
@@ -564,15 +536,38 @@ E nos informar a forma de pagamento? 💳`;
 
         <TabsContent value="home" className="space-y-8">
            <Card className="border-2 shadow-sm">
-            <CardHeader><CardTitle>Banner Principal</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardHeader><CardTitle>Site & Banner</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Badge</Label><Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} /></div>
-                <div className="space-y-2"><Label>Imagem URL</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} /></div>
+                <div className="space-y-2"><Label>Imagem Hero URL</Label><Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} /></div>
               </div>
-              <div className="space-y-2"><Label>Título</Label><Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Título Principal</Label><Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} /></div>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} /></div>
-              <Button onClick={handleSaveSettings} className="w-full h-14 rounded-2xl font-bold"><Save className="w-5 h-5 mr-2" /> Salvar Alterações</Button>
+              
+              <div className="pt-6 border-t">
+                <Label className="text-lg font-bold mb-4 block">Cartões de Benefícios</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="p-4 border-2 rounded-2xl relative pt-8 bg-muted/20">
+                      <div className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Card {i}</div>
+                      <div className="pt-2 space-y-3">
+                        <Input placeholder="Título do Benefício" value={siteSettings[`b${i}_title`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_title`]: e.target.value})} />
+                        <Input placeholder="Texto Auxiliar" value={siteSettings[`b${i}_sub`]} onChange={e => setSiteSettings({...siteSettings, [`b${i}_sub`]: e.target.value})} />
+                        <select 
+                          className="w-full p-2.5 border-2 rounded-xl bg-background text-sm font-bold"
+                          value={siteSettings[`b${i}_icon`]}
+                          onChange={e => setSiteSettings({...siteSettings, [`b${i}_icon`]: e.target.value})}
+                        >
+                          {Object.keys(ICON_MAP).map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSettings} className="w-full h-14 rounded-2xl font-bold"><Save className="w-5 h-5 mr-2" /> Salvar Configurações Visuais</Button>
             </CardContent>
            </Card>
         </TabsContent>
@@ -583,24 +578,11 @@ E nos informar a forma de pagamento? 💳`;
             <Button asChild variant="outline" size="lg" className="h-24 rounded-2xl text-xl font-black bg-accent/5 text-accent border-2 border-accent/20"><Link href="/admin/promotions">CAMPANHAS</Link></Button>
           </Card>
         </TabsContent>
-
-        <TabsContent value="support" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-3">
-              {SUPPORT_PAGES.map(page => (
-                <Button key={page.id} variant={activeSupportTab === page.id ? "default" : "outline"} className="w-full justify-start h-12 rounded-xl" onClick={() => setActiveSupportTab(page.id)}>
-                  <FileText className="w-4 h-4 mr-2" /> {page.title}
-                </Button>
-              ))}
-            </div>
-            <Card className="md:col-span-3 border-2 p-6 space-y-4">
-              <h2 className="text-xl font-black">{SUPPORT_PAGES.find(p => p.id === activeSupportTab)?.title}</h2>
-              <Textarea value={supportContent} onChange={e => setSupportContent(e.target.value)} className="min-h-[400px] border-2 rounded-2xl" />
-              <Button onClick={handleSaveSupport} className="w-full h-14 rounded-2xl font-bold"><Save className="w-5 h-5 mr-2" /> Publicar</Button>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+const ICON_MAP: Record<string, any> = {
+  Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart
+};

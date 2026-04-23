@@ -139,6 +139,7 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
+      // Formata a cor: se for HEX, tenta mostrar o nome se disponível ou apenas o código
       const corDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${corDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
@@ -218,12 +219,12 @@ Poderia confirmar se este endereço está correto?
 E nos informar a forma de pagamento? 💳`;
 
         const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
-        // Link para gerenciar o pedido no painel
-        const adminUrl = `${window.location.origin}/admin`;
+        // Link especial para confirmar o pedido diretamente
+        const confirmUrl = `${window.location.origin}/admin/orders/${orderId}/confirm`;
 
         const replyMarkup = JSON.stringify({
           inline_keyboard: [
-            [{ text: "✅ Gerenciar Pedido (Admin)", url: adminUrl }],
+            [{ text: "✅ Pegar Pedido (Confirmar)", url: confirmUrl }],
             [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
           ]
         });
