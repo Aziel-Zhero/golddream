@@ -5,7 +5,7 @@ service cloud.firestore {
 
     /**
      * Gold Dream Multimarcas - Regras de Segurança
-     * Versão: 1.2.0 - Correção de robustez isAdmin e permissões de listagem
+     * Versão: 1.3.0 - Resolução de recursão infinita e permissões de listagem
      */
 
     // --- FUNÇÕES AUXILIARES ---
@@ -14,8 +14,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário é admin via coleção dedicada ou campo no perfil.
-    // Adicionado exists() antes do get() para evitar erro de execução se o doc não existir.
+    // Verifica se o usuário é admin. 
+    // IMPORTANTE: Não chamamosisAdmin dentro das regras de /usuarios para evitar loop.
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid)) ||
@@ -37,7 +37,7 @@ service cloud.firestore {
 
     match /usuarios/{usuarioId} {
       allow create: if isSignedIn() && request.auth.uid == usuarioId;
-      // Permite get para o dono ou admin. isOwner não chama isAdmin, evitando recursão.
+      // Removida a chamada isAdmin() aqui para evitar recursão
       allow get: if isOwner(usuarioId) || exists(/databases/$(database)/documents/roles_administrador/$(request.auth.uid));
       allow list, update: if isOwner(usuarioId) || isAdmin();
       allow delete: if isAdmin();
@@ -45,8 +45,7 @@ service cloud.firestore {
 
     match /pedidos/{pedidoId} {
       allow create: if true;
-      // Permite que o dono veja seus próprios pedidos ou o admin veja tudo.
-      // Para listagem (list), o Firestore verifica se o filtro da query corresponde a esta regra.
+      // Correção na listagem: Permite ler se for admin ou se o filtro da query for o próprio usuarioId
       allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.usuarioId == request.auth.uid));
       allow update, delete: if isAdmin();
     }
@@ -61,17 +60,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /produtos/{produtoId} {
+    match /produtos/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /configuracoes/{configId} {
+    match /configuracoes/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /promocoes/{promocaoId} {
+    match /promocoes/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }

@@ -8,14 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
-import { TelegramConfig, FreteRule, Cupom, Promocao, SiteConfig } from '@/types';
+import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido } from '@/types';
 
 const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
@@ -39,6 +39,7 @@ export default function CheckoutPage() {
   const firestore = useFirestore();
 
   const [isOrdered, setIsOrdered] = useState(false);
+  const [lastOrder, setLastOrder] = useState<any>(null);
   const [shippingCost, setShippingCost] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [manualDiscountPercent, setManualDiscountPercent] = useState(0);
@@ -47,7 +48,6 @@ export default function CheckoutPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Queries
   const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
   const { data: freteRules } = useCollection<FreteRule>(fretesQuery);
 
@@ -59,7 +59,6 @@ export default function CheckoutPage() {
   }, [firestore]);
   const { data: allPromos } = useCollection<Promocao>(promosQuery);
 
-  // Identifica campanha auto-aplicável
   useEffect(() => {
     if (allPromos) {
       const now = new Date();
@@ -81,7 +80,6 @@ export default function CheckoutPage() {
     }
   }, [allPromos]);
 
-  // Calcula o frete
   useEffect(() => {
     if (freteRules) {
       const specificRule = freteRules.find(r => 
@@ -156,14 +154,36 @@ export default function CheckoutPage() {
     return `${prefix}-${year}-${month}-${random}`;
   };
 
-  const formatMessage = (template: string, order: any) => {
+  const formatSocialMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nValor: R$ ${i.valor.toFixed(2)} (x${i.quantidade})\n\n`;
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${i.cor}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
 
     const cleanPhone = order.clienteTelefone.replace(/\D/g, '');
     const phoneForLink = cleanPhone.length === 11 ? `55${cleanPhone}` : cleanPhone;
+
+    const template = `🛍️ *NOVO PEDIDO - GOLD DREAM*
+
+🧾 *Código do Pedido:* #{{codigo}}
+
+📦 *Itens do Pedido*
+{{itens}}
+
+👤 *Cliente:* {{clienteNome}}
+
+📍 *Endereço de Entrega:*
+{{clienteEndereco}}
+
+📞 *Contato:* https://wa.me/{{telefone}}
+
+💳 *Resumo do Pedido*
+Subtotal: R$ {{subtotal}}
+Cupom aplicado: {{cupom}}
+Desconto: -R$ {{descontoValue}}
+Frete: R$ {{frete}}
+
+💰 *TOTAL A PAGAR: R$ {{total}}*`;
 
     return template
       .replace('{{codigo}}', order.codigo)
@@ -172,19 +192,10 @@ export default function CheckoutPage() {
       .replace('{{clienteEndereco}}', order.clienteEndereco)
       .replace('{{telefone}}', phoneForLink)
       .replace('{{cupom}}', order.cupomText || 'Não')
+      .replace('{{subtotal}}', order.subtotal.toFixed(2))
+      .replace('{{descontoValue}}', order.desconto.toFixed(2))
+      .replace('{{frete}}', order.frete.toFixed(2))
       .replace('{{total}}', order.total.toFixed(2));
-  };
-
-  const notifyTelegram = async (order: any) => {
-    if (!tgConfig?.isActive || !tgConfig.botToken || !tgConfig.chatId) return;
-    const template = tgConfig.messageTemplate || DEFAULT_TEMPLATE;
-    const message = formatMessage(template, order);
-    try {
-      const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
-      await fetch(url);
-    } catch (e) {
-      console.error("Erro ao enviar para Telegram:", e);
-    }
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -219,8 +230,15 @@ export default function CheckoutPage() {
 
     try {
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
-      await notifyTelegram(pedidoData);
       
+      // Notificação Silenciosa Telegram (Admin)
+      if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
+        const message = formatSocialMessage(pedidoData);
+        const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+        fetch(url).catch(console.error);
+      }
+      
+      setLastOrder(pedidoData);
       setTimeout(() => {
         setIsOrdered(true);
         clearCart();
@@ -233,20 +251,37 @@ export default function CheckoutPage() {
     }
   };
 
-  if (isOrdered) {
+  if (isOrdered && lastOrder) {
+    const messageEncoded = encodeURIComponent(formatSocialMessage(lastOrder));
+    const whatsappLink = `https://wa.me/5512991862651?text=${messageEncoded}`; // Substitua pelo seu numero fixo se desejar
+    const telegramLink = `https://t.me/share/url?url=&text=${messageEncoded}`;
+
     return (
-      <div className="container mx-auto px-4 py-24 text-center space-y-6">
+      <div className="container mx-auto px-4 py-24 text-center space-y-8">
         <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mx-auto shadow-inner">
           <CheckCircle2 className="w-16 h-16" />
         </div>
-        <h1 className="text-5xl font-headline font-bold">Pedido Confirmado!</h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">Sua reserva foi processada com sucesso. Você pode acompanhar o status na sua conta.</p>
-        <div className="flex flex-col gap-4 max-w-xs mx-auto pt-6">
-          <Button asChild size="lg" className="rounded-2xl h-14 text-lg font-bold shadow-xl shadow-primary/20">
-            <Link href="/account/orders"><ShoppingBag className="w-5 h-5 mr-2" /> Meus Pedidos</Link>
+        <div className="space-y-4">
+          <h1 className="text-5xl font-headline font-bold">Pedido Realizado!</h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">Para agilizar seu atendimento, escolha um canal abaixo para nos enviar os detalhes do seu pedido.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-6">
+          <Button asChild size="lg" className="h-20 rounded-2xl bg-[#25D366] hover:bg-[#25D366]/90 text-white font-black text-xl shadow-xl shadow-[#25D366]/20 transition-all hover:scale-[1.02]">
+            <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+              <MessageSquare className="w-6 h-6 mr-3" /> ENVIAR NO WHATSAPP
+            </a>
           </Button>
-          <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 border-2">
-            <Link href="/">Continuar Comprando</Link>
+          <Button asChild size="lg" className="h-20 rounded-2xl bg-[#229ED9] hover:bg-[#229ED9]/90 text-white font-black text-xl shadow-xl shadow-[#229ED9]/20 transition-all hover:scale-[1.02]">
+            <a href={telegramLink} target="_blank" rel="noopener noreferrer">
+              <Send className="w-6 h-6 mr-3" /> ENVIAR NO TELEGRAM
+            </a>
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-4 max-w-xs mx-auto pt-12">
+          <Button asChild variant="link" className="text-primary font-bold">
+            <Link href="/account/orders">Ver Meus Pedidos</Link>
           </Button>
         </div>
       </div>
@@ -298,7 +333,7 @@ export default function CheckoutPage() {
           )}
 
           <section className="space-y-6">
-            <h2 className="text-2xl font-headline font-bold flex items-center gap-2"> Destinatário</h2>
+            <h2 className="text-2xl font-headline font-bold">Destinatário</h2>
             <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
                  <Button asChild variant="ghost" size="sm" className="text-primary font-bold hover:bg-primary/5"><Link href="/auth/complete-profile">Alterar Endereço</Link></Button>

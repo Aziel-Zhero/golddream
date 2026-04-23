@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, MapPin } from 'lucide-react';
 
@@ -21,13 +21,29 @@ export default function CompleteProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    nome: user?.nome || '',
+    nome: '',
+    telefone: '',
     rua: '',
     numero: '',
     bairro: '',
     cidade: '',
     cep: ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        nome: user.nome || '',
+        telefone: user.telefone || '',
+        rua: user.endereco?.rua || '',
+        numero: user.endereco?.numero || '',
+        bairro: user.endereco?.bairro || '',
+        cidade: user.endereco?.cidade || '',
+        cep: user.endereco?.cep || ''
+      }));
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +55,7 @@ export default function CompleteProfilePage() {
       const userRef = doc(firestore, 'usuarios', user.uid);
       const updateData = {
         nome: formData.nome,
+        telefone: formData.telefone,
         endereco: {
           rua: formData.rua,
           numero: formData.numero,
@@ -48,12 +65,13 @@ export default function CompleteProfilePage() {
         }
       };
 
-      await updateDoc(userRef, updateData);
+      await setDoc(userRef, updateData, { merge: true });
       updateUser(updateData as any);
       
-      toast({ title: "Perfil Atualizado!", description: "Bem-vindo à Gold Dream Multimarcas." });
+      toast({ title: "Perfil Atualizado!", description: "Dados salvos com sucesso na Gold Dream." });
       router.push('/');
     } catch (error) {
+      console.error(error);
       toast({ variant: "destructive", title: "Erro ao atualizar", description: "Verifique os dados e tente novamente." });
     } finally {
       setIsLoading(false);
@@ -64,8 +82,8 @@ export default function CompleteProfilePage() {
     <div className="container mx-auto px-4 py-24 flex justify-center">
       <Card className="w-full max-w-2xl border-2 shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-headline font-bold">Complete seu Perfil</CardTitle>
-          <CardDescription>Precisamos desses dados para realizar suas entregas com segurança.</CardDescription>
+          <CardTitle className="text-3xl font-headline font-bold">Dados de Entrega</CardTitle>
+          <CardDescription>Mantenha seu perfil atualizado para receber seus pedidos.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -73,6 +91,10 @@ export default function CompleteProfilePage() {
               <div className="space-y-2 md:col-span-2">
                 <Label>Nome Completo</Label>
                 <Input required value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} placeholder="Como devemos te chamar?" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>WhatsApp</Label>
+                <Input required value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} placeholder="(00) 00000-0000" />
               </div>
               <div className="space-y-2">
                 <Label>CEP</Label>
@@ -96,7 +118,7 @@ export default function CompleteProfilePage() {
               </div>
             </div>
             <Button type="submit" className="w-full h-14 text-lg font-bold rounded-xl" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} Finalizar Cadastro
+              {isLoading ? <Loader2 className="animate-spin" /> : <Save className="mr-2" />} Salvar Informações
             </Button>
           </form>
         </CardContent>
