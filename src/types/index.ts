@@ -1,4 +1,3 @@
-
 export type Product = {
   id: string;
   nome: string;
@@ -72,6 +71,10 @@ export type SiteConfig = {
   facebookLink?: string;
   twitterLink?: string;
   exchangeDays?: number;
+  step1_title?: string; step1_desc?: string;
+  step2_title?: string; step2_desc?: string;
+  step3_title?: string; step3_desc?: string;
+  step4_title?: string; step4_desc?: string;
   b1_title?: string; b1_sub?: string; b1_icon?: string; b1_active?: boolean;
   b2_title?: string; b2_sub?: string; b2_icon?: string; b2_active?: boolean;
   b3_title?: string; b3_sub?: string; b3_icon?: string; b3_active?: boolean;

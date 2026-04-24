@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -42,23 +41,23 @@ export default function Home() {
   const flowSteps = [
     {
       icon: Search,
-      title: "Escolha seu Estilo",
-      desc: "Navegue por nossa curadoria de marcas premium e selecione suas peças favoritas."
+      title: config?.step1_title || "Escolha seu Estilo",
+      desc: config?.step1_desc || "Navegue por nossa curadoria de marcas premium e selecione suas peças favoritas."
     },
     {
       icon: ShoppingBag,
-      title: "Finalize o Pedido",
-      desc: "Adicione à sacola e finalize o checkout em segundos. É rápido e seguro."
+      title: config?.step2_title || "Finalize o Pedido",
+      desc: config?.step2_desc || "Adicione à sacola e finalize o checkout em segundos. É rápido e seguro."
     },
     {
       icon: MessageCircle,
-      title: "Confirmação VIP",
-      desc: "Nossa equipe entrará em contato via WhatsApp para confirmar o pagamento e entrega."
+      title: config?.step3_title || "Confirmação VIP",
+      desc: config?.step3_desc || "Nossa equipe entrará em contato via WhatsApp para confirmar o pagamento e entrega."
     },
     {
       icon: CheckCircle,
-      title: "Receba em Casa",
-      desc: "Pronto! Seu pedido será enviado com todo cuidado e embalagem exclusiva."
+      title: config?.step4_title || "Receba em Casa",
+      desc: config?.step4_desc || "Pronto! Seu pedido será enviado com todo cuidado e embalagem exclusiva."
     }
   ];
 

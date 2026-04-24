@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -45,7 +44,9 @@ import {
   Mail,
   MailCheck,
   MailWarning,
-  MessageCircle
+  MessageCircle,
+  Image as ImageIcon,
+  Link as LinkIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,14 +62,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, writeBatch, getDocs } from 'firebase/firestore';
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, doc, orderBy, setDoc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pedido, TelegramConfig, FreteRule, Cupom, SiteConfig, User as AppUser } from '@/types';
-import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/context/AuthContext';
 import { sendCustomEmail } from '@/ai/flows/send-custom-email';
+import { Separator } from '@/components/ui/separator';
 
 const DEFAULT_TEMPLATE = `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
@@ -106,40 +107,25 @@ export default function AdminDashboard() {
   const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
   const { data: config } = useDoc<SiteConfig>(configRef);
 
-  const telegramRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'telegram') : null, [firestore, isAdmin]);
-  const { data: telegramData } = useDoc<TelegramConfig>(telegramRef);
-
-  const fretesQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'fretes') : null, [firestore, isAdmin]);
-  const { data: fretes } = useCollection<FreteRule>(fretesQuery);
-
-  const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
-  const { data: cupons } = useCollection<Cupom>(cuponsQuery);
-
   const [siteSettings, setSiteSettings] = useState<SiteConfig>({
     heroBadge: '', heroTitle: '', heroDescription: '', heroImage: '',
     telegramLink: '', instagramLink: '', facebookLink: '', twitterLink: '',
     exchangeDays: 30,
+    step1_title: '', step1_desc: '',
+    step2_title: '', step2_desc: '',
+    step3_title: '', step3_desc: '',
+    step4_title: '', step4_desc: '',
     b1_title: '', b1_sub: '', b1_icon: 'Truck', b1_active: true,
     b2_title: '', b2_sub: '', b2_icon: 'ShieldCheck', b2_active: true,
     b3_title: '', b3_sub: '', b3_icon: 'Zap', b3_active: true,
     b4_title: '', b4_sub: '', b4_icon: 'ArrowRight', b4_active: true
   });
 
-  const [tgConfig, setTgConfig] = useState<TelegramConfig>({
-    botToken: '', chatId: '', testChatId: '', messageTemplate: DEFAULT_TEMPLATE, isActive: false
-  });
-
-  const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
-  const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false, dataExpiracao: '' });
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) setSiteSettings((prev) => ({ ...prev, ...config }));
   }, [config]);
-
-  useEffect(() => {
-    if (telegramData) setTgConfig((prev) => ({ ...prev, ...telegramData }));
-  }, [telegramData]);
 
   const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
     updateDocumentNonBlocking(doc(firestore, 'pedidos', id), { status: newStatus });
@@ -154,13 +140,8 @@ export default function AdminDashboard() {
         clienteEmail: u.email,
         tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao'
       });
-      
-      console.log('E-mail Gerado (Simulação de Envio):', result);
-      
-      toast({ 
-        title: "E-mail Enviado!", 
-        description: `Convite premium enviado para ${u.email}.` 
-      });
+      console.log('E-mail Gerado:', result);
+      toast({ title: "E-mail Enviado!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao enviar e-mail" });
     } finally {
@@ -193,12 +174,6 @@ export default function AdminDashboard() {
     );
   }
 
-  const metrics = {
-    orders: allOrders?.length || 0,
-    users: allUsers?.length || 0,
-    unverified: allUsers?.filter(u => !u.emailVerificado).length || 0
-  };
-
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
@@ -210,36 +185,6 @@ export default function AdminDashboard() {
           <Button asChild variant="outline" className="rounded-xl"><Link href="/">Ver Loja</Link></Button>
           <Button asChild className="rounded-xl"><Link href="/admin/products/new">Novo Produto</Link></Button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <Card className="border-2 border-primary/10 bg-primary/5">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary shadow-inner"><TrendingUp className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pedidos Totais</p>
-              <h3 className="text-3xl font-black">{metrics.orders}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-blue-500/10 bg-blue-50/30">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-600"><UsersIcon className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Usuários</p>
-              <h3 className="text-3xl font-black">{metrics.users}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-yellow-500/10 bg-yellow-50/30">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-600"><MailWarning className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mails Pendentes</p>
-              <h3 className="text-3xl font-black">{metrics.unverified}</h3>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs defaultValue="orders" className="space-y-8">
@@ -255,9 +200,9 @@ export default function AdminDashboard() {
 
         <TabsContent value="orders">
           <Card className="border-2 shadow-sm">
-            <CardHeader><CardTitle>Vendas</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Vendas Recentes</CardTitle></CardHeader>
             <CardContent>
-              <div className="border rounded-2xl overflow-hidden overflow-x-auto">
+              <div className="border rounded-2xl overflow-hidden">
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -313,7 +258,7 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {allUsers?.map(u => (
-                      <TableRow key={u.id} className="group">
+                      <TableRow key={u.id}>
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-bold">{u.nome}</span>
@@ -328,7 +273,7 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <MessageCircle className="w-3.5 h-3.5 text-green-500" />
-                              <a href={`https://wa.me/${u.telefone?.replace(/\D/g, '')}`} target="_blank" className="hover:underline text-xs font-medium">
+                              <a href={`https://wa.me/${u.telefone?.replace(/\D/g, '')}`} target="_blank" className="hover:underline text-xs">
                                 {u.telefone || 'Sem número'}
                               </a>
                             </div>
@@ -336,27 +281,19 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           {u.emailVerificado ? (
-                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-bold">
-                              <MailCheck className="w-3 h-3 mr-1" /> VERIFICADO
-                            </Badge>
+                            <Badge className="bg-green-100 text-green-700 border-none font-bold">VERIFICADO</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-yellow-700 border-yellow-200 bg-yellow-50 font-bold">
-                              <MailWarning className="w-3 h-3 mr-1" /> PENDENTE
-                            </Badge>
+                            <Badge variant="outline" className="text-yellow-700 border-yellow-200 bg-yellow-50 font-bold">PENDENTE</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button 
                             size="sm" 
-                            className="rounded-xl h-9 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all font-bold"
                             disabled={isSendingEmail === u.id}
-                            onClick={() => handleSendEmailInvite(u)}
+                            onClick={() => handleSendEmailInvite(u as any)}
                           >
-                            {isSendingEmail === u.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <><Send className="w-3.5 h-3.5 mr-2" /> {u.emailVerificado ? 'Reenviar Boas-vindas' : 'Enviar Confirmação'}</>
-                            )}
+                            {isSendingEmail === u.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-2" />}
+                            Convite VIP
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -369,24 +306,83 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="home">
-           <Card className="border-2 shadow-sm p-8">
-             <h2 className="text-2xl font-bold mb-4">Configurações do Site</h2>
-             <p className="text-muted-foreground mb-8">Ajuste os banners e links da sua loja.</p>
-             <Button onClick={handleSaveSettings}>Salvar Alterações</Button>
-           </Card>
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <Card className="border-2 shadow-sm p-8 space-y-6">
+               <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Hero & Banners</h2>
+               <div className="space-y-4">
+                 <div className="space-y-2">
+                   <Label>Badge do Hero</Label>
+                   <Input value={siteSettings.heroBadge} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Título do Hero</Label>
+                   <Input value={siteSettings.heroTitle} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Descrição do Hero</Label>
+                   <Textarea value={siteSettings.heroDescription} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>URL da Imagem Hero</Label>
+                   <Input value={siteSettings.heroImage} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} />
+                 </div>
+               </div>
+               
+               <Separator />
+               
+               <h2 className="text-2xl font-bold flex items-center gap-2"><LinkIcon className="w-6 h-6 text-primary" /> Links Sociais</h2>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Telegram</Label>
+                   <Input value={siteSettings.telegramLink} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Instagram</Label>
+                   <Input value={siteSettings.instagramLink} onChange={e => setSiteSettings({...siteSettings, instagramLink: e.target.value})} />
+                 </div>
+               </div>
+               
+               <Button onClick={handleSaveSettings} className="w-full h-12 rounded-xl">Salvar Ajustes Visuais</Button>
+             </Card>
+
+             <Card className="border-2 shadow-sm p-8 space-y-6">
+               <h2 className="text-2xl font-bold flex items-center gap-2"><Clock className="w-6 h-6 text-primary" /> Fluxo de Experiência (4 Passos)</h2>
+               <p className="text-sm text-muted-foreground">Personalize os passos que aparecem na home do site.</p>
+               
+               <div className="space-y-8">
+                 {[1, 2, 3, 4].map(num => (
+                   <div key={num} className="space-y-4 p-4 border rounded-2xl bg-muted/20">
+                     <p className="font-bold text-xs uppercase text-primary">Passo {num}</p>
+                     <div className="space-y-2">
+                       <Label>Título</Label>
+                       <Input 
+                         value={siteSettings[`step${num}_title` as keyof SiteConfig] as string} 
+                         onChange={e => setSiteSettings({...siteSettings, [`step${num}_title` as keyof SiteConfig]: e.target.value})} 
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label>Descrição</Label>
+                       <Textarea 
+                         value={siteSettings[`step${num}_desc` as keyof SiteConfig] as string} 
+                         onChange={e => setSiteSettings({...siteSettings, [`step${num}_desc` as keyof SiteConfig]: e.target.value})} 
+                       />
+                     </div>
+                   </div>
+                 ))}
+               </div>
+               
+               <Button onClick={handleSaveSettings} className="w-full h-12 rounded-xl">Salvar Fluxo de Compra</Button>
+             </Card>
+           </div>
         </TabsContent>
 
         <TabsContent value="api">
            <Card className="border-2 shadow-sm p-8">
              <h2 className="text-2xl font-bold mb-4">Automações</h2>
-             <p className="text-muted-foreground">Configurações de Telegram e Notificações.</p>
+             <p className="text-muted-foreground">Configurações de Telegram e Notificações VIP.</p>
            </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-const ICON_MAP: Record<string, any> = {
-  Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart
-};
