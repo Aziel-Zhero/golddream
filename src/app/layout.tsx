@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeManager } from '@/components/ThemeManager';
+import { FaviconManager } from '@/components/FaviconManager';
 import { NavbarWrapper as Navbar } from '@/components/NavbarWrapper';
 import { FooterWrapper as Footer } from '@/components/FooterWrapper';
 import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground" suppressHydrationWarning>
         <FirebaseClientProvider>
           <ThemeManager />
+          <FaviconManager />
           <AuthProvider>
             <CartProvider>
               <Navbar />

@@ -41,7 +41,9 @@ import {
   Link as LinkIcon,
   FileText,
   Upload,
-  Phone
+  Phone,
+  Layout,
+  Layers
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +117,7 @@ export default function AdminDashboard() {
   // Handlers
   const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
     updateDocumentNonBlocking(doc(firestore, 'pedidos', id), { status: newStatus });
-    toast({ title: `Status do pedido #${id.slice(0,6)} atualizado para ${newStatus}` });
+    toast({ title: `Status do pedido atualizado para ${newStatus}` });
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
@@ -148,8 +150,11 @@ export default function AdminDashboard() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        // Comprime a imagem antes de salvar para evitar erro de limite do Firestore
-        const compressed = await compressImage(base64);
+        // Ajusta compressão baseado no tipo de imagem
+        let size = 1200;
+        if (field === 'faviconUrl' || field === 'whatsappIconUrl') size = 256;
+        
+        const compressed = await compressImage(base64, size, size);
         setSiteSettings({ ...siteSettings, [field]: compressed });
         setIsUploading(false);
         toast({ title: "Imagem carregada e otimizada!" });
@@ -365,63 +370,81 @@ export default function AdminDashboard() {
             <Card className="border-2 shadow-sm rounded-3xl p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <ImageIcon className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold">Aparência do Site</h2>
+                <h2 className="text-2xl font-bold">Identidade Visual</h2>
               </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label>Logo da Loja</Label>
-                     <div className="flex gap-2">
+              <div className="space-y-6">
+                {/* Upload de Logo */}
+                <div className="space-y-2">
+                   <Label className="flex justify-between">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
+                   <div className="flex gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
+                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
+                       {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo preview" /> : <Layers className="text-muted-foreground opacity-20" />}
+                     </div>
+                     <div className="flex-1">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
                        <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
-                         <label htmlFor="logo-up">
-                           {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />} 
-                           Carregar Logo
-                         </label>
+                         <label htmlFor="logo-up">Trocar Logo</label>
                        </Button>
                      </div>
                    </div>
+                </div>
+
+                {/* Favicon e WhatsApp Icon */}
+                <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
-                     <Label>WhatsApp (Botão)</Label>
-                     <div className="relative">
-                       <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
-                       <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                     <Label className="flex justify-between">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
+                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
+                        {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8 object-contain" /> : <div className="w-8 h-8 bg-muted rounded" />}
+                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
+                        <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                     <Label className="flex justify-between">Ícone WhatsApp <span className="text-[10px] text-muted-foreground">Rec: 64x64px</span></Label>
+                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
+                        {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" /> : <MessageCircle className="w-8 h-8 text-muted" />}
+                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
+                        <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
                      </div>
                    </div>
                 </div>
+
+                <Separator />
+
                 <div className="space-y-2">
-                  <Label>Badge do Hero</Label>
-                  <Input value={siteSettings.heroBadge || ''} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Título do Hero</Label>
-                  <Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição do Hero</Label>
-                  <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} className="min-h-[100px]" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Imagem Hero (Fundo)</Label>
+                  <Label className="flex justify-between">Imagem Hero (Fundo) <span className="text-[10px] text-muted-foreground">Rec: 1920x1080px</span></Label>
                   <div className="flex gap-2">
-                     <Input value={siteSettings.heroImage?.slice(0, 50) + '...'} readOnly placeholder="URL ou Upload" />
                      <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
-                     <Button asChild variant="secondary" size="icon" className="cursor-pointer" disabled={isUploading}>
-                       <label htmlFor="hero-up">{isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={16} />}</label>
+                     <Button asChild variant="secondary" className="w-full h-12 cursor-pointer border-2 border-dashed rounded-xl" disabled={isUploading}>
+                       <label htmlFor="hero-up">
+                         {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" size={16} />}
+                         Carregar Imagem de Fundo Destaque
+                       </label>
                      </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">O sistema otimiza a imagem automaticamente para caber no banco de dados.</p>
                 </div>
+
+                <div className="space-y-2">
+                   <Label>WhatsApp de Contato (Botão e Pedidos)</Label>
+                   <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Instagram Link</Label>
-                    <Input value={siteSettings.instagramLink || ''} onChange={e => setSiteSettings({...siteSettings, instagramLink: e.target.value})} />
+                    <Label>Badge do Hero</Label>
+                    <Input value={siteSettings.heroBadge || ''} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telegram VIP Link</Label>
-                    <Input value={siteSettings.telegramLink || ''} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} />
+                    <Label>Título do Hero</Label>
+                    <Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Descrição do Hero</Label>
+                  <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
+                </div>
+
                 <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl shadow-xl shadow-primary/10">Salvar Alterações Visuais</Button>
               </div>
             </Card>
@@ -431,7 +454,7 @@ export default function AdminDashboard() {
                 <Clock className="w-6 h-6 text-primary" />
                 <h2 className="text-2xl font-bold">Fluxo de Experiência (4 Passos)</h2>
               </div>
-              <div className="space-y-8 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-8 h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                 {[1, 2, 3, 4].map(num => (
                   <div key={num} className="space-y-4 p-5 border-2 rounded-2xl bg-muted/20">
                     <p className="font-black text-xs text-primary uppercase tracking-widest">Passo {num}</p>
