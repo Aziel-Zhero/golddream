@@ -146,8 +146,8 @@ export default function AdminDashboard() {
     toast({ title: `Status Atualizado` });
   };
 
-  const handleSendEmailInvite = async (u: AppUser) => {
-    setIsSendingEmail(u.uid);
+  const handleSendEmailInvite = async (u: AppUser & { id: string }) => {
+    setIsSendingEmail(u.id);
     try {
       const result = await sendCustomEmail({
         clienteNome: u.nome,
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {allUsers?.map(u => (
-                      <TableRow key={u.uid} className="group">
+                      <TableRow key={u.id} className="group">
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-bold">{u.nome}</span>
@@ -349,10 +349,10 @@ export default function AdminDashboard() {
                           <Button 
                             size="sm" 
                             className="rounded-xl h-9 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all font-bold"
-                            disabled={isSendingEmail === u.uid}
+                            disabled={isSendingEmail === u.id}
                             onClick={() => handleSendEmailInvite(u)}
                           >
-                            {isSendingEmail === u.uid ? (
+                            {isSendingEmail === u.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <><Send className="w-3.5 h-3.5 mr-2" /> {u.emailVerificado ? 'Reenviar Boas-vindas' : 'Enviar Confirmação'}</>
