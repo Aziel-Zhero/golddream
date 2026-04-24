@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -40,7 +39,9 @@ import {
   MessageCircle,
   Image as ImageIcon,
   Link as LinkIcon,
-  FileText
+  FileText,
+  Upload,
+  Phone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,14 +117,14 @@ export default function AdminDashboard() {
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
-    setIsSendingEmail(u.uid);
+    const userId = (u as any).id || u.uid;
+    setIsSendingEmail(userId);
     try {
       const result = await sendCustomEmail({
         clienteNome: u.nome,
         clienteEmail: u.email,
         tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao'
       });
-      console.log('E-mail Gerado com Sucesso', result);
       toast({ title: "Convite Enviado!", description: `E-mail premium enviado para ${u.email}` });
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao enviar", description: "Falha na geração do e-mail IA." });
@@ -136,6 +137,17 @@ export default function AdminDashboard() {
     if (!configRef) return;
     setDoc(configRef, siteSettings, { merge: true });
     toast({ title: "Configurações do Site Salvas!" });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: keyof SiteConfig) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSiteSettings({ ...siteSettings, [field]: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveTgSettings = () => {
@@ -188,11 +200,20 @@ export default function AdminDashboard() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-        <div>
-          <h1 className="text-5xl font-headline font-bold text-primary mb-2">Painel Admin</h1>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <LayoutDashboard className="w-4 h-4" />
-            <p className="text-sm font-medium">Gestão centralizada Gold Dream Multimarcas</p>
+        <div className="flex items-center gap-6">
+          <div className="h-20 w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
+             {siteSettings.logoUrl ? (
+               <img src={siteSettings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
+             ) : (
+               <LayoutDashboard className="w-10 h-10 text-primary" />
+             )}
+          </div>
+          <div>
+            <h1 className="text-5xl font-headline font-bold text-primary mb-2">Painel Admin</h1>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ShieldCheck className="w-4 h-4" />
+              <p className="text-sm font-medium">Gestão centralizada Gold Dream Multimarcas</p>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -293,8 +314,10 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allUsers?.map(u => (
-                    <TableRow key={u.uid} className="hover:bg-muted/5 transition-colors">
+                  {allUsers?.map(u => {
+                    const userId = (u as any).id || u.uid;
+                    return (
+                    <TableRow key={userId} className="hover:bg-muted/5 transition-colors">
                       <TableCell className="font-bold">{u.nome}</TableCell>
                       <TableCell>{u.email}</TableCell>
                       <TableCell>
@@ -308,16 +331,16 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                         <Button 
                           size="sm" 
-                          disabled={isSendingEmail === u.uid}
+                          disabled={isSendingEmail === userId}
                           onClick={() => handleSendEmailInvite(u)}
                           className="rounded-xl"
                         >
-                          {isSendingEmail === u.uid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-2" />}
+                          {isSendingEmail === userId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-2" />}
                           Convite VIP
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </CardContent>
@@ -332,6 +355,22 @@ export default function AdminDashboard() {
                 <h2 className="text-2xl font-bold">Aparência do Site</h2>
               </div>
               <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label>Logo da Loja</Label>
+                     <div className="flex gap-2">
+                       <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
+                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="logo-up"><Upload className="w-4 h-4 mr-2" /> Carregar Logo</label></Button>
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                     <Label>WhatsApp (Botão)</Label>
+                     <div className="relative">
+                       <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
+                       <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                     </div>
+                   </div>
+                </div>
                 <div className="space-y-2">
                   <Label>Badge do Hero</Label>
                   <Input value={siteSettings.heroBadge || ''} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
@@ -345,8 +384,12 @@ export default function AdminDashboard() {
                   <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} className="min-h-[100px]" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Imagem Hero (URL)</Label>
-                  <Input value={siteSettings.heroImage || ''} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} />
+                  <Label>Imagem Hero</Label>
+                  <div className="flex gap-2">
+                     <Input value={siteSettings.heroImage || ''} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} placeholder="URL ou Upload" />
+                     <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
+                     <Button asChild variant="secondary" size="icon" className="cursor-pointer"><label htmlFor="hero-up"><Upload size={16} /></label></Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

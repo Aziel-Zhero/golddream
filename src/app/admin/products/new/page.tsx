@@ -14,7 +14,8 @@ import {
   Save, 
   Loader2,
   Palette,
-  Ruler
+  Ruler,
+  Upload
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,17 @@ export default function NewProductPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [newSize, setNewSize] = useState('');
   const [newColor, setNewColor] = useState('#000000');
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && formData.imagens.length < 5) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, imagens: [...formData.imagens, reader.result as string] });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddImage = () => {
     if (imageUrl && formData.imagens.length < 5) {
@@ -228,18 +240,28 @@ export default function NewProductPage() {
           <Card className="border-2">
             <CardHeader>
               <CardTitle>Imagens</CardTitle>
-              <CardDescription>Adicione URLs de imagens de alta qualidade (máx 5).</CardDescription>
+              <CardDescription>Adicione imagens do seu dispositivo ou via URL (máx 5).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex gap-2">
-                <Input 
-                  value={imageUrl} 
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://exemplo.com/foto.jpg" 
-                />
-                <Button type="button" onClick={handleAddImage} variant="secondary">
-                  <Plus className="w-4 h-4" />
-                </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input 
+                    value={imageUrl} 
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://exemplo.com/foto.jpg" 
+                  />
+                  <Button type="button" onClick={handleAddImage} variant="secondary">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="relative">
+                   <Input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-up" />
+                   <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl">
+                     <label htmlFor="file-up">
+                       <Upload className="w-4 h-4 mr-2" /> Escolher do Dispositivo
+                     </label>
+                   </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-5 gap-4">

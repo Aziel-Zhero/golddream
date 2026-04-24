@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -8,6 +7,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { ThemeManager } from '@/components/ThemeManager';
 import { NavbarWrapper as Navbar } from '@/components/NavbarWrapper';
 import { FooterWrapper as Footer } from '@/components/FooterWrapper';
+import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 
 export const metadata: Metadata = {
   title: 'Gold Dream Multimarcas | Estilo e Exclusividade',
@@ -36,6 +36,7 @@ export default function RootLayout({
                 {children}
               </main>
               <Footer />
+              <FloatingWhatsApp />
               <Toaster />
             </CartProvider>
           </AuthProvider>

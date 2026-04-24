@@ -66,6 +66,8 @@ export type SiteConfig = {
   heroTitle?: string;
   heroDescription?: string;
   heroImage?: string;
+  logoUrl?: string;
+  whatsappNumber?: string;
   telegramLink?: string;
   instagramLink?: string;
   facebookLink?: string;
