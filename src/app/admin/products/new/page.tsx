@@ -22,12 +22,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase';
+import { compressImage } from '@/lib/utils';
 
 export default function NewProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -48,9 +50,14 @@ export default function NewProductPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && formData.imagens.length < 5) {
+      setIsUploading(true);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, imagens: [...formData.imagens, reader.result as string] });
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const compressed = await compressImage(base64);
+        setFormData({ ...formData, imagens: [...formData.imagens, compressed] });
+        setIsUploading(false);
+        toast({ title: "Imagem adicionada e otimizada!" });
       };
       reader.readAsDataURL(file);
     }
@@ -256,9 +263,10 @@ export default function NewProductPage() {
                 </div>
                 <div className="relative">
                    <Input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-up" />
-                   <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl">
+                   <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
                      <label htmlFor="file-up">
-                       <Upload className="w-4 h-4 mr-2" /> Escolher do Dispositivo
+                       {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                       Escolher do Dispositivo
                      </label>
                    </Button>
                 </div>
@@ -278,6 +286,7 @@ export default function NewProductPage() {
                   </div>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground">Dica: O sistema comprime imagens pesadas automaticamente para garantir a melhor performance.</p>
             </CardContent>
           </Card>
         </div>
@@ -313,7 +322,7 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={isLoading} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20">
+          <Button type="submit" disabled={isLoading || isUploading} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20">
             {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
             Salvar Produto
           </Button>

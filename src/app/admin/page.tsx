@@ -66,6 +66,7 @@ import { useAuth } from '@/context/AuthContext';
 import { sendCustomEmail } from '@/ai/flows/send-custom-email';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { compressImage } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false });
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (config) setSiteSettings(config);
@@ -117,10 +119,10 @@ export default function AdminDashboard() {
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
-    const userId = (u as any).id || u.uid;
+    const userId = u.uid || (u as any).id;
     setIsSendingEmail(userId);
     try {
-      const result = await sendCustomEmail({
+      await sendCustomEmail({
         clienteNome: u.nome,
         clienteEmail: u.email,
         tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao'
@@ -139,12 +141,18 @@ export default function AdminDashboard() {
     toast({ title: "Configurações do Site Salvas!" });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: keyof SiteConfig) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof SiteConfig) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSiteSettings({ ...siteSettings, [field]: reader.result as string });
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        // Comprime a imagem antes de salvar para evitar erro de limite do Firestore
+        const compressed = await compressImage(base64);
+        setSiteSettings({ ...siteSettings, [field]: compressed });
+        setIsUploading(false);
+        toast({ title: "Imagem carregada e otimizada!" });
       };
       reader.readAsDataURL(file);
     }
@@ -201,7 +209,12 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
+          <div className="h-20 w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative">
+             {isUploading && (
+               <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
+                 <Loader2 className="w-6 h-6 animate-spin text-white" />
+               </div>
+             )}
              {siteSettings.logoUrl ? (
                <img src={siteSettings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
              ) : (
@@ -269,7 +282,7 @@ export default function AdminDashboard() {
                           order.status === 'entregue' ? 'bg-green-500' : 
                           order.status === 'cancelado' ? 'bg-red-500' : 'bg-primary'
                         }`}>
-                          {order.status?.toUpperCase()}
+                          {(order.status || 'pendente').toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -315,7 +328,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {allUsers?.map(u => {
-                    const userId = (u as any).id || u.uid;
+                    const userId = u.uid || (u as any).id;
                     return (
                     <TableRow key={userId} className="hover:bg-muted/5 transition-colors">
                       <TableCell className="font-bold">{u.nome}</TableCell>
@@ -360,7 +373,12 @@ export default function AdminDashboard() {
                      <Label>Logo da Loja</Label>
                      <div className="flex gap-2">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
-                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="logo-up"><Upload className="w-4 h-4 mr-2" /> Carregar Logo</label></Button>
+                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
+                         <label htmlFor="logo-up">
+                           {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />} 
+                           Carregar Logo
+                         </label>
+                       </Button>
                      </div>
                    </div>
                    <div className="space-y-2">
@@ -384,12 +402,15 @@ export default function AdminDashboard() {
                   <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} className="min-h-[100px]" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Imagem Hero</Label>
+                  <Label>Imagem Hero (Fundo)</Label>
                   <div className="flex gap-2">
-                     <Input value={siteSettings.heroImage || ''} onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} placeholder="URL ou Upload" />
+                     <Input value={siteSettings.heroImage?.slice(0, 50) + '...'} readOnly placeholder="URL ou Upload" />
                      <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
-                     <Button asChild variant="secondary" size="icon" className="cursor-pointer"><label htmlFor="hero-up"><Upload size={16} /></label></Button>
+                     <Button asChild variant="secondary" size="icon" className="cursor-pointer" disabled={isUploading}>
+                       <label htmlFor="hero-up">{isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={16} />}</label>
+                     </Button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">O sistema otimiza a imagem automaticamente para caber no banco de dados.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
