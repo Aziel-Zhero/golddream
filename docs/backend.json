@@ -9,6 +9,7 @@
         "nome": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "telefone": { "type": "string" },
+        "emailVerificado": { "type": "boolean" },
         "endereco": {
           "type": "object",
           "properties": {
@@ -78,34 +79,6 @@
         "b4_sub": { "type": "string" },
         "b4_icon": { "type": "string" },
         "b4_active": { "type": "boolean" }
-      }
-    },
-    "Frete": {
-      "title": "Frete",
-      "type": "object",
-      "properties": {
-        "cidade": { "type": "string" },
-        "bairro": { "type": "string" },
-        "valor": { "type": "number" }
-      }
-    },
-    "Cupom": {
-      "title": "Cupom",
-      "type": "object",
-      "properties": {
-        "codigo": { "type": "string" },
-        "desconto": { "type": "number", "description": "Valor em porcentagem" },
-        "expira": { "type": "boolean" },
-        "dataExpiracao": { "type": "string", "format": "date" }
-      }
-    },
-    "Suporte": {
-      "title": "Suporte",
-      "type": "object",
-      "properties": {
-        "titulo": { "type": "string" },
-        "conteudo": { "type": "string" },
-        "slug": { "type": "string" }
       }
     }
   },

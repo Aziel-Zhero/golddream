@@ -18,6 +18,7 @@ export type User = {
   nome: string;
   email: string;
   telefone?: string;
+  emailVerificado?: boolean;
   endereco?: {
     rua: string;
     bairro: string;

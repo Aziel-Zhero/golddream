@@ -6,7 +6,7 @@ import { User as AppUser } from '@/types';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuth as useFirebaseAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut, sendEmailVerification } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 type AuthContextType = {
   user: (AppUser & { emailVerified: boolean; isAdmin: boolean }) | null;
@@ -33,41 +33,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdminStatus = userData?.papel === 'admin' || userData?.papel === 'administrador';
 
   useEffect(() => {
-    if (fbUser) {
-      if (userData) {
-        setAppUser({
-          uid: fbUser.uid,
-          email: fbUser.email || '',
-          emailVerified: fbUser.emailVerified,
-          nome: userData.nome || fbUser.displayName || 'Cliente',
-          telefone: userData.telefone || fbUser.phoneNumber || '',
-          endereco: userData.endereco,
-          papel: isAdminStatus ? 'admin' : 'cliente',
-          dataCriacao: userData.dataCriacao || new Date().toISOString(),
-          avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`,
-          isAdmin: isAdminStatus
-        });
+    if (fbUser && userData) {
+      const emailVerified = fbUser.emailVerified;
+      
+      // Sincroniza o status de verificação com o Firestore se houver mudança
+      if (userData.emailVerificado !== emailVerified) {
+        setDoc(doc(firestore, 'usuarios', fbUser.uid), { emailVerificado: emailVerified }, { merge: true });
       }
+
+      setAppUser({
+        uid: fbUser.uid,
+        email: fbUser.email || '',
+        emailVerified: emailVerified,
+        emailVerificado: emailVerified, // Campo extra para compatibilidade com o listador admin
+        nome: userData.nome || fbUser.displayName || 'Cliente',
+        telefone: userData.telefone || fbUser.phoneNumber || '',
+        endereco: userData.endereco,
+        papel: isAdminStatus ? 'admin' : 'cliente',
+        dataCriacao: userData.dataCriacao || new Date().toISOString(),
+        avatarUrl: fbUser.photoURL || `https://picsum.photos/seed/${fbUser.uid}/100/100`,
+        isAdmin: isAdminStatus
+      });
     } else {
       setAppUser(null);
     }
-  }, [fbUser, userData, isAdminStatus]);
-
-  useEffect(() => {
-    if (!isUserLoading && fbUser && !isDocLoading && appUser) {
-      const isPublicPage = ['/auth/login', '/auth/register', '/', '/auth/complete-profile'].includes(pathname) || 
-                           pathname.startsWith('/category/') || 
-                           pathname.startsWith('/products/') ||
-                           pathname.startsWith('/suporte/');
-      
-      const isMissingAddress = !userData?.endereco?.cidade;
-      const isAdmin = appUser.isAdmin;
-
-      if (isMissingAddress && !isPublicPage && !isAdmin) {
-        router.push('/auth/complete-profile');
-      }
-    }
-  }, [fbUser, userData, appUser, isUserLoading, isDocLoading, pathname, router]);
+  }, [fbUser, userData, isAdminStatus, firestore]);
 
   const logout = async () => {
     await signOut(auth);
