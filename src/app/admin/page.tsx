@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -43,7 +44,8 @@ import {
   Upload,
   Phone,
   Layout,
-  Layers
+  Layers,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +61,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, where } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -161,6 +163,20 @@ export default function AdminDashboard() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleRemoveImage = (field: keyof SiteConfig) => {
+    if (!configRef) return;
+    
+    // Remove do estado local
+    const newSettings = { ...siteSettings };
+    delete newSettings[field];
+    setSiteSettings(newSettings);
+
+    // Remove do banco de dados imediatamente para não acumular lixo Base64
+    setDoc(configRef, { [field]: deleteField() }, { merge: true });
+    
+    toast({ title: "Imagem removida permanentemente!" });
   };
 
   const handleSaveTgSettings = () => {
@@ -333,7 +349,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {allUsers?.map(u => {
-                    const userId = u.uid || (u as any).id;
+                    const userId = u.id || (u as any).uid;
                     return (
                     <TableRow key={userId} className="hover:bg-muted/5 transition-colors">
                       <TableCell className="font-bold">{u.nome}</TableCell>
@@ -376,9 +392,16 @@ export default function AdminDashboard() {
                 {/* Upload de Logo */}
                 <div className="space-y-2">
                    <Label className="flex justify-between">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
-                   <div className="flex gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
-                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
-                       {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo preview" /> : <Layers className="text-muted-foreground opacity-20" />}
+                   <div className="flex gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10 relative">
+                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden relative group">
+                       {siteSettings.logoUrl ? (
+                         <>
+                           <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo preview" />
+                           <button onClick={() => handleRemoveImage('logoUrl')} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                             <Trash2 size={20} />
+                           </button>
+                         </>
+                       ) : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
                      <div className="flex-1">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
@@ -393,16 +416,26 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
                      <Label className="flex justify-between">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
-                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                        {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8 object-contain" /> : <div className="w-8 h-8 bg-muted rounded" />}
+                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
+                        {siteSettings.faviconUrl ? (
+                          <div className="relative">
+                            <img src={siteSettings.faviconUrl} className="w-8 h-8 object-contain" />
+                            <button onClick={() => handleRemoveImage('faviconUrl')} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X size={10} /></button>
+                          </div>
+                        ) : <div className="w-8 h-8 bg-muted rounded" />}
                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
                         <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
                      </div>
                    </div>
                    <div className="space-y-2">
                      <Label className="flex justify-between">Ícone WhatsApp <span className="text-[10px] text-muted-foreground">Rec: 64x64px</span></Label>
-                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                        {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" /> : <MessageCircle className="w-8 h-8 text-muted" />}
+                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
+                        {siteSettings.whatsappIconUrl ? (
+                          <div className="relative">
+                            <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" />
+                            <button onClick={() => handleRemoveImage('whatsappIconUrl')} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X size={10} /></button>
+                          </div>
+                        ) : <MessageCircle className="w-8 h-8 text-muted" />}
                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
                         <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
                      </div>
@@ -413,12 +446,20 @@ export default function AdminDashboard() {
 
                 <div className="space-y-2">
                   <Label className="flex justify-between">Imagem Hero (Fundo) <span className="text-[10px] text-muted-foreground">Rec: 1920x1080px</span></Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
+                     {siteSettings.heroImage && (
+                       <div className="relative h-24 w-full rounded-xl overflow-hidden border">
+                         <img src={siteSettings.heroImage} className="w-full h-full object-cover" />
+                         <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-8 px-3 rounded-lg" onClick={() => handleRemoveImage('heroImage')}>
+                           Remover Imagem de Fundo
+                         </Button>
+                       </div>
+                     )}
                      <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
                      <Button asChild variant="secondary" className="w-full h-12 cursor-pointer border-2 border-dashed rounded-xl" disabled={isUploading}>
                        <label htmlFor="hero-up">
                          {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" size={16} />}
-                         Carregar Imagem de Fundo Destaque
+                         Substituir Imagem de Destaque
                        </label>
                      </Button>
                   </div>
