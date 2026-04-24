@@ -63,12 +63,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="relative h-[85vh] flex items-center overflow-hidden">
+      <section className="relative h-[85vh] w-full flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
             src={heroImage} 
             alt="Moda Moderna" 
-            className="w-full h-full object-cover brightness-[0.8]"
+            className="w-full h-full object-cover object-center brightness-[0.8] transition-opacity duration-1000"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/20 to-transparent" />
         </div>

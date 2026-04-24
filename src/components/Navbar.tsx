@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -9,6 +8,9 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { SiteConfig } from '@/types';
 import { 
   Sheet, 
   SheetContent, 
@@ -30,6 +32,10 @@ export function Navbar() {
   const { totalItems, items, totalPrice, removeItem, updateQuantity } = useCart();
   const { user, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const firestore = useFirestore();
+
+  const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
+  const { data: config } = useDoc<SiteConfig>(configRef);
 
   const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
 
@@ -37,10 +43,18 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 glass-morphism border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105">
-              Gold Dream
-            </span>
+          <Link href="/" className="flex items-center gap-2 group h-full">
+            {config?.logoUrl ? (
+              <img 
+                src={config.logoUrl} 
+                alt="Logo Gold Dream" 
+                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+            ) : (
+              <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105">
+                Gold Dream
+              </span>
+            )}
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
