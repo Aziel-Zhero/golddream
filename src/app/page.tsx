@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, Zap, Star, Package, Heart } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, Zap, Star, Package, Heart, Search, ShoppingBag, MessageCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
@@ -39,6 +39,29 @@ export default function Home() {
     { icon: ICON_MAP[config?.b4_icon || 'ArrowRight'] || ArrowRight, title: config?.b4_title || 'Novidades', sub: config?.b4_sub || 'Lançamentos semanais exclusivos', active: config?.b4_active !== false },
   ].filter(b => b.active);
 
+  const flowSteps = [
+    {
+      icon: Search,
+      title: "Escolha seu Estilo",
+      desc: "Navegue por nossa curadoria de marcas premium e selecione suas peças favoritas."
+    },
+    {
+      icon: ShoppingBag,
+      title: "Finalize o Pedido",
+      desc: "Adicione à sacola e finalize o checkout em segundos. É rápido e seguro."
+    },
+    {
+      icon: MessageCircle,
+      title: "Confirmação VIP",
+      desc: "Nossa equipe entrará em contato via WhatsApp para confirmar o pagamento e entrega."
+    },
+    {
+      icon: CheckCircle,
+      title: "Receba em Casa",
+      desc: "Pronto! Seu pedido será enviado com todo cuidado e embalagem exclusiva."
+    }
+  ];
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative h-[85vh] flex items-center overflow-hidden">
@@ -69,6 +92,36 @@ export default function Home() {
                 </Link>
               </Button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Seção Como Funciona */}
+      <section className="py-24 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-16">
+            <Badge variant="outline" className="text-primary border-primary rounded-full px-4 py-1 font-bold">GUIA DE COMPRA</Badge>
+            <h2 className="text-4xl md:text-5xl font-headline font-bold">Como funciona a sua experiência?</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Na Gold Dream, unimos a facilidade do digital com o atendimento personalizado exclusivo.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {flowSteps.map((step, idx) => (
+              <div key={idx} className="group relative bg-white p-8 rounded-[2.5rem] border shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
+                <div className="absolute -top-4 -left-4 w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg border-4 border-white">
+                  {idx + 1}
+                </div>
+                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+                  <step.icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {step.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
