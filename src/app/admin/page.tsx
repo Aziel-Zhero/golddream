@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -37,7 +38,7 @@ import {
   Twitter,
   Mail,
   MessageCircle,
-  Image as ImageIcon,
+  ImageIcon,
   Link as LinkIcon,
   FileText,
   Upload,
@@ -48,7 +49,9 @@ import {
   Play,
   Percent,
   Calendar,
-  DollarSign
+  DollarSign,
+  BarChart3,
+  Receipt
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,7 +65,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
@@ -137,6 +140,37 @@ export default function AdminDashboard() {
     if (config) setSiteSettings(config);
     if (tgConfig) setTgSettings(tgConfig);
   }, [config, tgConfig]);
+
+  // Dashboard Statistics
+  const stats = useMemo(() => {
+    if (!allOrders) return { totalMes: 0, entregues: 0, pendentes: 0, cancelados: 0 };
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return allOrders.reduce((acc, order) => {
+      const orderDate = new Date(order.dataCriacao);
+      const isThisMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      
+      // Contabiliza total do mês (apenas pedidos não cancelados)
+      if (isThisMonth && order.status !== 'cancelado') {
+        acc.totalMes += order.total || 0;
+      }
+
+      // Contadores por status
+      if (order.status === 'entregue') {
+        acc.entregues += 1;
+      } else if (order.status === 'cancelado') {
+        acc.cancelados += 1;
+      } else {
+        // pendente, confirmado, em_separacao
+        acc.pendentes += 1;
+      }
+
+      return acc;
+    }, { totalMes: 0, entregues: 0, pendentes: 0, cancelados: 0 });
+  }, [allOrders]);
 
   // Handlers
   const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
@@ -253,7 +287,7 @@ export default function AdminDashboard() {
   const confirmDeleteItem = () => {
     if (deleteConfirm) {
       deleteDocumentNonBlocking(doc(firestore, deleteConfirm.col, deleteConfirm.id));
-      toast({ title: "Item excluído permanentemente" });
+      toast({ title: "Registro excluído permanentemente" });
       setDeleteConfirm(null);
     }
   };
@@ -315,7 +349,51 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <TabsContent value="orders">
+        <TabsContent value="orders" className="space-y-8">
+          {/* Dashboard Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-primary/5 border-primary/10">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-primary/10 rounded-xl"><DollarSign className="w-5 h-5 text-primary" /></div>
+                  <Badge variant="outline" className="text-[10px] font-bold">MÊS ATUAL</Badge>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Mês</p>
+                <p className="text-2xl font-black text-primary">R$ {stats.totalMes.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-green-50 border-green-100">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-green-100 rounded-xl"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-green-700/60 mb-1">Entregues</p>
+                <p className="text-2xl font-black text-green-700">{stats.entregues}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-yellow-50 border-yellow-100">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-yellow-100 rounded-xl"><Clock className="w-5 h-5 text-yellow-600" /></div>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
+                <p className="text-2xl font-black text-yellow-700">{stats.pendentes}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-red-50 border-red-100">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-red-100 rounded-xl"><XCircle className="w-5 h-5 text-red-600" /></div>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-700/60 mb-1">Cancelados</p>
+                <p className="text-2xl font-black text-red-700">{stats.cancelados}</p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/20 border-b">
               <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5" /> Vendas Recentes</CardTitle>
@@ -338,7 +416,11 @@ export default function AdminDashboard() {
                       <TableCell><span className="font-bold">{order.clienteNome}</span></TableCell>
                       <TableCell className="font-bold">R$ {order.total?.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge className={order.status === 'entregue' ? 'bg-green-500' : 'bg-primary'}>
+                        <Badge className={
+                          order.status === 'entregue' ? 'bg-green-500' : 
+                          order.status === 'cancelado' ? 'bg-red-500' : 
+                          'bg-primary'
+                        }>
                           {(order.status || 'pendente').toUpperCase()}
                         </Badge>
                       </TableCell>
@@ -349,6 +431,10 @@ export default function AdminDashboard() {
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmar</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
+                            <Separator className="my-1" />
+                            <DropdownMenuItem onClick={() => setDeleteConfirm({ open: true, col: 'pedidos', id: order.id })} className="text-destructive font-bold">
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -424,6 +510,7 @@ export default function AdminDashboard() {
                       {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8" /> : <div className="w-8 h-8 bg-muted rounded" />}
                       <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
                       <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
+                      {siteSettings.faviconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('faviconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -432,6 +519,7 @@ export default function AdminDashboard() {
                       {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" /> : <MessageCircle className="w-8 h-8 text-muted" />}
                       <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
                       <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
+                      {siteSettings.whatsappIconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('whatsappIconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
                     </div>
                   </div>
                 </div>
@@ -454,6 +542,19 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                    <Label>Descrição Hero</Label>
                    <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                   <Label>Imagem Hero (Fundo)</Label>
+                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
+                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
+                       {siteSettings.heroImage ? <img src={siteSettings.heroImage} className="w-full h-full object-cover" alt="Hero" /> : <Layers className="text-muted-foreground opacity-20" />}
+                     </div>
+                     <div className="flex-1 w-full space-y-2">
+                       <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
+                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="hero-up">Upload</label></Button>
+                       {siteSettings.heroImage && <Button variant="ghost" onClick={() => handleRemoveImage('heroImage')} className="w-full text-destructive text-xs font-bold rounded-xl">Excluir</Button>}
+                     </div>
+                   </div>
                 </div>
                 <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações</Button>
               </div>
@@ -640,13 +741,13 @@ export default function AdminDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-headline font-bold">Confirmar Exclusão?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O item será removido permanentemente do seu banco de dados.
+              Esta ação não pode ser desfeita. O registro será removido permanentemente do seu banco de dados e deixará de ser contabilizado nos totais.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="rounded-xl border-2">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteItem} className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold">
-              Sim, Excluir
+              Sim, Excluir Registro
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
