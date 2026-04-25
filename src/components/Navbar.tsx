@@ -184,7 +184,8 @@ export function Navbar() {
                                 >-</button>
                                 <span className="px-3 font-bold">{item.quantity}</span>
                                 <button 
-                                  className="px-2 py-1 hover:text-primary transition-colors"
+                                  className="px-2 py-1 hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                  disabled={item.quantity >= item.product.estoque}
                                   onClick={() => updateQuantity(item.productId, item.selectedSize, item.selectedColor, item.quantity + 1)}
                                 >+</button>
                               </div>

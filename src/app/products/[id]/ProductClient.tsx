@@ -161,9 +161,20 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             {!isOutOfStock && (
               <div className="flex items-center border-2 rounded-2xl px-2 h-16 bg-muted/20">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary transition-colors">-</button>
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                  className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary transition-colors"
+                >
+                  -
+                </button>
                 <span className="w-12 text-center font-black text-lg">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary transition-colors">+</button>
+                <button 
+                  onClick={() => setQuantity(Math.min(product.estoque, quantity + 1))} 
+                  disabled={quantity >= product.estoque}
+                  className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
               </div>
             )}
             <Button 

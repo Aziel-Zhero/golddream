@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -32,24 +33,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = (product: Product, quantity: number, size: string, color: string) => {
+    let success = true;
+    
     setItems(prev => {
       const existingItemIndex = prev.findIndex(
         item => item.productId === product.id && item.selectedSize === size && item.selectedColor === color
       );
 
+      const currentQtyInCart = existingItemIndex > -1 ? prev[existingItemIndex].quantity : 0;
+      const totalRequested = currentQtyInCart + quantity;
+
+      if (totalRequested > product.estoque) {
+        success = false;
+        return prev;
+      }
+
       if (existingItemIndex > -1) {
         const newItems = [...prev];
-        newItems[existingItemIndex].quantity += quantity;
+        newItems[existingItemIndex].quantity = totalRequested;
         return newItems;
       }
 
       return [...prev, { productId: product.id, product, quantity, selectedSize: size, selectedColor: color }];
     });
 
-    toast({
-      title: "Adicionado à sacola",
-      description: `${product.nome} (${size}, ${color}) adicionado.`,
-    });
+    if (success) {
+      toast({
+        title: "Adicionado à sacola",
+        description: `${product.nome} (${size}, ${color}) adicionado com sucesso.`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Estoque insuficiente",
+        description: `Não é possível adicionar mais unidades deste item. Restam apenas ${product.estoque} no estoque.`,
+      });
+    }
   };
 
   const removeItem = (productId: string, size: string, color: string) => {
@@ -63,11 +82,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeItem(productId, size, color);
       return;
     }
-    setItems(prev => prev.map(item => 
-      (item.productId === productId && item.selectedSize === size && item.selectedColor === color)
-        ? { ...item, quantity }
-        : item
-    ));
+    
+    setItems(prev => prev.map(item => {
+      if (item.productId === productId && item.selectedSize === size && item.selectedColor === color) {
+        // Garante que a atualização manual também respeite o estoque
+        const newQuantity = Math.min(quantity, item.product.estoque);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
   };
 
   const clearCart = () => setItems([]);
