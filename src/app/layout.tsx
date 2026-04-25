@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -8,10 +9,10 @@ import { ThemeManager } from '@/components/ThemeManager';
 import { FaviconManager } from '@/components/FaviconManager';
 import { NavbarWrapper as Navbar } from '@/components/NavbarWrapper';
 import { FooterWrapper as Footer } from '@/components/FooterWrapper';
-import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
+import { FloatingWhatsAppWrapper as FloatingWhatsApp } from '@/components/FloatingWhatsAppWrapper';
 
 export const metadata: Metadata = {
-  title: 'Gold Dream Multimarcas | Estilo e Exclusividade',
+  title: 'Gold Dream | Estilo e Exclusividade',
   description: 'O melhor da moda premium. Gold Dream Multimarcas - Elegância e qualidade para você.',
 };
 
