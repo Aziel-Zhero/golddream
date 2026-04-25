@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck, Percent, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -111,11 +111,13 @@ export default function CheckoutPage() {
     }
   };
 
-  // Lógica para decidir qual desconto usar (melhor oferta)
+  // Cálculo rigoroso do desconto somando promoção ativa + cupom
   const calculateFinalDiscount = () => {
+    // 1. Valor da promoção automática (%)
     const discountFromAuto = totalPrice * (autoDiscountPercent / 100);
+    
+    // 2. Valor do cupom (Fixo ou %)
     let discountFromCoupon = 0;
-
     if (appliedCoupon) {
       if (appliedCoupon.tipo === 'fixo') {
         discountFromCoupon = appliedCoupon.desconto;
@@ -124,12 +126,12 @@ export default function CheckoutPage() {
       }
     }
 
-    // Retornamos o maior valor de desconto
-    return Math.max(discountFromAuto, discountFromCoupon);
+    // Retorna a soma dos descontos, limitada ao valor total dos produtos
+    return Math.min(totalPrice, discountFromAuto + discountFromCoupon);
   };
 
   const discountValue = calculateFinalDiscount();
-  const finalTotal = (totalPrice - discountValue) + shippingCost;
+  const finalTotal = Math.max(0, (totalPrice - discountValue) + shippingCost);
 
   const generateOrderId = () => {
     const now = new Date();
@@ -166,7 +168,7 @@ export default function CheckoutPage() {
       .replace('{{clienteNome}}', order.clienteNome)
       .replace('{{clienteEndereco}}', order.clienteEndereco)
       .replace('{{telefone}}', order.clienteTelefone)
-      .replace('{{cupom}}', order.cupomText || 'Não')
+      .replace('{{cupom}}', order.cupomText || 'Nenhum')
       .replace('{{total}}', order.total.toFixed(2));
 
     return template;
@@ -180,15 +182,9 @@ export default function CheckoutPage() {
     
     const orderId = generateOrderId();
     
-    // Determina qual cupom/promoção deu o melhor desconto para o registro
-    const discountFromAuto = totalPrice * (autoDiscountPercent / 100);
-    const discountFromCoupon = appliedCoupon 
-      ? (appliedCoupon.tipo === 'fixo' ? appliedCoupon.desconto : totalPrice * (appliedCoupon.desconto / 100))
-      : 0;
-    
-    const couponUsedText = discountFromCoupon >= discountFromAuto && appliedCoupon 
-      ? appliedCoupon.codigo 
-      : (activePromo ? `Campanha: ${activePromo.nome}` : "Nenhum");
+    const couponUsedText = appliedCoupon 
+      ? `Cupom: ${appliedCoupon.codigo}` 
+      : (activePromo ? `Promo: ${activePromo.nome}` : "Nenhum");
 
     const pedidoData = {
       codigo: orderId,
@@ -221,17 +217,7 @@ export default function CheckoutPage() {
         const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
         const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
 
-        const waMessage = `Olá *${pedidoData.clienteNome}* 👋
-
-Aqui é da *Gold Dream - Multimarcas*.
-
-Seu pedido já está sendo preparado 🛍️
-
-Poderia confirmar se este endereço está correto?
-
-📍 ${pedidoData.clienteEndereco}
-
-E nos informar a forma de pagamento? 💳`;
+        const waMessage = `Olá *${pedidoData.clienteNome}* 👋\n\nAqui é da *Gold Dream - Multimarcas*.\n\nSeu pedido já está sendo preparado 🛍️\n\nPoderia confirmar se este endereço está correto?\n\n📍 ${pedidoData.clienteEndereco}\n\nE nos informar a forma de pagamento? 💳`;
 
         const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
         const confirmUrl = `${window.location.origin}/admin/orders/${orderId}/confirm`;
@@ -322,7 +308,7 @@ E nos informar a forma de pagamento? 💳`;
                 </div>
                 <div>
                   <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
-                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF disponível.</p>
+                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF aplicado automaticamente.</p>
                 </div>
               </div>
               <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
@@ -376,32 +362,44 @@ E nos informar a forma de pagamento? 💳`;
               <div className="pt-6 border-t space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tem um cupom?</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="CÓDIGO" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="h-12 rounded-xl font-black" />
-                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">OK</Button>
+                  <Input 
+                    placeholder="DIGITE O CÓDIGO" 
+                    value={couponCode} 
+                    onChange={e => setCouponCode(e.target.value.toUpperCase())} 
+                    className="h-12 rounded-xl font-black uppercase" 
+                  />
+                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">APLICAR</Button>
                 </div>
                 {appliedCoupon && (
-                  <p className="text-[10px] text-green-600 font-bold">
-                    Cupom {appliedCoupon.codigo} ({appliedCoupon.tipo === 'fixo' ? `R$ ${appliedCoupon.desconto.toFixed(2)}` : `${appliedCoupon.desconto}%`}) aplicado!
-                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-green-600 font-black uppercase animate-in slide-in-from-left-2">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Cupom {appliedCoupon.codigo} ativo ({appliedCoupon.tipo === 'fixo' ? `R$ ${appliedCoupon.desconto.toFixed(2)}` : `${appliedCoupon.desconto}%`})
+                  </div>
                 )}
               </div>
 
               <div className="space-y-3 pt-4 text-sm">
-                <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-bold">R$ {totalPrice.toFixed(2)}</p></div>
+                <div className="flex justify-between">
+                  <p className="text-muted-foreground">Subtotal</p>
+                  <p className="font-bold">R$ {totalPrice.toFixed(2)}</p>
+                </div>
                 {discountValue > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <p>Total Descontos</p>
-                    <p className="font-bold">- R$ {discountValue.toFixed(2)}</p>
+                  <div className="flex justify-between text-green-600 font-bold">
+                    <p className="flex items-center gap-1"><Zap className="w-3 h-3" /> Descontos Aplicados</p>
+                    <p>- R$ {discountValue.toFixed(2)}</p>
                   </div>
                 )}
-                <div className="flex justify-between"><p className="text-muted-foreground">Taxa de Frete</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
+                <div className="flex justify-between">
+                  <p className="text-muted-foreground">Frete para sua região</p>
+                  <p className="font-bold">R$ {shippingCost.toFixed(2)}</p>
+                </div>
               </div>
               
               <Separator className="h-[2px] bg-primary/5" />
               
               <div className="py-2">
                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Total a Pagar</p>
-                 <p className="text-3xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
+                 <p className="text-4xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
               </div>
 
               <Button 
@@ -409,7 +407,7 @@ E nos informar a forma de pagamento? 💳`;
                 disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
                 className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
               >
-                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} CONFIRMAR PEDIDO
+                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} FINALIZAR COMPRA
               </Button>
             </CardContent>
           </Card>
