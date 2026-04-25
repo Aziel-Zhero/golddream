@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Eye, XCircle } from 'lucide-react';
+import { ShoppingCart, Eye, XCircle, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function ProductCard({ product }: { product: Product }) {
@@ -27,12 +27,19 @@ export function ProductCard({ product }: { product: Product }) {
     <div className={`group relative product-card-hover rounded-xl overflow-hidden bg-white border border-border/50 ${isOutOfStock ? 'opacity-80' : ''}`}>
       <Link href={`/products/${product.id}`} className="block">
         <div className="aspect-[4/5] w-full overflow-hidden bg-muted relative">
-          <img
-            src={product.imagens?.[0] || 'https://placehold.co/400x500?text=Sem+Imagem'}
-            alt={product.nome || 'Produto'}
-            className={`h-full w-full object-cover object-center transition-transform duration-500 ${!isOutOfStock ? 'group-hover:scale-105' : ''}`}
-            loading="lazy"
-          />
+          {product.imagens?.[0] ? (
+            <img
+              src={product.imagens[0]}
+              alt={product.nome || 'Produto'}
+              className={`h-full w-full object-cover object-center transition-all duration-700 ${!isOutOfStock ? 'group-hover:scale-105' : 'grayscale-[0.3]'} animate-in fade-in`}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <ImageIcon className="w-10 h-10 text-muted-foreground opacity-10" />
+            </div>
+          )}
           
           {isOutOfStock ? (
             <Badge className="absolute top-3 left-3 bg-destructive text-destructive-foreground border-none shadow-sm font-black uppercase tracking-widest text-[10px]" variant="destructive">

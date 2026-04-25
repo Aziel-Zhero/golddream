@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
 import { collection, query, where, limit, doc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SiteConfig } from '@/types';
 
 const ICON_MAP: Record<string, any> = {
@@ -18,7 +19,7 @@ export default function Home() {
   const firestore = useFirestore();
 
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
-  const { data: config } = useDoc<SiteConfig>(configRef);
+  const { data: config, isLoading: isLoadingConfig } = useDoc<SiteConfig>(configRef);
 
   const featuredQuery = useMemoFirebase(() => {
     return query(
@@ -28,9 +29,9 @@ export default function Home() {
     );
   }, [firestore]);
 
-  const { data: featuredProducts, isLoading } = useCollection(featuredQuery);
+  const { data: featuredProducts, isLoading: isLoadingProducts } = useCollection(featuredQuery);
 
-  const heroImage = config?.heroImage || 'https://picsum.photos/seed/fashion-hero/1200/600';
+  const heroImage = config?.heroImage;
 
   const benefits = [
     { icon: ICON_MAP[config?.b1_icon || 'Truck'] || Truck, title: config?.b1_title || 'Frete Grátis', sub: config?.b1_sub || 'Em pedidos acima de R$250', active: config?.b1_active !== false },
@@ -65,33 +66,55 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative min-h-[80vh] w-full flex items-center overflow-hidden py-12 md:py-20">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={heroImage} 
-            alt="Moda Moderna" 
-            className="w-full h-full object-cover object-center brightness-[0.7] md:brightness-[0.8] transition-opacity duration-1000"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent md:from-background/60" />
+        <div className="absolute inset-0 z-0 bg-muted">
+          {isLoadingConfig ? (
+             <Skeleton className="w-full h-full" />
+          ) : heroImage ? (
+            <>
+              <img 
+                src={heroImage} 
+                alt="Moda Moderna" 
+                className="w-full h-full object-cover object-center brightness-[0.7] md:brightness-[0.8] transition-opacity duration-1000 animate-in fade-in"
+                loading="eager"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent md:from-background/60" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+               <Package className="w-20 h-20 text-muted-foreground opacity-20" />
+            </div>
+          )}
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl space-y-4 md:space-y-6 animate-in fade-in slide-in-from-left-8 duration-700">
-            <Badge className="bg-primary/20 text-primary border-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
-              {config?.heroBadge || 'Nova Coleção 2024'}
-            </Badge>
-            <h1 className="text-4xl md:text-7xl font-headline font-bold leading-tight">
-              {config?.heroTitle || 'Crie seu Estilo Único'}
-            </h1>
-            <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed text-balance">
-              {config?.heroDescription || 'Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas.'}
-            </p>
-            <div className="flex flex-wrap gap-4 pt-4">
-              <Button size="lg" asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 text-sm md:text-base shadow-2xl shadow-primary/30 hover:scale-105 transition-transform w-full sm:w-auto">
-                <Link href="/category/all">
-                  Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </Button>
-            </div>
+            {isLoadingConfig ? (
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-32 rounded-full" />
+                <Skeleton className="h-16 w-full max-w-lg" />
+                <Skeleton className="h-24 w-full max-w-md" />
+                <Skeleton className="h-14 w-40 rounded-full" />
+              </div>
+            ) : (
+              <>
+                <Badge className="bg-primary/20 text-primary border-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                  {config?.heroBadge || 'Nova Coleção 2024'}
+                </Badge>
+                <h1 className="text-4xl md:text-7xl font-headline font-bold leading-tight">
+                  {config?.heroTitle || 'Crie seu Estilo Único'}
+                </h1>
+                <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed text-balance">
+                  {config?.heroDescription || 'Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas.'}
+                </p>
+                <div className="flex flex-wrap gap-4 pt-4">
+                  <Button size="lg" asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 text-sm md:text-base shadow-2xl shadow-primary/30 hover:scale-105 transition-transform w-full sm:w-auto">
+                    <Link href="/category/all">
+                      Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -158,9 +181,15 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {isLoading ? (
+            {isLoadingProducts ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-2xl" />
+                <div key={i} className="space-y-4">
+                  <Skeleton className="aspect-[4/5] w-full rounded-2xl" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                </div>
               ))
             ) : (featuredProducts && featuredProducts.length > 0) ? (
               featuredProducts.map((product) => (
