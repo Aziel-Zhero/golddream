@@ -45,7 +45,8 @@ import {
   Phone,
   Layout,
   Layers,
-  X
+  X,
+  Play
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false });
   const [isUploading, setIsUploading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (config) setSiteSettings(config);
@@ -123,7 +125,7 @@ export default function AdminDashboard() {
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
-    const userId = u.uid || (u as any).id;
+    const userId = u.id || (u as any).uid;
     setIsSendingEmail(userId);
     try {
       await sendCustomEmail({
@@ -152,13 +154,11 @@ export default function AdminDashboard() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        // Ajusta compressão baseado no tipo de imagem
         let size = 1200;
         if (field === 'faviconUrl' || field === 'whatsappIconUrl') size = 256;
         
         const compressed = await compressImage(base64, size, size);
         
-        // Atualiza banco imediatamente para garantir persistência e evitar lixo
         if (configRef) {
           await setDoc(configRef, { [field]: compressed }, { merge: true });
         }
@@ -175,14 +175,10 @@ export default function AdminDashboard() {
     if (!configRef) return;
     
     if (confirm('Deseja remover esta imagem permanentemente?')) {
-      // Remove do banco de dados imediatamente para não acumular lixo Base64
       await setDoc(configRef, { [field]: deleteField() }, { merge: true });
-
-      // Remove do estado local
       const newSettings = { ...siteSettings };
       delete newSettings[field];
       setSiteSettings(newSettings);
-      
       toast({ title: "Imagem removida permanentemente!" });
     }
   };
@@ -190,7 +186,41 @@ export default function AdminDashboard() {
   const handleSaveTgSettings = () => {
     if (!tgRef) return;
     setDoc(tgRef, tgSettings, { merge: true });
-    toast({ title: "Configurações de Notificação Salvas!" });
+    toast({ title: "Configurações de Notificação Salvas no Banco!" });
+  };
+
+  const handleTestTelegram = async () => {
+    if (!tgSettings.botToken || !tgSettings.chatId) {
+      toast({ 
+        variant: "destructive", 
+        title: "Configuração Incompleta", 
+        description: "Informe o Token e o Chat ID antes de testar." 
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      const message = "🔔 *TESTE DE CONFIGURAÇÃO - GOLD DREAM*\n\nSua integração com o Telegram está funcionando corretamente! 🚀\n\n_Se você recebeu esta mensagem, as vendas serão notificadas aqui._";
+      const url = `https://api.telegram.org/bot${tgSettings.botToken}/sendMessage?chat_id=${tgSettings.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.ok) {
+        toast({ title: "Teste Enviado!", description: "Verifique seu Telegram para confirmar o recebimento." });
+      } else {
+        throw new Error(data.description || "Erro na API do Telegram");
+      }
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Falha no Teste", 
+        description: e.message || "Verifique o Token e o Chat ID." 
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const handleAddFrete = () => {
@@ -397,7 +427,6 @@ export default function AdminDashboard() {
                 <h2 className="text-2xl font-bold">Identidade Visual</h2>
               </div>
               <div className="space-y-6">
-                {/* Upload de Logo */}
                 <div className="space-y-2">
                    <Label className="flex justify-between">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
                    <div className="flex gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10 relative">
@@ -425,7 +454,6 @@ export default function AdminDashboard() {
                    </div>
                 </div>
 
-                {/* Favicon e WhatsApp Icon */}
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
                      <Label className="flex justify-between">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
@@ -714,7 +742,23 @@ export default function AdminDashboard() {
                         className="min-h-[220px] font-mono text-xs"
                       />
                    </div>
-                   <Button onClick={handleSaveTgSettings} className="w-full h-14 rounded-2xl">Salvar Automações</Button>
+                   <div className="grid grid-cols-2 gap-4">
+                      <Button onClick={handleSaveTgSettings} className="w-full h-14 rounded-2xl">
+                         <Save className="w-4 h-4 mr-2" /> Salvar Configurações
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        disabled={isTesting}
+                        onClick={handleTestTelegram} 
+                        className="w-full h-14 rounded-2xl border-2 border-primary/20"
+                      >
+                         {isTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                         Testar Notificação
+                      </Button>
+                   </div>
+                   <p className="text-[10px] text-muted-foreground text-center">
+                     Dica: Clique em "Testar Notificação" para enviar uma mensagem agora e verificar se o Bot está funcionando.
+                   </p>
                 </div>
              </div>
           </Card>
