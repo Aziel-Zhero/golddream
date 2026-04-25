@@ -6,8 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Redimensiona e comprime uma imagem Base64 para garantir que caiba no limite do Firestore (1MB)
- * e melhore a performance de carregamento.
+ * Redimensiona e comprime uma imagem Base64.
+ * Mudança crítica: Agora utiliza o formato image/webp para preservar a transparência (Alpha Channel),
+ * evitando o fundo preto que ocorria com o image/jpeg.
  */
 export async function compressImage(base64Str: string, maxWidth = 1200, maxHeight = 1200): Promise<string> {
   return new Promise((resolve) => {
@@ -38,9 +39,13 @@ export async function compressImage(base64Str: string, maxWidth = 1200, maxHeigh
         return;
       }
 
+      // Limpa o canvas para garantir que a transparência seja preservada
+      ctx.clearRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
-      // Converte para JPEG com 70% de qualidade para reduzir drasticamente o tamanho
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
+      
+      // Utilizamos image/webp com qualidade 0.8. 
+      // O WebP é suportado por todos os navegadores modernos e mantém a transparência do PNG original.
+      resolve(canvas.toDataURL('image/webp', 0.8));
     };
     img.onerror = () => resolve(base64Str);
   });

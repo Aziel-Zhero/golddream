@@ -15,13 +15,15 @@ import {
   Loader2,
   Palette,
   Ruler,
-  Star
+  Star,
+  Upload
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase';
+import { compressImage } from '@/lib/utils';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function EditProductPage() {
   const { data: product, isLoading: isFetching } = useDoc(productRef);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<any>({
     nome: '',
     descricao: '',
@@ -65,6 +68,22 @@ export default function EditProductPage() {
       });
     }
   }, [product]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && formData.imagens.length < 5) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const compressed = await compressImage(base64);
+        setFormData({ ...formData, imagens: [...formData.imagens, compressed] });
+        setIsUploading(false);
+        toast({ title: "Imagem adicionada e otimizada!" });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddImage = () => {
     if (imageUrl && formData.imagens.length < 5) {
@@ -256,15 +275,26 @@ export default function EditProductPage() {
               <CardDescription>Gerencie as fotos exibidas no catálogo (máx. 5).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex gap-2">
-                <Input 
-                  value={imageUrl} 
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://exemplo.com/imagem.jpg" 
-                />
-                <Button type="button" onClick={handleAddImage} variant="secondary">
-                  <Plus className="w-4 h-4" />
-                </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input 
+                    value={imageUrl} 
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://exemplo.com/imagem.jpg" 
+                  />
+                  <Button type="button" onClick={handleAddImage} variant="secondary">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="relative">
+                   <Input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-up" />
+                   <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
+                     <label htmlFor="file-up">
+                       {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                       Trocar/Adicionar do Dispositivo
+                     </label>
+                   </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
@@ -321,7 +351,7 @@ export default function EditProductPage() {
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={isLoading} className="w-full h-16 rounded-2xl shadow-xl shadow-primary/20 text-lg font-bold">
+          <Button type="submit" disabled={isLoading || isUploading} className="w-full h-16 rounded-2xl shadow-xl shadow-primary/20 text-lg font-bold">
             {isLoading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
             Salvar Alterações
           </Button>
