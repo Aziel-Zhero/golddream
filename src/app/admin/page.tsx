@@ -65,7 +65,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
 import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
