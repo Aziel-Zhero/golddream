@@ -5,7 +5,7 @@ import React, { use } from 'react';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, where, limit } from 'firebase/firestore';
 import { ProductClient } from './ProductClient';
-import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -31,9 +31,23 @@ export default function ProductPage({ params }: Props) {
 
   if (isProductLoading) {
     return (
-      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando detalhes do produto...</p>
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <Skeleton className="aspect-[4/5] w-full rounded-3xl" />
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-12 w-full max-w-md rounded-xl" />
+              <Skeleton className="h-10 w-32 rounded-xl" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-1 bg-muted w-full" />
+              <Skeleton className="h-20 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-2xl" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

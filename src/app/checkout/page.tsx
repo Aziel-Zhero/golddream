@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck, Percent, DollarSign } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck, Info, CreditCard, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -16,6 +16,7 @@ import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
 import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -106,25 +107,14 @@ export default function CheckoutPage() {
 
   const calculateFinalDiscount = () => {
     let totalDiscount = 0;
-
-    // 1. Desconto da promoção automática
     if (activePromo) {
-      if (activePromo.tipo === 'fixo') {
-        totalDiscount += activePromo.valorDesconto;
-      } else {
-        totalDiscount += totalPrice * (activePromo.valorDesconto / 100);
-      }
+      if (activePromo.tipo === 'fixo') totalDiscount += activePromo.valorDesconto;
+      else totalDiscount += totalPrice * (activePromo.valorDesconto / 100);
     }
-    
-    // 2. Desconto do cupom
     if (appliedCoupon) {
-      if (appliedCoupon.tipo === 'fixo') {
-        totalDiscount += appliedCoupon.desconto;
-      } else {
-        totalDiscount += totalPrice * (appliedCoupon.desconto / 100);
-      }
+      if (appliedCoupon.tipo === 'fixo') totalDiscount += appliedCoupon.desconto;
+      else totalDiscount += totalPrice * (appliedCoupon.desconto / 100);
     }
-
     return Math.min(totalPrice, totalDiscount);
   };
 
@@ -133,43 +123,25 @@ export default function CheckoutPage() {
 
   const generateOrderId = () => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    let prefix = 'PED';
-    if (activePromo) {
-      prefix = activePromo.isBlackFriday ? 'BKF' : 'CAMP';
-    }
-    return `${prefix}-${year}${month}-${random}`;
+    return `PED-${now.getFullYear()}${(now.getMonth() + 1)}-${random}`;
   };
 
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
-      itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
+      itemsText += `${index + 1}️⃣ *${i.nome}*\nQtd: ${i.quantidade} | ${i.tamanho} | ${i.cor}\n\n`;
     });
 
-    const template = (tgConfig?.messageTemplate || `🛍️ *NOVO PEDIDO - GOLD DREAM*
+    return `🛍️ *NOVO PEDIDO - GOLD DREAM*
 
-🧾 *Código:* #{{codigo}}
+🧾 *Código:* #${order.codigo}
 
-📦 *Itens:*
-{{itens}}
+👤 *Cliente:* ${order.clienteNome}
+📍 *Endereço:* ${order.clienteEndereco}
 
-👤 *Cliente:* {{clienteNome}}
-📍 *Endereço:* {{clienteEndereco}}
-
-💰 *TOTAL: R$ {{total}}*`)
-      .replace('{{codigo}}', order.codigo)
-      .replace('{{itens}}', itemsText.trim())
-      .replace('{{clienteNome}}', order.clienteNome)
-      .replace('{{clienteEndereco}}', order.clienteEndereco)
-      .replace('{{telefone}}', order.clienteTelefone)
-      .replace('{{cupom}}', order.cupomText || 'Nenhum')
-      .replace('{{total}}', order.total.toFixed(2));
-
-    return template;
+💰 *TOTAL: R$ ${order.total.toFixed(2)}*
+(Pagamento a combinar via WhatsApp)`;
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -179,11 +151,6 @@ export default function CheckoutPage() {
     setLastPhoneUsed(user.telefone || '');
     
     const orderId = generateOrderId();
-    
-    const couponUsedText = appliedCoupon 
-      ? `Cupom: ${appliedCoupon.codigo}` 
-      : (activePromo ? `Promo: ${activePromo.nome}` : "Nenhum");
-
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
@@ -202,8 +169,7 @@ export default function CheckoutPage() {
       desconto: discountValue,
       total: finalTotal,
       status: 'pendente' as const,
-      dataCriacao: new Date().toISOString(),
-      cupomText: couponUsedText
+      dataCriacao: new Date().toISOString()
     };
 
     try {
@@ -211,24 +177,12 @@ export default function CheckoutPage() {
       
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatTelegramMessage(pedidoData);
-        
-        const cleanPhone = pedidoData.clienteTelefone.replace(/\D/g, '');
-        const phoneForLink = cleanPhone.length >= 10 ? (cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`) : cleanPhone;
-
-        const waMessage = `Olá *${pedidoData.clienteNome}* 👋\n\nAqui é da *Gold Dream - Multimarcas*.\n\nSeu pedido já está sendo preparado 🛍️\n\nPoderia confirmar se este endereço está correto?\n\n📍 ${pedidoData.clienteEndereco}\n\nE nos informar a forma de pagamento? 💳`;
-
-        const waUrl = `https://wa.me/${phoneForLink}?text=${encodeURIComponent(waMessage)}`;
         const confirmUrl = `${window.location.origin}/admin/orders/${orderId}/confirm`;
-
         const replyMarkup = JSON.stringify({
-          inline_keyboard: [
-            [{ text: "✅ Pegar Pedido", url: confirmUrl }],
-            [{ text: "🚀 Chamar no WhatsApp", url: waUrl }]
-          ]
+          inline_keyboard: [[{ text: "✅ Pegar Pedido", url: confirmUrl }]]
         });
 
         const url = `https://api.telegram.org/bot${tgConfig.botToken}/sendMessage?chat_id=${tgConfig.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown&reply_markup=${encodeURIComponent(replyMarkup)}`;
-        
         fetch(url).catch(err => console.error("Telegram API Error:", err));
       }
       
@@ -239,7 +193,6 @@ export default function CheckoutPage() {
       }, 500);
       
     } catch (error) {
-      console.error(error);
       toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique sua conexão." });
       setIsProcessing(false);
     }
@@ -254,15 +207,12 @@ export default function CheckoutPage() {
         <div className="space-y-4">
           <h1 className="text-5xl font-headline font-bold">Pedido Recebido!</h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto font-medium">
-            Aguarde, vamos entrar em contato no seu whatsapp no telefone <span className="text-primary font-bold">{lastPhoneUsed}</span>.
+            Aguarde, vamos entrar em contato via WhatsApp no número <span className="text-primary font-bold">{lastPhoneUsed}</span> para confirmar o pagamento e entrega.
           </p>
         </div>
         <div className="flex flex-col gap-4 max-w-xs mx-auto pt-8">
           <Button asChild className="h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20">
-            <Link href="/account/orders">Acompanhar Meus Pedidos <ArrowRight className="ml-2 w-4 h-4" /></Link>
-          </Button>
-          <Button asChild variant="ghost" className="h-12 font-bold">
-            <Link href="/">Voltar para a Loja</Link>
+            <Link href="/account/orders">Meus Pedidos <ArrowRight className="ml-2 w-4 h-4" /></Link>
           </Button>
         </div>
       </div>
@@ -298,44 +248,63 @@ export default function CheckoutPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-12">
-          {activePromo && (
-            <div className={`p-6 rounded-3xl border-2 flex items-center justify-between gap-4 ${activePromo.isBlackFriday ? 'bg-black border-yellow-500 text-white shadow-xl shadow-yellow-500/10' : 'bg-primary/5 border-primary/20'}`}>
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${activePromo.isBlackFriday ? 'bg-yellow-500 text-black' : 'bg-primary text-white'}`}>
-                  <Zap className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
-                  <p className="text-sm opacity-80">
-                    Desconto de {activePromo.tipo === 'fixo' ? `R$ ${activePromo.valorDesconto.toFixed(2)}` : `${activePromo.valorDesconto}%`} aplicado.
-                  </p>
-                </div>
+          
+          {/* Card de Como Funciona */}
+          <section className="bg-muted/30 border-2 border-primary/10 rounded-3xl p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary text-white p-2 rounded-lg">
+                <Info className="w-5 h-5" />
               </div>
-              <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
+              <h2 className="text-xl font-headline font-bold uppercase tracking-tight">Como funciona seu pedido?</h2>
             </div>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <p className="font-black text-primary text-2xl">01</p>
+                <p className="text-sm font-bold">Faça o Pedido</p>
+                <p className="text-xs text-muted-foreground">Clique em finalizar e reserve seus itens no sistema.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-black text-primary text-2xl">02</p>
+                <p className="text-sm font-bold">Contato WhatsApp</p>
+                <p className="text-xs text-muted-foreground">Nossa equipe chama você para confirmar os dados.</p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-black text-primary text-2xl">03</p>
+                <p className="text-sm font-bold">Pagamento</p>
+                <p className="text-xs text-muted-foreground">Enviamos a chave Pix ou Link de Pagamento.</p>
+              </div>
+            </div>
+            <div className="bg-white/50 p-4 rounded-2xl border border-yellow-200 flex gap-4 items-start">
+               <div className="bg-yellow-100 p-2 rounded-full mt-1">
+                 <CreditCard className="w-4 h-4 text-yellow-700" />
+               </div>
+               <div>
+                 <p className="text-xs font-bold text-yellow-800 uppercase tracking-tighter">Observação Importante:</p>
+                 <p className="text-xs text-yellow-700">Pagamentos realizados via **Cartão de Crédito** possuem o acréscimo de juros da maquininha. Consulte o valor final no WhatsApp.</p>
+               </div>
+            </div>
+          </section>
 
           <section className="space-y-6">
-            <h2 className="text-2xl font-headline font-bold">Resumo de Entrega</h2>
+            <h2 className="text-2xl font-headline font-bold">Dados de Entrega</h2>
             <div className="p-8 bg-card rounded-3xl border-2 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 right-0 p-4">
-                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold"><Link href="/auth/complete-profile">Editar Endereço</Link></Button>
+                 <Button asChild variant="ghost" size="sm" className="text-primary font-bold"><Link href="/auth/complete-profile">Alterar</Link></Button>
                </div>
               <div className="flex flex-col gap-1 mb-6">
-                <p className="font-black text-2xl text-primary">{user.nome || 'Nome incompleto'}</p>
-                <p className="text-muted-foreground font-mono text-sm">{user.telefone || 'Telefone incompleto'}</p>
+                <p className="font-black text-2xl text-primary">{user.nome}</p>
+                <p className="text-muted-foreground font-mono text-sm">{user.telefone}</p>
               </div>
               <Separator />
-              <div className="mt-6 space-y-1 text-base">
+              <div className="mt-6 space-y-1">
                 {user.endereco?.cidade ? (
                   <>
                     <p className="font-bold">{user.endereco.rua}, {user.endereco.numero}</p>
                     <p className="text-muted-foreground">{user.endereco.bairro} — {user.endereco.cidade}</p>
-                    <p className="text-xs font-mono uppercase tracking-widest bg-muted w-fit px-2 py-1 rounded mt-2">CEP: {user.endereco.cep}</p>
                   </>
                 ) : (
                   <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 font-bold">
-                    Atenção: Seu endereço está incompleto! Clique em editar para atualizar.
+                    Endereço incompleto! Atualize seus dados.
                   </div>
                 )}
               </div>
@@ -345,14 +314,14 @@ export default function CheckoutPage() {
 
         <div className="space-y-8">
           <Card className="border-2 shadow-xl rounded-3xl overflow-hidden border-primary/5">
-            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Itens e Valores</CardTitle></CardHeader>
+            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Resumo do Pedido</CardTitle></CardHeader>
             <CardContent className="space-y-6 pt-8">
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
                   <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <p className="font-bold text-sm truncate">{item.product.nome}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">{item.selectedSize} | {item.selectedColor} (x{item.quantity})</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black">{item.selectedSize} | {item.selectedColor} (x{item.quantity})</p>
                     </div>
                     <p className="font-black text-sm">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
                   </div>
@@ -360,22 +329,16 @@ export default function CheckoutPage() {
               </div>
               
               <div className="pt-6 border-t space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tem um cupom?</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cupom</Label>
                 <div className="flex gap-2">
                   <Input 
-                    placeholder="DIGITE O CÓDIGO" 
+                    placeholder="CÓDIGO" 
                     value={couponCode} 
                     onChange={e => setCouponCode(e.target.value.toUpperCase())} 
                     className="h-12 rounded-xl font-black uppercase" 
                   />
-                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">APLICAR</Button>
+                  <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 rounded-xl font-bold">APLICAR</Button>
                 </div>
-                {appliedCoupon && (
-                  <div className="flex items-center gap-2 text-[10px] text-green-600 font-black uppercase animate-in slide-in-from-left-2">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Cupom {appliedCoupon.codigo} ativo ({appliedCoupon.tipo === 'fixo' ? `R$ ${appliedCoupon.desconto.toFixed(2)}` : `${appliedCoupon.desconto}%`})
-                  </div>
-                )}
               </div>
 
               <div className="space-y-3 pt-4 text-sm">
@@ -385,20 +348,20 @@ export default function CheckoutPage() {
                 </div>
                 {discountValue > 0 && (
                   <div className="flex justify-between text-green-600 font-bold">
-                    <p className="flex items-center gap-1"><Zap className="w-3 h-3" /> Descontos Aplicados</p>
+                    <p>Descontos</p>
                     <p>- R$ {discountValue.toFixed(2)}</p>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <p className="text-muted-foreground">Frete para sua região</p>
+                  <p className="text-muted-foreground">Frete</p>
                   <p className="font-bold">R$ {shippingCost.toFixed(2)}</p>
                 </div>
               </div>
               
-              <Separator className="h-[2px] bg-primary/5" />
+              <Separator />
               
               <div className="py-2">
-                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Total a Pagar</p>
+                 <p className="text-[10px] font-black text-muted-foreground uppercase">Total Estimado</p>
                  <p className="text-4xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
               </div>
 
@@ -407,8 +370,11 @@ export default function CheckoutPage() {
                 disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
                 className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
               >
-                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} FINALIZAR COMPRA
+                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} ENVIAR PEDIDO
               </Button>
+              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold px-4">
+                Ao finalizar, você reserva os itens e aguarda nosso contato para o pagamento.
+              </p>
             </CardContent>
           </Card>
         </div>
