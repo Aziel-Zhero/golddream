@@ -157,7 +157,13 @@ export default function AdminDashboard() {
         if (field === 'faviconUrl' || field === 'whatsappIconUrl') size = 256;
         
         const compressed = await compressImage(base64, size, size);
-        setSiteSettings({ ...siteSettings, [field]: compressed });
+        
+        // Atualiza banco imediatamente para garantir persistência e evitar lixo
+        if (configRef) {
+          await setDoc(configRef, { [field]: compressed }, { merge: true });
+        }
+        
+        setSiteSettings(prev => ({ ...prev, [field]: compressed }));
         setIsUploading(false);
         toast({ title: "Imagem carregada e otimizada!" });
       };
@@ -165,18 +171,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRemoveImage = (field: keyof SiteConfig) => {
+  const handleRemoveImage = async (field: keyof SiteConfig) => {
     if (!configRef) return;
     
-    // Remove do estado local
-    const newSettings = { ...siteSettings };
-    delete newSettings[field];
-    setSiteSettings(newSettings);
+    if (confirm('Deseja remover esta imagem permanentemente?')) {
+      // Remove do banco de dados imediatamente para não acumular lixo Base64
+      await setDoc(configRef, { [field]: deleteField() }, { merge: true });
 
-    // Remove do banco de dados imediatamente para não acumular lixo Base64
-    setDoc(configRef, { [field]: deleteField() }, { merge: true });
-    
-    toast({ title: "Imagem removida permanentemente!" });
+      // Remove do estado local
+      const newSettings = { ...siteSettings };
+      delete newSettings[field];
+      setSiteSettings(newSettings);
+      
+      toast({ title: "Imagem removida permanentemente!" });
+    }
   };
 
   const handleSaveTgSettings = () => {
@@ -403,11 +411,16 @@ export default function AdminDashboard() {
                          </>
                        ) : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
-                     <div className="flex-1">
+                     <div className="flex-1 space-y-2">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
                        <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
                          <label htmlFor="logo-up">Trocar Logo</label>
                        </Button>
+                       {siteSettings.logoUrl && (
+                         <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold h-8 rounded-xl">
+                            <Trash2 size={14} className="mr-2" /> Excluir Logo
+                         </Button>
+                       )}
                      </div>
                    </div>
                 </div>
