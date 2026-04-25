@@ -133,8 +133,8 @@ export default function AdminDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   
-  // AlertDialog state
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; col: string; id: string } | null>(null);
+  // AlertDialog state refatorado para evitar travamento da UI
+  const [itemToDelete, setItemToDelete] = useState<{ col: string; id: string } | null>(null);
 
   useEffect(() => {
     if (config) setSiteSettings(config);
@@ -153,18 +153,15 @@ export default function AdminDashboard() {
       const orderDate = new Date(order.dataCriacao);
       const isThisMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
       
-      // Contabiliza total do mês (apenas pedidos não cancelados)
       if (isThisMonth && order.status !== 'cancelado') {
         acc.totalMes += order.total || 0;
       }
 
-      // Contadores por status
       if (order.status === 'entregue') {
         acc.entregues += 1;
       } else if (order.status === 'cancelado') {
         acc.cancelados += 1;
       } else {
-        // pendente, confirmado, em_separacao
         acc.pendentes += 1;
       }
 
@@ -285,10 +282,10 @@ export default function AdminDashboard() {
   };
 
   const confirmDeleteItem = () => {
-    if (deleteConfirm) {
-      deleteDocumentNonBlocking(doc(firestore, deleteConfirm.col, deleteConfirm.id));
+    if (itemToDelete) {
+      deleteDocumentNonBlocking(doc(firestore, itemToDelete.col, itemToDelete.id));
       toast({ title: "Registro excluído permanentemente" });
-      setDeleteConfirm(null);
+      setItemToDelete(null);
     }
   };
 
@@ -350,7 +347,6 @@ export default function AdminDashboard() {
         </div>
 
         <TabsContent value="orders" className="space-y-8">
-          {/* Dashboard Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-primary/5 border-primary/10">
               <CardContent className="p-6">
@@ -378,7 +374,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-2 bg-yellow-100 rounded-xl"><Clock className="w-5 h-5 text-yellow-600" /></div>
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
+                <p className="text-[10px) font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
                 <p className="text-2xl font-black text-yellow-700">{stats.pendentes}</p>
               </CardContent>
             </Card>
@@ -427,12 +423,12 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="rounded-xl">Gerenciar</Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl border-2">
+                          <DropdownMenuContent align="end" className="rounded-xl border-2 shadow-xl">
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmar</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
                             <Separator className="my-1" />
-                            <DropdownMenuItem onClick={() => setDeleteConfirm({ open: true, col: 'pedidos', id: order.id })} className="text-destructive font-bold">
+                            <DropdownMenuItem onClick={() => setItemToDelete({ col: 'pedidos', id: order.id })} className="text-destructive font-bold">
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -586,7 +582,7 @@ export default function AdminDashboard() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline" className="rounded-xl"><Link href={`/admin/products/${prod.id}`}>Editar</Link></Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'produtos', id: prod.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => setItemToDelete({ col: 'produtos', id: prod.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -623,7 +619,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-bold">{f.isGlobal ? "GLOBAL" : f.cidade}</TableCell>
                       <TableCell>R$ {f.valor.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'fretes', id: f.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'fretes', id: f.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -658,7 +654,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-black text-primary">{c.codigo}</TableCell>
                       <TableCell className="font-bold">{c.tipo === 'fixo' ? `R$ ${c.desconto}` : `${c.desconto}%`}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'cupons', id: c.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'cupons', id: c.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -698,7 +694,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-black text-primary">-{p.valorDesconto}%</TableCell>
                       <TableCell><Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'promocoes', id: p.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'promocoes', id: p.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -735,18 +731,29 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* AlertDialog para Substituir o confirm() antigo */}
-      <AlertDialog open={deleteConfirm?.open} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <AlertDialogContent className="rounded-3xl border-2">
+      {/* AlertDialog Reajustado para garantir limpeza de estado no fechamento */}
+      <AlertDialog 
+        open={!!itemToDelete} 
+        onOpenChange={(open) => {
+          if (!open) setItemToDelete(null);
+        }}
+      >
+        <AlertDialogContent className="rounded-3xl border-2 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-headline font-bold">Confirmar Exclusão?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O registro será removido permanentemente do seu banco de dados e deixará de ser contabilizado nos totais.
+              Esta ação removerá o registro permanentemente do banco de dados e ele deixará de ser contabilizado nos totais do dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="rounded-xl border-2">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteItem} className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold">
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault(); // Evita fechamento automático antes da lógica
+                confirmDeleteItem();
+              }} 
+              className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold"
+            >
               Sim, Excluir Registro
             </AlertDialogAction>
           </AlertDialogFooter>
