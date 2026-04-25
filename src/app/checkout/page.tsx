@@ -141,7 +141,9 @@ export default function CheckoutPage() {
 📍 *Endereço:* ${order.clienteEndereco}
 
 💰 *TOTAL: R$ ${order.total.toFixed(2)}*
-(Pagamento a combinar via WhatsApp)`;
+
+❓ *PERGUNTE AO CLIENTE:*
+"Qual forma de pagamento? Pix, dinheiro ou crédito? (No crédito tem taxa da máquina, quer consultar o valor?)"`;
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -280,7 +282,7 @@ export default function CheckoutPage() {
                </div>
                <div>
                  <p className="text-xs font-bold text-yellow-800 uppercase tracking-tighter">Observação Importante:</p>
-                 <p className="text-xs text-yellow-700">Pagamentos realizados via **Cartão de Crédito** possuem o acréscimo de juros da maquininha. Consulte o valor final no WhatsApp.</p>
+                 <p className="text-xs text-yellow-700 font-medium italic">"Qual forma de pagamento? Pix, dinheiro ou crédito? (No crédito tem taxa da máquina, quer consultar o valor?)"</p>
                </div>
             </div>
           </section>
@@ -365,13 +367,25 @@ export default function CheckoutPage() {
                  <p className="text-4xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
               </div>
 
-              <Button 
-                onClick={handlePlaceOrder} 
-                disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
-                className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
-              >
-                {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} ENVIAR PEDIDO
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={handlePlaceOrder} 
+                  disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
+                  className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
+                >
+                  {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} ENVIAR PEDIDO
+                </Button>
+                
+                <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-center space-y-1">
+                   <p className="text-[11px] font-black text-yellow-800 uppercase leading-tight">
+                     Nossa equipe perguntará: Qual forma de pagamento? Pix, dinheiro ou crédito?
+                   </p>
+                   <p className="text-[9px] text-yellow-700 font-medium leading-tight">
+                     (Lembrando que no crédito há taxa da máquina. Você poderá consultar o valor da taxa no WhatsApp).
+                   </p>
+                </div>
+              </div>
+              
               <p className="text-[10px] text-center text-muted-foreground uppercase font-bold px-4">
                 Ao finalizar, você reserva os itens e aguarda nosso contato para o pagamento.
               </p>
