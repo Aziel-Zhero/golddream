@@ -479,7 +479,7 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="home">
+        <TabsContent value="home" className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
               <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Visual</h2>
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações</h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações Hero</h2>
               <div className="space-y-4">
                 <div className="space-y-2">
                    <Label>WhatsApp Contato</Label>
@@ -553,6 +553,81 @@ export default function AdminDashboard() {
                 </div>
                 <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações</Button>
               </div>
+            </Card>
+
+            <Card className="lg:col-span-2 border-2 rounded-3xl p-6 md:p-8 space-y-8">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Layout className="w-6 h-6 text-primary" /> Conteúdo da Página Inicial</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Benefícios */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold border-b pb-2">Barra de Benefícios (4 Blocos)</h3>
+                  {[1, 2, 3, 4].map((num) => (
+                    <div key={`b${num}`} className="p-4 border rounded-2xl bg-muted/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-black text-xs uppercase tracking-widest">Bloco {num}</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold">Ativo?</span>
+                          <Switch 
+                            checked={siteSettings[`b${num}_active` as keyof SiteConfig] !== false} 
+                            onCheckedChange={(val) => setSiteSettings({...siteSettings, [`b${num}_active` as keyof SiteConfig]: val})}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Título</Label>
+                          <Input 
+                            value={(siteSettings[`b${num}_title` as keyof SiteConfig] as string) || ''} 
+                            onChange={e => setSiteSettings({...siteSettings, [`b${num}_title` as keyof SiteConfig]: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Ícone (Lucide Name)</Label>
+                          <Input 
+                            value={(siteSettings[`b${num}_icon` as keyof SiteConfig] as string) || ''} 
+                            onChange={e => setSiteSettings({...siteSettings, [`b${num}_icon` as keyof SiteConfig]: e.target.value})}
+                            placeholder="Ex: Truck, ShieldCheck"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Subtítulo / Descrição Curta</Label>
+                        <Input 
+                          value={(siteSettings[`b${num}_sub` as keyof SiteConfig] as string) || ''} 
+                          onChange={e => setSiteSettings({...siteSettings, [`b${num}_sub` as keyof SiteConfig]: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Guia de Compra */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold border-b pb-2">Guia de Compra (Passo a Passo)</h3>
+                  {[1, 2, 3, 4].map((num) => (
+                    <div key={`step${num}`} className="p-4 border rounded-2xl bg-muted/5 space-y-3">
+                      <Label className="font-black text-xs uppercase tracking-widest text-primary">Passo {num}</Label>
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Título do Passo</Label>
+                        <Input 
+                          value={(siteSettings[`step${num}_title` as keyof SiteConfig] as string) || ''} 
+                          onChange={e => setSiteSettings({...siteSettings, [`step${num}_title` as keyof SiteConfig]: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Descrição</Label>
+                        <Textarea 
+                          value={(siteSettings[`step${num}_desc` as keyof SiteConfig] as string) || ''} 
+                          onChange={e => setSiteSettings({...siteSettings, [`step${num}_desc` as keyof SiteConfig]: e.target.value})}
+                          className="min-h-[60px] text-xs"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Todo o Conteúdo</Button>
             </Card>
           </div>
         </TabsContent>
@@ -782,3 +857,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
