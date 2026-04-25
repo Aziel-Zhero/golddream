@@ -110,6 +110,7 @@ export type Promocao = {
   dataInicio: string;
   dataFim: string;
   valorDesconto: number;
+  tipo: 'porcentagem' | 'fixo';
   ativo: boolean;
   isBlackFriday: boolean;
   dataCriacao: string;

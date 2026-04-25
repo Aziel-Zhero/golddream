@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Tag, 
   Plus, 
@@ -14,13 +14,15 @@ import {
   Zap,
   Edit2,
   Save,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Link from 'next/link';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, orderBy, doc, setDoc } from 'firebase/firestore';
@@ -40,11 +42,12 @@ export default function AdminPromotions() {
 
   const { data: promotions, isLoading } = useCollection<Promocao>(promosQuery);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Promocao>>({
     nome: '',
     dataInicio: '',
     dataFim: '',
     valorDesconto: 0,
+    tipo: 'porcentagem',
     ativo: true,
     isBlackFriday: false
   });
@@ -75,6 +78,7 @@ export default function AdminPromotions() {
       dataInicio: '',
       dataFim: '',
       valorDesconto: 0,
+      tipo: 'porcentagem',
       ativo: true,
       isBlackFriday: false
     });
@@ -86,6 +90,7 @@ export default function AdminPromotions() {
       dataInicio: promo.dataInicio,
       dataFim: promo.dataFim,
       valorDesconto: promo.valorDesconto,
+      tipo: promo.tipo || 'porcentagem',
       ativo: promo.ativo,
       isBlackFriday: promo.isBlackFriday
     });
@@ -145,25 +150,61 @@ export default function AdminPromotions() {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label>Início da Campanha</Label>
-                    <Input type="datetime-local" value={formData.dataInicio} onChange={e => setFormData({...formData, dataInicio: e.target.value})} required />
+                    <Input 
+                      type="datetime-local" 
+                      value={formData.dataInicio} 
+                      onChange={e => setFormData({...formData, dataInicio: e.target.value})} 
+                      className="cursor-pointer"
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Fim da Campanha</Label>
-                    <Input type="datetime-local" value={formData.dataFim} onChange={e => setFormData({...formData, dataFim: e.target.value})} required />
+                    <Input 
+                      type="datetime-local" 
+                      value={formData.dataFim} 
+                      onChange={e => setFormData({...formData, dataFim: e.target.value})} 
+                      className="cursor-pointer"
+                      required 
+                    />
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Desconto (%) - Aplicado automaticamente</Label>
+                  <Label>Tipo de Desconto</Label>
+                  <RadioGroup 
+                    value={formData.tipo} 
+                    onValueChange={(val: any) => setFormData({...formData, tipo: val})} 
+                    className="flex gap-4 pt-1"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="porcentagem" id="promo-perc" />
+                      <Label htmlFor="promo-perc" className="cursor-pointer">Porcentagem (%)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fixo" id="promo-fix" />
+                      <Label htmlFor="promo-fix" className="cursor-pointer">Valor Fixo (R$)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Valor do Desconto</Label>
                   <div className="relative">
                     <Input 
                       type="number" 
                       value={formData.valorDesconto} 
-                      onChange={e => setFormData({...formData, valorDesconto: parseInt(e.target.value)})} 
+                      onChange={e => setFormData({...formData, valorDesconto: parseFloat(e.target.value)})} 
                       className="pr-10" 
                     />
-                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    {formData.tipo === 'porcentagem' ? (
+                      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
+
                 <div className="flex items-center justify-between p-4 border-2 rounded-xl bg-background">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-primary" />
@@ -216,7 +257,9 @@ export default function AdminPromotions() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-black">{promo.nome}</h3>
-                      <p className="text-sm font-bold text-primary">-{promo.valorDesconto}% OFF</p>
+                      <p className="text-sm font-bold text-primary">
+                        {promo.tipo === 'fixo' ? `R$ ${promo.valorDesconto.toFixed(2)}` : `${promo.valorDesconto}%`} OFF
+                      </p>
                     </div>
                     {active ? (
                       <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-black text-[10px] animate-pulse">

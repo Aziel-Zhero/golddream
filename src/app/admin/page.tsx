@@ -129,11 +129,10 @@ export default function AdminDashboard() {
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
-  const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
+  const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, tipo: 'porcentagem', ativo: true, isBlackFriday: false });
   const [isUploading, setIsUploading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   
-  // AlertDialog state refatorado para evitar travamento da UI
   const [itemToDelete, setItemToDelete] = useState<{ col: string; id: string } | null>(null);
 
   useEffect(() => {
@@ -277,7 +276,7 @@ export default function AdminDashboard() {
   const handleAddPromo = () => {
     if (!newPromo.nome || !newPromo.valorDesconto || !newPromo.dataInicio || !newPromo.dataFim) return;
     addDocumentNonBlocking(collection(firestore, 'promocoes'), { ...newPromo, dataCriacao: new Date().toISOString() });
-    setNewPromo({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
+    setNewPromo({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, tipo: 'porcentagem', ativo: true, isBlackFriday: false });
     toast({ title: "Promoção Ativada!" });
   };
 
@@ -374,7 +373,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-2 bg-yellow-100 rounded-xl"><Clock className="w-5 h-5 text-yellow-600" /></div>
                 </div>
-                <p className="text-[10px) font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
                 <p className="text-2xl font-black text-yellow-700">{stats.pendentes}</p>
               </CardContent>
             </Card>
@@ -671,10 +670,30 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Nome da Campanha" />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} className="text-xs" />
-                  <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} className="text-xs" />
+                  <Input 
+                    type="datetime-local" 
+                    value={newPromo.dataInicio} 
+                    onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} 
+                    className="text-xs cursor-pointer" 
+                  />
+                  <Input 
+                    type="datetime-local" 
+                    value={newPromo.dataFim} 
+                    onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} 
+                    className="text-xs cursor-pointer" 
+                  />
                 </div>
-                <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseInt(e.target.value)})} placeholder="Desconto (%)" />
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo de Desconto</Label>
+                  <RadioGroup value={newPromo.tipo} onValueChange={(val: any) => setNewPromo({...newPromo, tipo: val})} className="flex gap-4">
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="promo-perc-tab" /><Label htmlFor="promo-perc-tab" className="text-xs">%</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="promo-fix-tab" /><Label htmlFor="promo-fix-tab" className="text-xs">R$</Label></div>
+                  </RadioGroup>
+                </div>
+
+                <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseFloat(e.target.value)})} placeholder="Valor do Desconto" />
+                
                 <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
                   <Label className="font-bold text-xs">Black Friday?</Label>
                   <Switch checked={newPromo.isBlackFriday} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
@@ -691,7 +710,9 @@ export default function AdminDashboard() {
                   {allPromotions?.map(p => (
                     <TableRow key={p.id}>
                       <TableCell className="font-bold">{p.nome} {p.isBlackFriday && "🔥"}</TableCell>
-                      <TableCell className="font-black text-primary">-{p.valorDesconto}%</TableCell>
+                      <TableCell className="font-black text-primary">
+                        {p.tipo === 'fixo' ? `R$ ${p.valorDesconto.toFixed(2)}` : `-${p.valorDesconto}%`}
+                      </TableCell>
                       <TableCell><Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
                       <TableCell className="text-right">
                         <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'promocoes', id: p.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
@@ -731,7 +752,6 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* AlertDialog Reajustado para garantir limpeza de estado no fechamento */}
       <AlertDialog 
         open={!!itemToDelete} 
         onOpenChange={(open) => {
@@ -749,7 +769,7 @@ export default function AdminDashboard() {
             <AlertDialogCancel className="rounded-xl border-2">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => {
-                e.preventDefault(); // Evita fechamento automático antes da lógica
+                e.preventDefault(); 
                 confirmDeleteItem();
               }} 
               className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold"

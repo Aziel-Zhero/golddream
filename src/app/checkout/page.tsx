@@ -27,7 +27,6 @@ export default function CheckoutPage() {
   const [shippingCost, setShippingCost] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Cupom | null>(null);
-  const [autoDiscountPercent, setAutoDiscountPercent] = useState(0);
   const [activePromo, setActivePromo] = useState<Promocao | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -55,13 +54,7 @@ export default function CheckoutPage() {
         })
         .sort((a, b) => b.valorDesconto - a.valorDesconto)[0];
 
-      if (bestPromo) {
-        setAutoDiscountPercent(bestPromo.valorDesconto);
-        setActivePromo(bestPromo);
-      } else {
-        setAutoDiscountPercent(0);
-        setActivePromo(null);
-      }
+      setActivePromo(bestPromo || null);
     }
   }, [allPromos]);
 
@@ -111,23 +104,28 @@ export default function CheckoutPage() {
     }
   };
 
-  // Cálculo rigoroso do desconto somando promoção ativa + cupom
   const calculateFinalDiscount = () => {
-    // 1. Valor da promoção automática (%)
-    const discountFromAuto = totalPrice * (autoDiscountPercent / 100);
+    let totalDiscount = 0;
+
+    // 1. Desconto da promoção automática
+    if (activePromo) {
+      if (activePromo.tipo === 'fixo') {
+        totalDiscount += activePromo.valorDesconto;
+      } else {
+        totalDiscount += totalPrice * (activePromo.valorDesconto / 100);
+      }
+    }
     
-    // 2. Valor do cupom (Fixo ou %)
-    let discountFromCoupon = 0;
+    // 2. Desconto do cupom
     if (appliedCoupon) {
       if (appliedCoupon.tipo === 'fixo') {
-        discountFromCoupon = appliedCoupon.desconto;
+        totalDiscount += appliedCoupon.desconto;
       } else {
-        discountFromCoupon = totalPrice * (appliedCoupon.desconto / 100);
+        totalDiscount += totalPrice * (appliedCoupon.desconto / 100);
       }
     }
 
-    // Retorna a soma dos descontos, limitada ao valor total dos produtos
-    return Math.min(totalPrice, discountFromAuto + discountFromCoupon);
+    return Math.min(totalPrice, totalDiscount);
   };
 
   const discountValue = calculateFinalDiscount();
@@ -308,7 +306,9 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
-                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF aplicado automaticamente.</p>
+                  <p className="text-sm opacity-80">
+                    Desconto de {activePromo.tipo === 'fixo' ? `R$ ${activePromo.valorDesconto.toFixed(2)}` : `${activePromo.valorDesconto}%`} aplicado.
+                  </p>
                 </div>
               </div>
               <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
