@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -63,29 +64,29 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="relative h-[85vh] w-full flex items-center overflow-hidden">
+      <section className="relative min-h-[80vh] w-full flex items-center overflow-hidden py-12 md:py-20">
         <div className="absolute inset-0 z-0">
           <img 
             src={heroImage} 
             alt="Moda Moderna" 
-            className="w-full h-full object-cover object-center brightness-[0.8] transition-opacity duration-1000"
+            className="w-full h-full object-cover object-center brightness-[0.7] md:brightness-[0.8] transition-opacity duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent md:from-background/60" />
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl space-y-6 animate-in fade-in slide-in-from-left-8 duration-700">
-            <Badge className="bg-primary/20 text-primary border-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest">
+          <div className="max-w-2xl space-y-4 md:space-y-6 animate-in fade-in slide-in-from-left-8 duration-700">
+            <Badge className="bg-primary/20 text-primary border-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
               {config?.heroBadge || 'Nova Coleção 2024'}
             </Badge>
-            <h1 className="text-5xl md:text-7xl font-headline font-bold leading-tight">
+            <h1 className="text-4xl md:text-7xl font-headline font-bold leading-tight">
               {config?.heroTitle || 'Crie seu Estilo Único'}
             </h1>
-            <p className="text-lg text-muted-foreground max-w-lg leading-relaxed text-balance">
-              {config?.heroDescription || 'Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas. Elegância sem esforço para quem sabe o que quer.'}
+            <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed text-balance">
+              {config?.heroDescription || 'Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas.'}
             </p>
-            <div className="flex gap-4 pt-4">
-              <Button size="lg" asChild className="rounded-full px-10 h-14 text-base shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Button size="lg" asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 text-sm md:text-base shadow-2xl shadow-primary/30 hover:scale-105 transition-transform w-full sm:w-auto">
                 <Link href="/category/all">
                   Comprar Agora <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
@@ -96,27 +97,27 @@ export default function Home() {
       </section>
 
       {/* Seção Como Funciona */}
-      <section className="py-24 bg-muted/20">
+      <section className="py-16 md:py-24 bg-muted/20">
         <div className="container mx-auto px-4">
-          <div className="text-center space-y-4 mb-16">
+          <div className="text-center space-y-4 mb-12 md:mb-16">
             <Badge variant="outline" className="text-primary border-primary rounded-full px-4 py-1 font-bold">GUIA DE COMPRA</Badge>
-            <h2 className="text-4xl md:text-5xl font-headline font-bold">Como funciona a sua experiência?</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            <h2 className="text-3xl md:text-5xl font-headline font-bold">Como funciona a sua experiência?</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-lg">
               Na Gold Dream, unimos a facilidade do digital com o atendimento personalizado exclusivo.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {flowSteps.map((step, idx) => (
-              <div key={idx} className="group relative bg-white p-8 rounded-[2.5rem] border shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
-                <div className="absolute -top-4 -left-4 w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg border-4 border-white">
+              <div key={idx} className="group relative bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
+                <div className="absolute -top-3 -left-3 w-10 h-10 md:w-12 md:h-12 bg-primary text-white rounded-2xl flex items-center justify-center font-black text-lg md:text-xl shadow-lg border-4 border-white">
                   {idx + 1}
                 </div>
-                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
-                  <step.icon className="w-7 h-7" />
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+                  <step.icon className="w-6 h-6 md:w-7 md:h-7" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">{step.title}</h3>
+                <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
                   {step.desc}
                 </p>
               </div>
@@ -126,16 +127,16 @@ export default function Home() {
       </section>
 
       {benefits.length > 0 && (
-        <section className="py-20 bg-white border-y">
+        <section className="py-12 md:py-20 bg-white border-y">
           <div className="container mx-auto px-4">
-            <div className={`grid grid-cols-2 ${benefits.length === 4 ? 'md:grid-cols-4' : benefits.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-12`}>
+            <div className={`grid grid-cols-2 ${benefits.length === 4 ? 'lg:grid-cols-4' : benefits.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-8 md:gap-12`}>
               {benefits.map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center text-center space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-primary mb-2 shadow-sm">
-                    <item.icon className="w-8 h-8" />
+                <div key={idx} className="flex flex-col items-center text-center space-y-2 md:space-y-3">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-primary mb-2 shadow-sm">
+                    <item.icon className="w-6 h-6 md:w-8 md:h-8" />
                   </div>
-                  <h4 className="font-bold text-sm uppercase tracking-wider">{item.title}</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed px-4">{item.sub}</p>
+                  <h4 className="font-bold text-[10px] md:text-sm uppercase tracking-wider">{item.title}</h4>
+                  <p className="text-[9px] md:text-xs text-muted-foreground leading-relaxed px-1 md:px-4">{item.sub}</p>
                 </div>
               ))}
             </div>
@@ -143,20 +144,20 @@ export default function Home() {
         </section>
       )}
 
-      <section className="py-24 bg-background">
+      <section className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-            <div className="space-y-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-16 gap-6">
+            <div className="space-y-3 md:space-y-4">
               <Badge variant="outline" className="border-accent text-accent rounded-full px-4 py-1">Destaques</Badge>
-              <h2 className="text-4xl md:text-5xl font-headline font-bold">Peças Favoritas</h2>
-              <p className="text-muted-foreground max-w-xl">Explore nossos designs mais populares, escolhidos por qualidade e estilo.</p>
+              <h2 className="text-3xl md:text-5xl font-headline font-bold">Peças Favoritas</h2>
+              <p className="text-sm md:text-base text-muted-foreground max-w-xl">Explore nossos designs mais populares, escolhidos por qualidade e estilo.</p>
             </div>
-            <Button variant="link" asChild className="text-primary font-bold group">
+            <Button variant="link" asChild className="text-primary font-bold group p-0">
               <Link href="/category/all">Ver tudo <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" /></Link>
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="aspect-[4/5] bg-muted animate-pulse rounded-2xl" />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -42,16 +43,16 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 glass-morphism border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2 group h-full">
+        <div className="flex justify-between items-center h-16 gap-4">
+          <Link href="/" className="flex items-center gap-2 group h-full flex-shrink-0">
             {config?.logoUrl ? (
               <img 
                 src={config.logoUrl} 
                 alt="Logo Gold Dream" 
-                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-7 md:h-10 w-auto object-contain transition-transform group-hover:scale-105"
               />
             ) : (
-              <span className="font-headline text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105">
+              <span className="font-headline text-lg md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all group-hover:scale-105 whitespace-nowrap">
                 Gold Dream
               </span>
             )}
@@ -63,7 +64,7 @@ export function Navbar() {
             <Link href="/category/acessorios" className="text-sm font-semibold hover:text-primary transition-colors">Acessórios</Link>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 md:space-x-2">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -76,13 +77,13 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 rounded-full px-3 h-10 hover:bg-muted transition-colors">
-                    <div className="w-8 h-8 rounded-full border overflow-hidden bg-muted">
+                  <button className="flex items-center gap-2 rounded-full px-1 md:px-3 h-10 hover:bg-muted transition-colors outline-none">
+                    <div className="w-8 h-8 rounded-full border overflow-hidden bg-muted flex-shrink-0">
                       <img src={user.avatarUrl} alt={user.nome} className="w-full h-full object-cover" />
                     </div>
                     <span className="text-xs font-bold hidden lg:inline max-w-[80px] truncate">{user.nome.split(' ')[0]}</span>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </Button>
+                    <ChevronDown size={14} className="text-muted-foreground hidden sm:block" />
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 rounded-xl border-2 shadow-xl p-2">
                   <DropdownMenuLabel className="font-normal px-4 py-3">
@@ -230,10 +231,10 @@ export function Navbar() {
                   <SheetTitle className="text-2xl font-headline font-bold">Menu Gold Dream</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-6 mt-12 px-2">
-                  <SheetClose asChild><Link href="/account/orders" className="text-xl font-bold hover:text-primary">Meus Pedidos</Link></SheetClose>
-                  <SheetClose asChild><Link href="/category/feminino" className="text-xl font-bold hover:text-primary">Moda Feminina</Link></SheetClose>
-                  <SheetClose asChild><Link href="/category/masculino" className="text-xl font-bold hover:text-primary">Moda Masculina</Link></SheetClose>
-                  <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary">Acessórios</Link></SheetClose>
+                  <SheetClose asChild><Link href="/account/orders" className="text-xl font-bold hover:text-primary transition-colors">Meus Pedidos</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/feminino" className="text-xl font-bold hover:text-primary transition-colors">Moda Feminina</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/masculino" className="text-xl font-bold hover:text-primary transition-colors">Moda Masculina</Link></SheetClose>
+                  <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary transition-colors">Acessórios</Link></SheetClose>
                   <div className="pt-8 border-t mt-4 space-y-4">
                     {user ? (
                       <div className="space-y-4">
@@ -242,7 +243,7 @@ export function Navbar() {
                         {isAdmin && (
                           <SheetClose asChild><Link href="/admin" className="block text-lg font-bold text-primary">Painel Admin</Link></SheetClose>
                         )}
-                        <SheetClose asChild><button onClick={logout} className="text-destructive font-black text-lg">Sair da Conta</button></SheetClose>
+                        <SheetClose asChild><button onClick={logout} className="text-destructive font-black text-lg text-left">Sair da Conta</button></SheetClose>
                       </div>
                     ) : (
                       <SheetClose asChild><Link href="/auth/login" className="flex items-center gap-2 font-bold"><LogIn size={20} /> Entrar</Link></SheetClose>
@@ -262,7 +263,7 @@ export function Navbar() {
                 className="pl-12 h-12 w-full rounded-2xl border-2 focus-visible:ring-primary/20" 
                 placeholder="O que você está procurando hoje?" 
                 autoFocus
-                onBlur={() => !isSearchOpen && setIsSearchOpen(false)}
+                onBlur={() => setIsSearchOpen(false)}
               />
             </div>
           </div>
