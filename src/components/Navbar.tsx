@@ -29,6 +29,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const BearIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="7" cy="7" r="2.5" />
+    <circle cx="17" cy="7" r="2.5" />
+    <path d="M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
+    <circle cx="9" cy="11.5" r="1" fill="currentColor" />
+    <circle cx="15" cy="11.5" r="1" fill="currentColor" />
+    <path d="M10 17c.5.5 1.5.5 2 0" />
+    <path d="M11 14.5c.3.3.7.5 1 .5s.7-.2 1-.5" />
+  </svg>
+);
+
 export function Navbar() {
   const { totalItems, items, totalPrice, removeItem, updateQuantity } = useCart();
   const { user, logout } = useAuth();
@@ -77,9 +97,9 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 rounded-full px-1 md:px-3 h-10 hover:bg-muted transition-colors outline-none">
-                    <div className="w-8 h-8 rounded-full border overflow-hidden bg-muted flex-shrink-0">
-                      <img src={user.avatarUrl} alt={user.nome} className="w-full h-full object-cover" />
+                  <button className="flex items-center gap-2 rounded-full px-1 md:px-3 h-10 hover:bg-muted transition-colors outline-none group/user">
+                    <div className="w-8 h-8 rounded-full border bg-primary/10 flex items-center justify-center flex-shrink-0 transition-colors group-hover/user:bg-primary/20">
+                      <BearIcon className="w-5 h-5 text-primary" />
                     </div>
                     <span className="text-xs font-bold hidden lg:inline max-w-[80px] truncate">{user.nome.split(' ')[0]}</span>
                     <ChevronDown size={14} className="text-muted-foreground hidden sm:block" />
