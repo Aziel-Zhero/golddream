@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -76,6 +75,16 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { compressImage } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -120,6 +129,9 @@ export default function AdminDashboard() {
   const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
   const [isUploading, setIsUploading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  
+  // AlertDialog state
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; col: string; id: string } | null>(null);
 
   useEffect(() => {
     if (config) setSiteSettings(config);
@@ -129,7 +141,7 @@ export default function AdminDashboard() {
   // Handlers
   const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
     updateDocumentNonBlocking(doc(firestore, 'pedidos', id), { status: newStatus });
-    toast({ title: `Status do pedido atualizado para ${newStatus}` });
+    toast({ title: `Status atualizado para ${newStatus}` });
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
@@ -141,9 +153,9 @@ export default function AdminDashboard() {
         clienteEmail: u.email,
         tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao'
       });
-      toast({ title: "Convite Enviado!", description: `E-mail premium enviado para ${u.email}` });
+      toast({ title: "Convite Enviado!", description: `E-mail enviado para ${u.email}` });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao enviar", description: "Falha na geração do e-mail IA." });
+      toast({ variant: "destructive", title: "Erro ao enviar", description: "Falha na geração do e-mail." });
     } finally {
       setIsSendingEmail(null);
     }
@@ -152,7 +164,7 @@ export default function AdminDashboard() {
   const handleSaveSiteSettings = () => {
     if (!configRef) return;
     setDoc(configRef, siteSettings, { merge: true });
-    toast({ title: "Configurações do Site Salvas!" });
+    toast({ title: "Configurações Salvas!" });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof SiteConfig) => {
@@ -173,7 +185,7 @@ export default function AdminDashboard() {
         
         setSiteSettings(prev => ({ ...prev, [field]: compressed }));
         setIsUploading(false);
-        toast({ title: "Imagem carregada e otimizada!" });
+        toast({ title: "Imagem carregada!" });
       };
       reader.readAsDataURL(file);
     }
@@ -181,51 +193,34 @@ export default function AdminDashboard() {
 
   const handleRemoveImage = async (field: keyof SiteConfig) => {
     if (!configRef) return;
-    
-    if (confirm('Deseja remover esta imagem permanentemente?')) {
-      await setDoc(configRef, { [field]: deleteField() }, { merge: true });
-      const newSettings = { ...siteSettings };
-      delete newSettings[field];
-      setSiteSettings(newSettings);
-      toast({ title: "Imagem removida permanentemente!" });
-    }
+    setDoc(configRef, { [field]: deleteField() }, { merge: true });
+    const newSettings = { ...siteSettings };
+    delete newSettings[field];
+    setSiteSettings(newSettings);
+    toast({ title: "Imagem removida!" });
   };
 
   const handleSaveTgSettings = () => {
     if (!tgRef) return;
     setDoc(tgRef, tgSettings, { merge: true });
-    toast({ title: "Configurações de Notificação Salvas no Banco!" });
+    toast({ title: "Notificações Salvas!" });
   };
 
   const handleTestTelegram = async () => {
     if (!tgSettings.botToken || !tgSettings.chatId) {
-      toast({ 
-        variant: "destructive", 
-        title: "Configuração Incompleta", 
-        description: "Informe o Token e o Chat ID antes de testar." 
-      });
+      toast({ variant: "destructive", title: "Configuração Incompleta" });
       return;
     }
-
     setIsTesting(true);
     try {
-      const message = "🔔 *TESTE DE CONFIGURAÇÃO - GOLD DREAM*\n\nSua integração com o Telegram está funcionando corretamente! 🚀\n\n_Se você recebeu esta mensagem, as vendas serão notificadas aqui._";
+      const message = "🔔 *TESTE DE CONFIGURAÇÃO - GOLD DREAM*";
       const url = `https://api.telegram.org/bot${tgSettings.botToken}/sendMessage?chat_id=${tgSettings.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
-      
       const res = await fetch(url);
       const data = await res.json();
-      
-      if (data.ok) {
-        toast({ title: "Teste Enviado!", description: "Verifique seu Telegram para confirmar o recebimento." });
-      } else {
-        throw new Error(data.description || "Erro na API do Telegram");
-      }
+      if (data.ok) toast({ title: "Teste Enviado!" });
+      else throw new Error(data.description);
     } catch (e: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Falha no Teste", 
-        description: e.message || "Verifique o Token e o Chat ID." 
-      });
+      toast({ variant: "destructive", title: "Falha no Teste", description: e.message });
     } finally {
       setIsTesting(false);
     }
@@ -235,34 +230,31 @@ export default function AdminDashboard() {
     if (!newFrete.valor || (!newFrete.cidade && !newFrete.isGlobal)) return;
     addDocumentNonBlocking(collection(firestore, 'fretes'), newFrete);
     setNewFrete({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
-    toast({ title: "Regra de Frete Adicionada" });
+    toast({ title: "Frete Adicionado" });
   };
 
   const handleAddCupom = () => {
     if (!newCupom.codigo || !newCupom.desconto) return;
     addDocumentNonBlocking(collection(firestore, 'cupons'), { 
       ...newCupom, 
-      codigo: newCupom.codigo.toUpperCase(),
-      tipo: newCupom.tipo || 'porcentagem'
+      codigo: newCupom.codigo.toUpperCase()
     });
     setNewCupom({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
-    toast({ title: "Cupom de Desconto Criado" });
+    toast({ title: "Cupom Criado" });
   };
 
   const handleAddPromo = () => {
     if (!newPromo.nome || !newPromo.valorDesconto || !newPromo.dataInicio || !newPromo.dataFim) return;
-    addDocumentNonBlocking(collection(firestore, 'promocoes'), {
-      ...newPromo,
-      dataCriacao: new Date().toISOString()
-    });
+    addDocumentNonBlocking(collection(firestore, 'promocoes'), { ...newPromo, dataCriacao: new Date().toISOString() });
     setNewPromo({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
     toast({ title: "Promoção Ativada!" });
   };
 
-  const handleDeleteItem = (col: string, id: string) => {
-    if (confirm('Deseja realmente excluir este item?')) {
-      deleteDocumentNonBlocking(doc(firestore, col, id));
-      toast({ title: "Item excluído com sucesso" });
+  const confirmDeleteItem = () => {
+    if (deleteConfirm) {
+      deleteDocumentNonBlocking(doc(firestore, deleteConfirm.col, deleteConfirm.id));
+      toast({ title: "Item excluído permanentemente" });
+      setDeleteConfirm(null);
     }
   };
 
@@ -270,7 +262,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="font-bold text-muted-foreground uppercase tracking-widest text-xs">Autenticando...</p>
+        <p className="font-bold text-muted-foreground uppercase text-xs">Autenticando...</p>
       </div>
     );
   }
@@ -280,7 +272,6 @@ export default function AdminDashboard() {
       <div className="container mx-auto px-4 py-24 text-center space-y-6">
         <XCircle className="w-20 h-20 mx-auto text-destructive" />
         <h1 className="text-4xl font-headline font-bold">Acesso Restrito</h1>
-        <p className="text-muted-foreground">Esta área é exclusiva para administradores da Gold Dream.</p>
         <Button asChild className="rounded-2xl h-14 px-8"><Link href="/">Voltar para a Loja</Link></Button>
       </div>
     );
@@ -290,12 +281,7 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8 md:py-12">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
         <div className="flex items-center gap-4 md:gap-6">
-          <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative flex-shrink-0">
-             {isUploading && (
-               <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
-                 <Loader2 className="w-6 h-6 animate-spin text-white" />
-               </div>
-             )}
+          <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative">
              {siteSettings.logoUrl ? (
                <img src={siteSettings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
              ) : (
@@ -303,11 +289,8 @@ export default function AdminDashboard() {
              )}
           </div>
           <div>
-            <h1 className="text-3xl md:text-5xl font-headline font-bold text-primary mb-1 md:mb-2">Painel Admin</h1>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <p className="text-xs md:text-sm font-medium">Gestão centralizada Gold Dream</p>
-            </div>
+            <h1 className="text-3xl md:text-5xl font-headline font-bold text-primary mb-1">Painel Admin</h1>
+            <p className="text-xs md:text-sm font-medium text-muted-foreground">Gestão Gold Dream</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3 w-full lg:w-auto">
@@ -330,15 +313,12 @@ export default function AdminDashboard() {
               <TabsTrigger value="api" className="rounded-xl font-bold px-6 md:px-3">Notificações</TabsTrigger>
             </TabsList>
           </div>
-          {/* Indicador de scroll para mobile */}
-          <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
         </div>
 
         <TabsContent value="orders">
           <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/20 border-b">
               <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5" /> Vendas Recentes</CardTitle>
-              <CardDescription>Acompanhe e gerencie todos os pedidos realizados.</CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -348,47 +328,32 @@ export default function AdminDashboard() {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allOrders?.map(order => (
-                    <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
+                    <TableRow key={order.id}>
                       <TableCell className="font-black text-primary">#{order.codigo}</TableCell>
+                      <TableCell><span className="font-bold">{order.clienteNome}</span></TableCell>
+                      <TableCell className="font-bold">R$ {order.total?.toFixed(2)}</TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold whitespace-nowrap">{order.clienteNome}</span>
-                          <span className="text-[10px] text-muted-foreground">{order.clienteTelefone}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-bold text-lg whitespace-nowrap">R$ {order.total?.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge className={`rounded-full px-3 ${
-                          order.status === 'entregue' ? 'bg-green-500' : 
-                          order.status === 'cancelado' ? 'bg-red-500' : 'bg-primary'
-                        }`}>
+                        <Badge className={order.status === 'entregue' ? 'bg-green-500' : 'bg-primary'}>
                           {(order.status || 'pendente').toUpperCase()}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(order.dataCriacao).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="rounded-xl">Gerenciar</Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl border-2">
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmar</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Marcar como Entregue</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-destructive font-bold">Cancelar Pedido</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(!allOrders || allOrders.length === 0) && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground font-medium">Nenhum pedido registrado.</TableCell></TableRow>
-                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -398,8 +363,7 @@ export default function AdminDashboard() {
         <TabsContent value="users">
           <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Base de Clientes</CardTitle>
-              <CardDescription>Gerencie usuários e envie e-mails de confirmação VIP.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Clientes</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -408,38 +372,26 @@ export default function AdminDashboard() {
                     <TableHead>Nome</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Cadastro</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allUsers?.map(u => {
-                    const userId = u.id || (u as any).uid;
-                    return (
-                    <TableRow key={userId} className="hover:bg-muted/5 transition-colors">
-                      <TableCell className="font-bold whitespace-nowrap">{u.nome}</TableCell>
-                      <TableCell className="whitespace-nowrap">{u.email}</TableCell>
+                  {allUsers?.map(u => (
+                    <TableRow key={u.id || (u as any).uid}>
+                      <TableCell className="font-bold">{u.nome}</TableCell>
+                      <TableCell>{u.email}</TableCell>
                       <TableCell>
-                        {u.emailVerificado ? (
-                          <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">VERIFICADO</Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-yellow-200 text-yellow-700 bg-yellow-50">PENDENTE</Badge>
-                        )}
+                        <Badge variant="outline" className={u.emailVerificado ? "border-green-200" : "border-yellow-200"}>
+                          {u.emailVerificado ? "OK" : "PENDENTE"}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(u.dataCriacao).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          disabled={isSendingEmail === userId}
-                          onClick={() => handleSendEmailInvite(u)}
-                          className="rounded-xl"
-                        >
-                          {isSendingEmail === userId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-2" />}
-                          <span className="hidden sm:inline">Convite VIP</span>
+                        <Button size="sm" onClick={() => handleSendEmailInvite(u)} className="rounded-xl" disabled={isSendingEmail === (u.id || (u as any).uid)}>
+                          {isSendingEmail === (u.id || (u as any).uid) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar E-mail"}
                         </Button>
                       </TableCell>
                     </TableRow>
-                  )})}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -448,143 +400,63 @@ export default function AdminDashboard() {
 
         <TabsContent value="home">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-6">
-              <div className="flex items-center gap-3">
-                <ImageIcon className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold">Identidade Visual</h2>
-              </div>
+            <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Visual</h2>
               <div className="space-y-6">
                 <div className="space-y-2">
-                   <Label className="flex justify-between text-xs md:text-sm">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
-                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10 relative">
-                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden relative group">
-                       {siteSettings.logoUrl ? (
-                         <>
-                           <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo preview" />
-                           <button onClick={() => handleRemoveImage('logoUrl')} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                             <Trash2 size={20} />
-                           </button>
-                         </>
-                       ) : <Layers className="text-muted-foreground opacity-20" />}
+                   <Label>Logo Principal (250x80px)</Label>
+                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
+                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
+                       {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo" /> : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
                      <div className="flex-1 w-full space-y-2">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
-                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
-                         <label htmlFor="logo-up">Trocar Logo</label>
-                       </Button>
-                       {siteSettings.logoUrl && (
-                         <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold h-8 rounded-xl">
-                            <Trash2 size={14} className="mr-2" /> Excluir Logo
-                         </Button>
-                       )}
+                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="logo-up">Upload</label></Button>
+                       {siteSettings.logoUrl && <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold rounded-xl">Excluir</Button>}
                      </div>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label className="flex justify-between text-xs md:text-sm">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
-                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
-                        {siteSettings.faviconUrl ? (
-                          <div className="relative">
-                            <img src={siteSettings.faviconUrl} className="w-8 h-8 object-contain" />
-                            <button onClick={() => handleRemoveImage('faviconUrl')} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X size={10} /></button>
-                          </div>
-                        ) : <div className="w-8 h-8 bg-muted rounded" />}
-                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
-                        <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
-                     </div>
-                   </div>
-                   <div className="space-y-2">
-                     <Label className="flex justify-between text-xs md:text-sm">Ícone WhatsApp <span className="text-[10px] text-muted-foreground">Rec: 64x64px</span></Label>
-                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
-                        {siteSettings.whatsappIconUrl ? (
-                          <div className="relative">
-                            <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" />
-                            <button onClick={() => handleRemoveImage('whatsappIconUrl')} className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X size={10} /></button>
-                          </div>
-                        ) : <MessageCircle className="w-8 h-8 text-muted" />}
-                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
-                        <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer hover:underline">Upload</label>
-                     </div>
-                   </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <Label className="flex justify-between text-xs md:text-sm">Imagem Hero (Fundo) <span className="text-[10px] text-muted-foreground">Rec: 1920x1080px</span></Label>
-                  <div className="flex flex-col gap-2">
-                     {siteSettings.heroImage && (
-                       <div className="relative h-24 w-full rounded-xl overflow-hidden border">
-                         <img src={siteSettings.heroImage} className="w-full h-full object-cover" />
-                         <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-8 px-3 rounded-lg" onClick={() => handleRemoveImage('heroImage')}>
-                           Remover
-                         </Button>
-                       </div>
-                     )}
-                     <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
-                     <Button asChild variant="secondary" className="w-full h-12 cursor-pointer border-2 border-dashed rounded-xl" disabled={isUploading}>
-                       <label htmlFor="hero-up">
-                         {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" size={16} />}
-                         Substituir Imagem de Destaque
-                       </label>
-                     </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                   <Label>WhatsApp de Contato</Label>
-                   <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Badge do Hero</Label>
-                    <Input value={siteSettings.heroBadge || ''} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
+                    <Label>Favicon (32x32)</Label>
+                    <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
+                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8" /> : <div className="w-8 h-8 bg-muted rounded" />}
+                      <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
+                      <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Título do Hero</Label>
-                    <Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
+                    <Label>WhatsApp (64x64)</Label>
+                    <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
+                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" /> : <MessageCircle className="w-8 h-8 text-muted" />}
+                      <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
+                      <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Descrição do Hero</Label>
-                  <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
-                </div>
-
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl shadow-xl shadow-primary/10">Salvar Alterações</Button>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Tudo</Button>
               </div>
             </Card>
 
-            <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-6">
-              <div className="flex items-center gap-3">
-                <Clock className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold">Fluxo de Experiência</h2>
+            <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações</h2>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                   <Label>WhatsApp Contato</Label>
+                   <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
+                </div>
+                <div className="space-y-2">
+                   <Label>Título Hero</Label>
+                   <Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                   <Label>Descrição Hero</Label>
+                   <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
+                </div>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações</Button>
               </div>
-              <div className="space-y-8 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                {[1, 2, 3, 4].map(num => (
-                  <div key={num} className="space-y-4 p-5 border-2 rounded-2xl bg-muted/20">
-                    <p className="font-black text-xs text-primary uppercase tracking-widest">Passo {num}</p>
-                    <div className="space-y-2">
-                      <Label>Título do Passo</Label>
-                      <Input 
-                        value={siteSettings[`step${num}_title` as keyof SiteConfig] as string || ''} 
-                        onChange={e => setSiteSettings({...siteSettings, [`step${num}_title` as keyof SiteConfig]: e.target.value})} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Descrição Curta</Label>
-                      <Textarea 
-                        value={siteSettings[`step${num}_desc` as keyof SiteConfig] as string || ''} 
-                        onChange={e => setSiteSettings({...siteSettings, [`step${num}_desc` as keyof SiteConfig]: e.target.value})} 
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Textos do Fluxo</Button>
             </Card>
           </div>
         </TabsContent>
@@ -592,7 +464,7 @@ export default function AdminDashboard() {
         <TabsContent value="catalog">
           <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Gestão de Estoque</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Estoque</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -600,7 +472,6 @@ export default function AdminDashboard() {
                   <TableRow>
                     <TableHead>Imagem</TableHead>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Preço</TableHead>
                     <TableHead>Estoque</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -608,18 +479,13 @@ export default function AdminDashboard() {
                 <TableBody>
                   {allProducts?.map(prod => (
                     <TableRow key={prod.id}>
-                      <TableCell>
-                        <img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" />
-                      </TableCell>
-                      <TableCell className="font-bold whitespace-nowrap">{prod.nome}</TableCell>
-                      <TableCell className="whitespace-nowrap">R$ {prod.preco?.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un</Badge>
-                      </TableCell>
+                      <TableCell><img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" /></TableCell>
+                      <TableCell className="font-bold">{prod.nome}</TableCell>
+                      <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline" className="rounded-xl"><Link href={`/admin/products/${prod.id}`}>Editar</Link></Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDeleteItem('produtos', prod.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'produtos', id: prod.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -632,274 +498,159 @@ export default function AdminDashboard() {
 
         <TabsContent value="frete">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 shadow-sm rounded-3xl p-6 h-fit space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Truck className="w-5 h-5 text-primary" /> Nova Regra</h2>
+            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Truck className="w-5 h-5 text-primary" /> Novo Frete</h2>
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Cidade</Label>
-                  <Input disabled={newFrete.isGlobal} value={newFrete.cidade} onChange={e => setNewFrete({...newFrete, cidade: e.target.value})} placeholder="Ex: São Paulo" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Bairro</Label>
-                  <Input disabled={newFrete.isGlobal} value={newFrete.bairro} onChange={e => setNewFrete({...newFrete, bairro: e.target.value})} placeholder="Ex: Centro" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Valor (R$)</Label>
-                  <Input type="number" value={newFrete.valor} onChange={e => setNewFrete({...newFrete, valor: parseFloat(e.target.value)})} />
-                </div>
+                <Input disabled={newFrete.isGlobal} value={newFrete.cidade} onChange={e => setNewFrete({...newFrete, cidade: e.target.value})} placeholder="Cidade" />
+                <Input disabled={newFrete.isGlobal} value={newFrete.bairro} onChange={e => setNewFrete({...newFrete, bairro: e.target.value})} placeholder="Bairro" />
+                <Input type="number" value={newFrete.valor} onChange={e => setNewFrete({...newFrete, valor: parseFloat(e.target.value)})} placeholder="Valor R$" />
                 <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
-                  <Label>Frete Global (Padrão)</Label>
+                  <Label>Global?</Label>
                   <Switch checked={newFrete.isGlobal} onCheckedChange={checked => setNewFrete({...newFrete, isGlobal: checked, cidade: checked ? 'Global' : '', bairro: checked ? 'Global' : ''})} />
                 </div>
-                <Button onClick={handleAddFrete} className="w-full rounded-xl">Adicionar Regra</Button>
+                <Button onClick={handleAddFrete} className="w-full rounded-xl">Adicionar</Button>
               </div>
             </Card>
-
-            <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/10">
-                    <TableRow>
-                      <TableHead>Local</TableHead>
-                      <TableHead>Bairro</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ação</TableHead>
+            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/10">
+                  <TableRow><TableHead>Local</TableHead><TableHead>Valor</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allFretes?.map(f => (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-bold">{f.isGlobal ? "GLOBAL" : f.cidade}</TableCell>
+                      <TableCell>R$ {f.valor.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'fretes', id: f.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allFretes?.map(f => (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-bold whitespace-nowrap">{f.isGlobal ? <span className="flex items-center gap-1 text-primary"><Globe className="w-3.5 h-3.5" /> GLOBAL</span> : f.cidade}</TableCell>
-                        <TableCell className="whitespace-nowrap">{f.bairro}</TableCell>
-                        <TableCell className="font-bold whitespace-nowrap">R$ {f.valor.toFixed(2)}</TableCell>
-                        <TableCell><Badge className={f.ativo ? 'bg-green-500' : 'bg-muted'}>{f.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
-                        <TableCell className="text-right">
-                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('fretes', f.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="coupons">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 shadow-sm rounded-3xl p-6 h-fit space-y-4">
+            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Novo Cupom</h2>
               <div className="space-y-4">
-                <div className="space-y-1">
-                  <Label>Código do Cupom</Label>
-                  <Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value})} placeholder="EX: GOLD10" />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Tipo de Desconto</Label>
-                  <RadioGroup 
-                    value={newCupom.tipo || 'porcentagem'} 
-                    onValueChange={(val: any) => setNewCupom({...newCupom, tipo: val})}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="porcentagem" id="porcentagem" />
-                      <Label htmlFor="porcentagem" className="flex items-center gap-1 text-xs"><Percent className="w-3 h-3" /> %</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="fixo" id="fixo" />
-                      <Label htmlFor="fixo" className="flex items-center gap-1 text-xs"><DollarSign className="w-3 h-3" /> R$</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>{newCupom.tipo === 'fixo' ? 'Valor (R$)' : 'Desconto (%)'}</Label>
-                  <div className="relative">
-                    <Input 
-                      type="number" 
-                      value={newCupom.desconto} 
-                      onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} 
-                      className="pr-10"
-                    />
-                    {newCupom.tipo === 'fixo' ? (
-                      <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-                
-                <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar Cupom</Button>
+                <Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value})} placeholder="Código (Ex: GOLD10)" />
+                <RadioGroup value={newCupom.tipo} onValueChange={(val: any) => setNewCupom({...newCupom, tipo: val})} className="flex gap-4">
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="perc" /><Label htmlFor="porcentagem">%</Label></div>
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="fix" /><Label htmlFor="fixo">R$</Label></div>
+                </RadioGroup>
+                <Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} placeholder="Valor Desconto" />
+                <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar</Button>
               </div>
             </Card>
-
-            <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/10">
-                    <TableRow>
-                      <TableHead>Código</TableHead>
-                      <TableHead>Desconto</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ação</TableHead>
+            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/10">
+                  <TableRow><TableHead>Código</TableHead><TableHead>Desconto</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allCupons?.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-black text-primary">{c.codigo}</TableCell>
+                      <TableCell className="font-bold">{c.tipo === 'fixo' ? `R$ ${c.desconto}` : `${c.desconto}%`}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'cupons', id: c.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allCupons?.map(c => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-black text-primary whitespace-nowrap">{c.codigo}</TableCell>
-                        <TableCell className="font-bold whitespace-nowrap">
-                          {c.tipo === 'fixo' ? `R$ ${c.desconto.toFixed(2)}` : `${c.desconto}% OFF`}
-                        </TableCell>
-                        <TableCell className="capitalize text-xs font-medium">{c.tipo || 'porcentagem'}</TableCell>
-                        <TableCell><Badge>ATIVO</Badge></TableCell>
-                        <TableCell className="text-right">
-                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="promos">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 shadow-sm rounded-3xl p-6 h-fit space-y-4">
+            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-primary" /> Nova Promoção</h2>
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Nome da Campanha</Label>
-                  <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Ex: Liquida Verão" />
+                <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Nome da Campanha" />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} className="text-xs" />
+                  <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} className="text-xs" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label>Início</Label>
-                    <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} className="text-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Fim</Label>
-                    <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} className="text-xs" />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label>Desconto (%)</Label>
-                  <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseInt(e.target.value)})} />
-                </div>
+                <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseInt(e.target.value)})} placeholder="Desconto (%)" />
                 <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
-                  <Label className="font-bold text-xs">Modo Black Friday</Label>
-                  <Switch checked={newPromo.isBlackFriday || false} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
+                  <Label className="font-bold text-xs">Black Friday?</Label>
+                  <Switch checked={newPromo.isBlackFriday} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
                 </div>
-                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar Promoção</Button>
+                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar</Button>
               </div>
             </Card>
-
-            <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/10">
-                    <TableRow>
-                      <TableHead>Campanha</TableHead>
-                      <TableHead>Desconto</TableHead>
-                      <TableHead>Período</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ação</TableHead>
+            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/10">
+                  <TableRow><TableHead>Campanha</TableHead><TableHead>Desconto</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allPromotions?.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-bold">{p.nome} {p.isBlackFriday && "🔥"}</TableCell>
+                      <TableCell className="font-black text-primary">-{p.valorDesconto}%</TableCell>
+                      <TableCell><Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm({ open: true, col: 'promocoes', id: p.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allPromotions?.map(p => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-bold whitespace-nowrap">
-                          {p.nome}
-                          {p.isBlackFriday && <Badge className="ml-2 bg-black text-yellow-500">BF</Badge>}
-                        </TableCell>
-                        <TableCell className="font-black text-primary whitespace-nowrap">-{p.valorDesconto}%</TableCell>
-                        <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {new Date(p.dataInicio).toLocaleDateString()} - {new Date(p.dataFim).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('promocoes', p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!allPromotions || allPromotions.length === 0) && (
-                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma promoção ativa.</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="api">
-          <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-8">
-             <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="bg-primary/10 p-4 rounded-3xl">
-                   <Zap className="w-8 h-8 text-primary" />
-                </div>
-                <div className="text-center sm:text-left">
-                   <h2 className="text-2xl md:text-3xl font-headline font-bold">Notificações</h2>
-                   <p className="text-muted-foreground text-sm">Configure seu bot do Telegram para alertas de vendas.</p>
-                </div>
+          <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-8">
+             <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-4 rounded-3xl"><Zap className="w-8 h-8 text-primary" /></div>
+                <div><h2 className="text-2xl font-bold">Notificações</h2><p className="text-muted-foreground text-sm">Bot do Telegram</p></div>
              </div>
-
-             <Separator />
-
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                   <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Bot Token</Label>
-                      <Input type="password" value={tgSettings.botToken || ''} onChange={e => setTgSettings({...tgSettings, botToken: e.target.value})} placeholder="000000000:AAAAA-BBBBB" />
-                   </div>
-                   <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Chat ID</Label>
-                      <Input value={tgSettings.chatId || ''} onChange={e => setTgSettings({...tgSettings, chatId: e.target.value})} placeholder="-100000000" />
-                   </div>
+                   <Label>Bot Token</Label><Input type="password" value={tgSettings.botToken || ''} onChange={e => setTgSettings({...tgSettings, botToken: e.target.value})} />
+                   <Label>Chat ID</Label><Input value={tgSettings.chatId || ''} onChange={e => setTgSettings({...tgSettings, chatId: e.target.value})} />
                    <div className="flex items-center justify-between p-4 border-2 rounded-2xl bg-muted/10">
-                      <div>
-                         <p className="font-bold text-sm">Notificações Ativas</p>
-                         <p className="text-[10px] text-muted-foreground">Alertas instantâneos de vendas.</p>
-                      </div>
-                      <Switch checked={tgSettings.isActive || false} onCheckedChange={checked => setTgSettings({...tgSettings, isActive: checked})} />
+                      <Label>Notificações Ativas</Label>
+                      <Switch checked={tgSettings.isActive} onCheckedChange={checked => setTgSettings({...tgSettings, isActive: checked})} />
                    </div>
                 </div>
                 <div className="space-y-4">
-                   <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Template da Mensagem</Label>
-                      <Textarea 
-                        value={tgSettings.messageTemplate || ''} 
-                        onChange={e => setTgSettings({...tgSettings, messageTemplate: e.target.value})} 
-                        className="min-h-[180px] font-mono text-[10px]"
-                      />
-                   </div>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
-                      <Button onClick={handleSaveTgSettings} className="w-full h-12 md:h-14 rounded-2xl">
-                         <Save className="w-4 h-4 mr-2" /> Salvar
-                      </Button>
-                      <Button 
-                        variant="secondary" 
-                        disabled={isTesting}
-                        onClick={handleTestTelegram} 
-                        className="w-full h-12 md:h-14 rounded-2xl border-2 border-primary/20"
-                      >
-                         {isTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                         Testar
-                      </Button>
+                   <Label>Template Mensagem</Label><Textarea value={tgSettings.messageTemplate || ''} onChange={e => setTgSettings({...tgSettings, messageTemplate: e.target.value})} className="min-h-[150px] font-mono" />
+                   <div className="flex gap-4">
+                      <Button onClick={handleSaveTgSettings} className="flex-1 h-14 rounded-2xl">Salvar</Button>
+                      <Button variant="secondary" disabled={isTesting} onClick={handleTestTelegram} className="flex-1 h-14 rounded-2xl">Testar</Button>
                    </div>
                 </div>
              </div>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* AlertDialog para Substituir o confirm() antigo */}
+      <AlertDialog open={deleteConfirm?.open} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent className="rounded-3xl border-2">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold">Confirmar Exclusão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O item será removido permanentemente do seu banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="rounded-xl border-2">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteItem} className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold">
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 3000 // Alterado de 1.000.000 para 3.000 (3 segundos) para sumir sozinho
 
 type ToasterToast = ToastProps & {
   id: string
