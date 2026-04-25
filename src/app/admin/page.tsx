@@ -287,10 +287,10 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-        <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative">
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
+        <div className="flex items-center gap-4 md:gap-6">
+          <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative flex-shrink-0">
              {isUploading && (
                <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
                  <Loader2 className="w-6 h-6 animate-spin text-white" />
@@ -299,35 +299,39 @@ export default function AdminDashboard() {
              {siteSettings.logoUrl ? (
                <img src={siteSettings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
              ) : (
-               <LayoutDashboard className="w-10 h-10 text-primary" />
+               <LayoutDashboard className="w-8 h-8 md:w-10 md:h-10 text-primary" />
              )}
           </div>
           <div>
-            <h1 className="text-5xl font-headline font-bold text-primary mb-2">Painel Admin</h1>
+            <h1 className="text-3xl md:text-5xl font-headline font-bold text-primary mb-1 md:mb-2">Painel Admin</h1>
             <div className="flex items-center gap-2 text-muted-foreground">
-              <ShieldCheck className="w-4 h-4" />
-              <p className="text-sm font-medium">Gestão centralizada Gold Dream Multimarcas</p>
+              <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <p className="text-xs md:text-sm font-medium">Gestão centralizada Gold Dream</p>
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild variant="outline" className="rounded-xl border-2"><Link href="/">Ver Loja</Link></Button>
-          <Button asChild className="rounded-xl shadow-lg shadow-primary/20"><Link href="/admin/products/new"><PlusCircle className="w-4 h-4 mr-2" /> Novo Produto</Link></Button>
+        <div className="flex flex-wrap gap-2 md:gap-3 w-full lg:w-auto">
+          <Button asChild variant="outline" className="flex-1 lg:flex-none rounded-xl border-2"><Link href="/">Ver Loja</Link></Button>
+          <Button asChild className="flex-1 lg:flex-none rounded-xl shadow-lg shadow-primary/20"><Link href="/admin/products/new"><PlusCircle className="w-4 h-4 mr-2" /> Novo Produto</Link></Button>
         </div>
       </div>
 
-      <Tabs defaultValue="orders" className="space-y-8">
-        <div className="overflow-x-auto pb-2 custom-scrollbar">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-8 bg-muted/50 p-1 rounded-2xl h-auto border">
-            <TabsTrigger value="orders" className="rounded-xl font-bold">Pedidos</TabsTrigger>
-            <TabsTrigger value="users" className="rounded-xl font-bold">Usuários</TabsTrigger>
-            <TabsTrigger value="home" className="rounded-xl font-bold">Site</TabsTrigger>
-            <TabsTrigger value="catalog" className="rounded-xl font-bold">Estoque</TabsTrigger>
-            <TabsTrigger value="frete" className="rounded-xl font-bold">Fretes</TabsTrigger>
-            <TabsTrigger value="coupons" className="rounded-xl font-bold">Cupons</TabsTrigger>
-            <TabsTrigger value="promos" className="rounded-xl font-bold">Promoções</TabsTrigger>
-            <TabsTrigger value="api" className="rounded-xl font-bold">Notificações</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="orders" className="space-y-6 md:space-y-8">
+        <div className="relative">
+          <div className="overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar">
+            <TabsList className="inline-flex w-max min-w-full md:grid md:grid-cols-8 bg-muted/50 p-1 rounded-2xl h-auto border">
+              <TabsTrigger value="orders" className="rounded-xl font-bold px-6 md:px-3">Pedidos</TabsTrigger>
+              <TabsTrigger value="users" className="rounded-xl font-bold px-6 md:px-3">Usuários</TabsTrigger>
+              <TabsTrigger value="home" className="rounded-xl font-bold px-6 md:px-3">Site</TabsTrigger>
+              <TabsTrigger value="catalog" className="rounded-xl font-bold px-6 md:px-3">Estoque</TabsTrigger>
+              <TabsTrigger value="frete" className="rounded-xl font-bold px-6 md:px-3">Fretes</TabsTrigger>
+              <TabsTrigger value="coupons" className="rounded-xl font-bold px-6 md:px-3">Cupons</TabsTrigger>
+              <TabsTrigger value="promos" className="rounded-xl font-bold px-6 md:px-3">Promoções</TabsTrigger>
+              <TabsTrigger value="api" className="rounded-xl font-bold px-6 md:px-3">Notificações</TabsTrigger>
+            </TabsList>
+          </div>
+          {/* Indicador de scroll para mobile */}
+          <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
         </div>
 
         <TabsContent value="orders">
@@ -336,7 +340,7 @@ export default function AdminDashboard() {
               <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5" /> Vendas Recentes</CardTitle>
               <CardDescription>Acompanhe e gerencie todos os pedidos realizados.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/10">
@@ -354,11 +358,11 @@ export default function AdminDashboard() {
                       <TableCell className="font-black text-primary">#{order.codigo}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-bold">{order.clienteNome}</span>
+                          <span className="font-bold whitespace-nowrap">{order.clienteNome}</span>
                           <span className="text-[10px] text-muted-foreground">{order.clienteTelefone}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-bold text-lg">R$ {order.total?.toFixed(2)}</TableCell>
+                      <TableCell className="font-bold text-lg whitespace-nowrap">R$ {order.total?.toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge className={`rounded-full px-3 ${
                           order.status === 'entregue' ? 'bg-green-500' : 
@@ -367,7 +371,7 @@ export default function AdminDashboard() {
                           {(order.status || 'pendente').toUpperCase()}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(order.dataCriacao).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -397,7 +401,7 @@ export default function AdminDashboard() {
               <CardTitle className="flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Base de Clientes</CardTitle>
               <CardDescription>Gerencie usuários e envie e-mails de confirmação VIP.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/10">
@@ -413,8 +417,8 @@ export default function AdminDashboard() {
                     const userId = u.id || (u as any).uid;
                     return (
                     <TableRow key={userId} className="hover:bg-muted/5 transition-colors">
-                      <TableCell className="font-bold">{u.nome}</TableCell>
-                      <TableCell>{u.email}</TableCell>
+                      <TableCell className="font-bold whitespace-nowrap">{u.nome}</TableCell>
+                      <TableCell className="whitespace-nowrap">{u.email}</TableCell>
                       <TableCell>
                         {u.emailVerificado ? (
                           <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">VERIFICADO</Badge>
@@ -422,7 +426,7 @@ export default function AdminDashboard() {
                           <Badge variant="outline" className="border-yellow-200 text-yellow-700 bg-yellow-50">PENDENTE</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{new Date(u.dataCriacao).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(u.dataCriacao).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button 
                           size="sm" 
@@ -431,7 +435,7 @@ export default function AdminDashboard() {
                           className="rounded-xl"
                         >
                           {isSendingEmail === userId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-2" />}
-                          Convite VIP
+                          <span className="hidden sm:inline">Convite VIP</span>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -444,15 +448,15 @@ export default function AdminDashboard() {
 
         <TabsContent value="home">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="border-2 shadow-sm rounded-3xl p-8 space-y-6">
+            <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <ImageIcon className="w-6 h-6 text-primary" />
                 <h2 className="text-2xl font-bold">Identidade Visual</h2>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                   <Label className="flex justify-between">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
-                   <div className="flex gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10 relative">
+                   <Label className="flex justify-between text-xs md:text-sm">Logo Principal <span className="text-[10px] text-muted-foreground">Rec: 250x80px</span></Label>
+                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10 relative">
                      <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden relative group">
                        {siteSettings.logoUrl ? (
                          <>
@@ -463,7 +467,7 @@ export default function AdminDashboard() {
                          </>
                        ) : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
-                     <div className="flex-1 space-y-2">
+                     <div className="flex-1 w-full space-y-2">
                        <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
                        <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
                          <label htmlFor="logo-up">Trocar Logo</label>
@@ -477,9 +481,9 @@ export default function AdminDashboard() {
                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="space-y-2">
-                     <Label className="flex justify-between">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
+                     <Label className="flex justify-between text-xs md:text-sm">Favicon <span className="text-[10px] text-muted-foreground">Rec: 32x32px</span></Label>
                      <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
                         {siteSettings.faviconUrl ? (
                           <div className="relative">
@@ -492,7 +496,7 @@ export default function AdminDashboard() {
                      </div>
                    </div>
                    <div className="space-y-2">
-                     <Label className="flex justify-between">Ícone WhatsApp <span className="text-[10px] text-muted-foreground">Rec: 64x64px</span></Label>
+                     <Label className="flex justify-between text-xs md:text-sm">Ícone WhatsApp <span className="text-[10px] text-muted-foreground">Rec: 64x64px</span></Label>
                      <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl relative group">
                         {siteSettings.whatsappIconUrl ? (
                           <div className="relative">
@@ -509,13 +513,13 @@ export default function AdminDashboard() {
                 <Separator />
 
                 <div className="space-y-2">
-                  <Label className="flex justify-between">Imagem Hero (Fundo) <span className="text-[10px] text-muted-foreground">Rec: 1920x1080px</span></Label>
+                  <Label className="flex justify-between text-xs md:text-sm">Imagem Hero (Fundo) <span className="text-[10px] text-muted-foreground">Rec: 1920x1080px</span></Label>
                   <div className="flex flex-col gap-2">
                      {siteSettings.heroImage && (
                        <div className="relative h-24 w-full rounded-xl overflow-hidden border">
                          <img src={siteSettings.heroImage} className="w-full h-full object-cover" />
                          <Button variant="destructive" size="sm" className="absolute top-2 right-2 h-8 px-3 rounded-lg" onClick={() => handleRemoveImage('heroImage')}>
-                           Remover Imagem de Fundo
+                           Remover
                          </Button>
                        </div>
                      )}
@@ -530,11 +534,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-2">
-                   <Label>WhatsApp de Contato (Botão e Pedidos)</Label>
+                   <Label>WhatsApp de Contato</Label>
                    <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Badge do Hero</Label>
                     <Input value={siteSettings.heroBadge || ''} onChange={e => setSiteSettings({...siteSettings, heroBadge: e.target.value})} placeholder="Nova Coleção 2024" />
@@ -550,16 +554,16 @@ export default function AdminDashboard() {
                   <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
                 </div>
 
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl shadow-xl shadow-primary/10">Salvar Alterações Visuais</Button>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl shadow-xl shadow-primary/10">Salvar Alterações</Button>
               </div>
             </Card>
 
-            <Card className="border-2 shadow-sm rounded-3xl p-8 space-y-6">
+            <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <Clock className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold">Fluxo de Experiência (4 Passos)</h2>
+                <h2 className="text-2xl font-bold">Fluxo de Experiência</h2>
               </div>
-              <div className="space-y-8 h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-8 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                 {[1, 2, 3, 4].map(num => (
                   <div key={num} className="space-y-4 p-5 border-2 rounded-2xl bg-muted/20">
                     <p className="font-black text-xs text-primary uppercase tracking-widest">Passo {num}</p>
@@ -590,7 +594,7 @@ export default function AdminDashboard() {
             <CardHeader className="bg-muted/20 border-b">
               <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Gestão de Estoque</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -607,8 +611,8 @@ export default function AdminDashboard() {
                       <TableCell>
                         <img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" />
                       </TableCell>
-                      <TableCell className="font-bold">{prod.nome}</TableCell>
-                      <TableCell>R$ {prod.preco?.toFixed(2)}</TableCell>
+                      <TableCell className="font-bold whitespace-nowrap">{prod.nome}</TableCell>
+                      <TableCell className="whitespace-nowrap">R$ {prod.preco?.toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un</Badge>
                       </TableCell>
@@ -652,30 +656,32 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow>
-                    <TableHead>Local</TableHead>
-                    <TableHead>Bairro</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allFretes?.map(f => (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-bold">{f.isGlobal ? <span className="flex items-center gap-1 text-primary"><Globe className="w-3.5 h-3.5" /> GLOBAL</span> : f.cidade}</TableCell>
-                      <TableCell>{f.bairro}</TableCell>
-                      <TableCell className="font-bold">R$ {f.valor.toFixed(2)}</TableCell>
-                      <TableCell><Badge className={f.ativo ? 'bg-green-500' : 'bg-muted'}>{f.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('fretes', f.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/10">
+                    <TableRow>
+                      <TableHead>Local</TableHead>
+                      <TableHead>Bairro</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {allFretes?.map(f => (
+                      <TableRow key={f.id}>
+                        <TableCell className="font-bold whitespace-nowrap">{f.isGlobal ? <span className="flex items-center gap-1 text-primary"><Globe className="w-3.5 h-3.5" /> GLOBAL</span> : f.cidade}</TableCell>
+                        <TableCell className="whitespace-nowrap">{f.bairro}</TableCell>
+                        <TableCell className="font-bold whitespace-nowrap">R$ {f.valor.toFixed(2)}</TableCell>
+                        <TableCell><Badge className={f.ativo ? 'bg-green-500' : 'bg-muted'}>{f.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('fretes', f.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </Card>
           </div>
         </TabsContent>
@@ -699,17 +705,17 @@ export default function AdminDashboard() {
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="porcentagem" id="porcentagem" />
-                      <Label htmlFor="porcentagem" className="flex items-center gap-1"><Percent className="w-3 h-3" /> Porcentagem</Label>
+                      <Label htmlFor="porcentagem" className="flex items-center gap-1 text-xs"><Percent className="w-3 h-3" /> %</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="fixo" id="fixo" />
-                      <Label htmlFor="fixo" className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> Valor Fixo</Label>
+                      <Label htmlFor="fixo" className="flex items-center gap-1 text-xs"><DollarSign className="w-3 h-3" /> R$</Label>
                     </div>
                   </RadioGroup>
                 </div>
 
                 <div className="space-y-1">
-                  <Label>{newCupom.tipo === 'fixo' ? 'Valor do Desconto (R$)' : 'Porcentagem do Desconto (%)'}</Label>
+                  <Label>{newCupom.tipo === 'fixo' ? 'Valor (R$)' : 'Desconto (%)'}</Label>
                   <div className="relative">
                     <Input 
                       type="number" 
@@ -730,32 +736,34 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Desconto</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allCupons?.map(c => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-black text-primary">{c.codigo}</TableCell>
-                      <TableCell className="font-bold">
-                        {c.tipo === 'fixo' ? `R$ ${c.desconto.toFixed(2)}` : `${c.desconto}% OFF`}
-                      </TableCell>
-                      <TableCell className="capitalize text-xs font-medium">{c.tipo || 'porcentagem'}</TableCell>
-                      <TableCell><Badge>ATIVO</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/10">
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Desconto</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {allCupons?.map(c => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-black text-primary whitespace-nowrap">{c.codigo}</TableCell>
+                        <TableCell className="font-bold whitespace-nowrap">
+                          {c.tipo === 'fixo' ? `R$ ${c.desconto.toFixed(2)}` : `${c.desconto}% OFF`}
+                        </TableCell>
+                        <TableCell className="capitalize text-xs font-medium">{c.tipo || 'porcentagem'}</TableCell>
+                        <TableCell><Badge>ATIVO</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </Card>
           </div>
         </TabsContent>
@@ -769,14 +777,14 @@ export default function AdminDashboard() {
                   <Label>Nome da Campanha</Label>
                   <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Ex: Liquida Verão" />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label>Início</Label>
-                    <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} />
+                    <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} className="text-xs" />
                   </div>
                   <div className="space-y-1">
                     <Label>Fim</Label>
-                    <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} />
+                    <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} className="text-xs" />
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -784,7 +792,7 @@ export default function AdminDashboard() {
                   <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseInt(e.target.value)})} />
                 </div>
                 <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
-                  <Label className="font-bold">Modo Black Friday</Label>
+                  <Label className="font-bold text-xs">Modo Black Friday</Label>
                   <Switch checked={newPromo.isBlackFriday || false} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
                 </div>
                 <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar Promoção</Button>
@@ -792,53 +800,55 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow>
-                    <TableHead>Campanha</TableHead>
-                    <TableHead>Desconto</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allPromotions?.map(p => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-bold">
-                        {p.nome}
-                        {p.isBlackFriday && <Badge className="ml-2 bg-black text-yellow-500">BF</Badge>}
-                      </TableCell>
-                      <TableCell className="font-black text-primary">-{p.valorDesconto}%</TableCell>
-                      <TableCell className="text-[10px] text-muted-foreground">
-                        {new Date(p.dataInicio).toLocaleDateString()} - {new Date(p.dataFim).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('promocoes', p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/10">
+                    <TableRow>
+                      <TableHead>Campanha</TableHead>
+                      <TableHead>Desconto</TableHead>
+                      <TableHead>Período</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
-                  ))}
-                  {(!allPromotions || allPromotions.length === 0) && (
-                    <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma promoção ativa.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {allPromotions?.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-bold whitespace-nowrap">
+                          {p.nome}
+                          {p.isBlackFriday && <Badge className="ml-2 bg-black text-yellow-500">BF</Badge>}
+                        </TableCell>
+                        <TableCell className="font-black text-primary whitespace-nowrap">-{p.valorDesconto}%</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {new Date(p.dataInicio).toLocaleDateString()} - {new Date(p.dataFim).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('promocoes', p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!allPromotions || allPromotions.length === 0) && (
+                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma promoção ativa.</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="api">
-          <Card className="border-2 shadow-sm rounded-3xl p-8 space-y-8">
-             <div className="flex items-center gap-4">
+          <Card className="border-2 shadow-sm rounded-3xl p-6 md:p-8 space-y-8">
+             <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="bg-primary/10 p-4 rounded-3xl">
                    <Zap className="w-8 h-8 text-primary" />
                 </div>
-                <div>
-                   <h2 className="text-3xl font-headline font-bold">Automação de Notificações</h2>
-                   <p className="text-muted-foreground">Configure seu bot do Telegram para receber alertas de novos pedidos.</p>
+                <div className="text-center sm:text-left">
+                   <h2 className="text-2xl md:text-3xl font-headline font-bold">Notificações</h2>
+                   <p className="text-muted-foreground text-sm">Configure seu bot do Telegram para alertas de vendas.</p>
                 </div>
              </div>
 
@@ -847,47 +857,44 @@ export default function AdminDashboard() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Bot Token (Telegram API)</Label>
+                      <Label className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Bot Token</Label>
                       <Input type="password" value={tgSettings.botToken || ''} onChange={e => setTgSettings({...tgSettings, botToken: e.target.value})} placeholder="000000000:AAAAA-BBBBB" />
                    </div>
                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Chat ID (Grupo ou Privado)</Label>
+                      <Label className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Chat ID</Label>
                       <Input value={tgSettings.chatId || ''} onChange={e => setTgSettings({...tgSettings, chatId: e.target.value})} placeholder="-100000000" />
                    </div>
                    <div className="flex items-center justify-between p-4 border-2 rounded-2xl bg-muted/10">
                       <div>
-                         <p className="font-bold">Notificações Ativas</p>
-                         <p className="text-xs text-muted-foreground">Enviar alertas instantâneos de vendas.</p>
+                         <p className="font-bold text-sm">Notificações Ativas</p>
+                         <p className="text-[10px] text-muted-foreground">Alertas instantâneos de vendas.</p>
                       </div>
                       <Switch checked={tgSettings.isActive || false} onCheckedChange={checked => setTgSettings({...tgSettings, isActive: checked})} />
                    </div>
                 </div>
                 <div className="space-y-4">
                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Template da Mensagem (Markdown)</Label>
+                      <Label className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Template da Mensagem</Label>
                       <Textarea 
                         value={tgSettings.messageTemplate || ''} 
                         onChange={e => setTgSettings({...tgSettings, messageTemplate: e.target.value})} 
-                        className="min-h-[220px] font-mono text-xs"
+                        className="min-h-[180px] font-mono text-[10px]"
                       />
                    </div>
-                   <div className="grid grid-cols-2 gap-4">
-                      <Button onClick={handleSaveTgSettings} className="w-full h-14 rounded-2xl">
-                         <Save className="w-4 h-4 mr-2" /> Salvar Configurações
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
+                      <Button onClick={handleSaveTgSettings} className="w-full h-12 md:h-14 rounded-2xl">
+                         <Save className="w-4 h-4 mr-2" /> Salvar
                       </Button>
                       <Button 
                         variant="secondary" 
                         disabled={isTesting}
                         onClick={handleTestTelegram} 
-                        className="w-full h-14 rounded-2xl border-2 border-primary/20"
+                        className="w-full h-12 md:h-14 rounded-2xl border-2 border-primary/20"
                       >
                          {isTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                         Testar Notificação
+                         Testar
                       </Button>
                    </div>
-                   <p className="text-[10px] text-muted-foreground text-center">
-                     Dica: Clique em "Testar Notificação" para enviar uma mensagem agora e verificar se o Bot está funcionando.
-                   </p>
                 </div>
              </div>
           </Card>
