@@ -46,7 +46,9 @@ import {
   Layout,
   Layers,
   X,
-  Play
+  Play,
+  Percent,
+  Calendar
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,11 +64,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, sufferings, where, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pedido, TelegramConfig, FreteRule, Cupom, SiteConfig, User as AppUser, Product } from '@/types';
+import { Pedido, TelegramConfig, FreteRule, Cupom, SiteConfig, User as AppUser, Product, Promocao } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { sendCustomEmail } from '@/ai/flows/send-custom-email';
 import { Separator } from '@/components/ui/separator';
@@ -98,6 +100,9 @@ export default function AdminDashboard() {
   const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
   const { data: allCupons } = useCollection<Cupom>(cuponsQuery);
 
+  const promosQuery = useMemoFirebase(() => isAdmin ? query(collection(firestore, 'promocoes'), orderBy('dataCriacao', 'desc')) : null, [firestore, isAdmin]);
+  const { data: allPromotions } = useCollection<Promocao>(promosQuery);
+
   const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
   const { data: config } = useDoc<SiteConfig>(configRef);
 
@@ -110,6 +115,7 @@ export default function AdminDashboard() {
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false });
+  const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
   const [isUploading, setIsUploading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -237,6 +243,16 @@ export default function AdminDashboard() {
     toast({ title: "Cupom de Desconto Criado" });
   };
 
+  const handleAddPromo = () => {
+    if (!newPromo.nome || !newPromo.valorDesconto || !newPromo.dataInicio || !newPromo.dataFim) return;
+    addDocumentNonBlocking(collection(firestore, 'promocoes'), {
+      ...newPromo,
+      dataCriacao: new Date().toISOString()
+    });
+    setNewPromo({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
+    toast({ title: "Promoção Ativada!" });
+  };
+
   const handleDeleteItem = (col: string, id: string) => {
     if (confirm('Deseja realmente excluir este item?')) {
       deleteDocumentNonBlocking(doc(firestore, col, id));
@@ -296,13 +312,14 @@ export default function AdminDashboard() {
 
       <Tabs defaultValue="orders" className="space-y-8">
         <div className="overflow-x-auto pb-2 custom-scrollbar">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-7 bg-muted/50 p-1 rounded-2xl h-auto border">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-8 bg-muted/50 p-1 rounded-2xl h-auto border">
             <TabsTrigger value="orders" className="rounded-xl font-bold">Pedidos</TabsTrigger>
             <TabsTrigger value="users" className="rounded-xl font-bold">Usuários</TabsTrigger>
             <TabsTrigger value="home" className="rounded-xl font-bold">Site</TabsTrigger>
             <TabsTrigger value="catalog" className="rounded-xl font-bold">Estoque</TabsTrigger>
             <TabsTrigger value="frete" className="rounded-xl font-bold">Fretes</TabsTrigger>
             <TabsTrigger value="coupons" className="rounded-xl font-bold">Cupons</TabsTrigger>
+            <TabsTrigger value="promos" className="rounded-xl font-bold">Promoções</TabsTrigger>
             <TabsTrigger value="api" className="rounded-xl font-bold">Notificações</TabsTrigger>
           </TabsList>
         </div>
@@ -695,6 +712,76 @@ export default function AdminDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="promos">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="border-2 shadow-sm rounded-3xl p-6 h-fit space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-primary" /> Nova Promoção</h2>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Nome da Campanha</Label>
+                  <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Ex: Liquida Verão" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label>Início</Label>
+                    <Input type="datetime-local" value={newPromo.dataInicio} onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Fim</Label>
+                    <Input type="datetime-local" value={newPromo.dataFim} onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Desconto (%)</Label>
+                  <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseInt(e.target.value)})} />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
+                  <Label className="font-bold">Modo Black Friday</Label>
+                  <Switch checked={newPromo.isBlackFriday || false} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
+                </div>
+                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar Promoção</Button>
+              </div>
+            </Card>
+
+            <Card className="lg:col-span-2 border-2 shadow-sm rounded-3xl overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/10">
+                  <TableRow>
+                    <TableHead>Campanha</TableHead>
+                    <TableHead>Desconto</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allPromotions?.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-bold">
+                        {p.nome}
+                        {p.isBlackFriday && <Badge className="ml-2 bg-black text-yellow-500">BF</Badge>}
+                      </TableCell>
+                      <TableCell className="font-black text-primary">-{p.valorDesconto}%</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">
+                        {new Date(p.dataInicio).toLocaleDateString()} - {new Date(p.dataFim).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('promocoes', p.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!allPromotions || allPromotions.length === 0) && (
+                    <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma promoção ativa.</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </Card>
