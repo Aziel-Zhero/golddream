@@ -26,7 +26,7 @@ export default function CheckoutPage() {
   const [isOrdered, setIsOrdered] = useState(false);
   const [shippingCost, setShippingCost] = useState(0);
   const [couponCode, setCouponCode] = useState('');
-  const [manualDiscountPercent, setManualDiscountPercent] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<Cupom | null>(null);
   const [autoDiscountPercent, setAutoDiscountPercent] = useState(0);
   const [activePromo, setActivePromo] = useState<Promocao | null>(null);
   const [isApplying, setIsApplying] = useState(false);
@@ -97,10 +97,11 @@ export default function CheckoutPage() {
       const snap = await getDocs(q);
       
       if (!snap.empty) {
-        const couponData = snap.docs[0].data() as Cupom;
-        setManualDiscountPercent(couponData.desconto);
+        const couponData = { ...snap.docs[0].data(), id: snap.docs[0].id } as Cupom;
+        setAppliedCoupon(couponData);
         toast({ title: "Cupom Aplicado!" });
       } else {
+        setAppliedCoupon(null);
         toast({ variant: "destructive", title: "Cupom Inválido" });
       }
     } catch (e) {
@@ -110,8 +111,24 @@ export default function CheckoutPage() {
     }
   };
 
-  const finalDiscountPercent = Math.max(manualDiscountPercent, autoDiscountPercent);
-  const discountValue = totalPrice * (finalDiscountPercent / 100);
+  // Lógica para decidir qual desconto usar (melhor oferta)
+  const calculateFinalDiscount = () => {
+    const discountFromAuto = totalPrice * (autoDiscountPercent / 100);
+    let discountFromCoupon = 0;
+
+    if (appliedCoupon) {
+      if (appliedCoupon.tipo === 'fixo') {
+        discountFromCoupon = appliedCoupon.desconto;
+      } else {
+        discountFromCoupon = totalPrice * (appliedCoupon.desconto / 100);
+      }
+    }
+
+    // Retornamos o maior valor de desconto
+    return Math.max(discountFromAuto, discountFromCoupon);
+  };
+
+  const discountValue = calculateFinalDiscount();
   const finalTotal = (totalPrice - discountValue) + shippingCost;
 
   const generateOrderId = () => {
@@ -129,7 +146,6 @@ export default function CheckoutPage() {
   const formatTelegramMessage = (order: any) => {
     let itemsText = "";
     order.itens.forEach((i: any, index: number) => {
-      // Formata cor para mostrar código e nome se disponíveis
       const colorDisplay = i.cor.startsWith('#') ? `${i.cor} (Selecionada)` : i.cor;
       itemsText += `${index + 1}️⃣ *${i.nome}*\nTamanho: ${i.tamanho}\nCor: ${colorDisplay}\nQtd: ${i.quantidade}\nValor: R$ ${i.valor.toFixed(2)}\n\n`;
     });
@@ -163,7 +179,16 @@ export default function CheckoutPage() {
     setLastPhoneUsed(user.telefone || '');
     
     const orderId = generateOrderId();
-    const couponUsed = manualDiscountPercent > 0 ? couponCode : (activePromo ? activePromo.nome : "");
+    
+    // Determina qual cupom/promoção deu o melhor desconto para o registro
+    const discountFromAuto = totalPrice * (autoDiscountPercent / 100);
+    const discountFromCoupon = appliedCoupon 
+      ? (appliedCoupon.tipo === 'fixo' ? appliedCoupon.desconto : totalPrice * (appliedCoupon.desconto / 100))
+      : 0;
+    
+    const couponUsedText = discountFromCoupon >= discountFromAuto && appliedCoupon 
+      ? appliedCoupon.codigo 
+      : (activePromo ? `Campanha: ${activePromo.nome}` : "Nenhum");
 
     const pedidoData = {
       codigo: orderId,
@@ -184,7 +209,7 @@ export default function CheckoutPage() {
       total: finalTotal,
       status: 'pendente' as const,
       dataCriacao: new Date().toISOString(),
-      cupomText: couponUsed || 'Não'
+      cupomText: couponUsedText
     };
 
     try {
@@ -297,7 +322,7 @@ E nos informar a forma de pagamento? 💳`;
                 </div>
                 <div>
                   <p className="font-black text-lg uppercase tracking-tight">Campanha: {activePromo.nome}</p>
-                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF aplicado.</p>
+                  <p className="text-sm opacity-80">-{activePromo.valorDesconto}% OFF disponível.</p>
                 </div>
               </div>
               <Badge className={activePromo.isBlackFriday ? 'bg-yellow-500 text-black border-none font-black' : ''}>ATIVO</Badge>
@@ -354,11 +379,21 @@ E nos informar a forma de pagamento? 💳`;
                   <Input placeholder="CÓDIGO" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="h-12 rounded-xl font-black" />
                   <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 px-6 rounded-xl font-bold">OK</Button>
                 </div>
+                {appliedCoupon && (
+                  <p className="text-[10px] text-green-600 font-bold">
+                    Cupom {appliedCoupon.codigo} ({appliedCoupon.tipo === 'fixo' ? `R$ ${appliedCoupon.desconto.toFixed(2)}` : `${appliedCoupon.desconto}%`}) aplicado!
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3 pt-4 text-sm">
                 <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-bold">R$ {totalPrice.toFixed(2)}</p></div>
-                {finalDiscountPercent > 0 && <div className="flex justify-between text-green-600"><p>Desconto ({finalDiscountPercent}%)</p><p className="font-bold">- R$ {discountValue.toFixed(2)}</p></div>}
+                {discountValue > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <p>Total Descontos</p>
+                    <p className="font-bold">- R$ {discountValue.toFixed(2)}</p>
+                  </div>
+                )}
                 <div className="flex justify-between"><p className="text-muted-foreground">Taxa de Frete</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
               </div>
               

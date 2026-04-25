@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   nome: string;
@@ -98,6 +99,7 @@ export type Cupom = {
   id: string;
   codigo: string;
   desconto: number;
+  tipo: 'porcentagem' | 'fixo';
   expira: boolean;
   dataExpiracao?: string;
 };

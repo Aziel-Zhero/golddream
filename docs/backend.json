@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Usuario": {
@@ -86,6 +87,16 @@
         "b4_sub": { "type": "string" },
         "b4_icon": { "type": "string" },
         "b4_active": { "type": "boolean" }
+      }
+    },
+    "Cupom": {
+      "title": "Cupom",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "desconto": { "type": "number" },
+        "tipo": { "type": "string", "enum": ["porcentagem", "fixo"] },
+        "expira": { "type": "boolean" }
       }
     }
   },

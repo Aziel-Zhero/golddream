@@ -48,7 +48,8 @@ import {
   X,
   Play,
   Percent,
-  Calendar
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, sufferings, where, deleteField } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -74,6 +75,7 @@ import { sendCustomEmail } from '@/ai/flows/send-custom-email';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { compressImage } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -114,7 +116,7 @@ export default function AdminDashboard() {
   const [tgSettings, setTgSettings] = useState<TelegramConfig>({});
   const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null);
   const [newFrete, setNewFrete] = useState<Partial<FreteRule>>({ cidade: '', bairro: '', valor: 0, ativo: true, isGlobal: false });
-  const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, expira: false });
+  const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
   const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, ativo: true, isBlackFriday: false });
   const [isUploading, setIsUploading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -238,8 +240,12 @@ export default function AdminDashboard() {
 
   const handleAddCupom = () => {
     if (!newCupom.codigo || !newCupom.desconto) return;
-    addDocumentNonBlocking(collection(firestore, 'cupons'), { ...newCupom, codigo: newCupom.codigo.toUpperCase() });
-    setNewCupom({ codigo: '', desconto: 0, expira: false });
+    addDocumentNonBlocking(collection(firestore, 'cupons'), { 
+      ...newCupom, 
+      codigo: newCupom.codigo.toUpperCase(),
+      tipo: newCupom.tipo || 'porcentagem'
+    });
+    setNewCupom({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
     toast({ title: "Cupom de Desconto Criado" });
   };
 
@@ -678,15 +684,47 @@ export default function AdminDashboard() {
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="border-2 shadow-sm rounded-3xl p-6 h-fit space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Novo Cupom</h2>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="space-y-1">
                   <Label>Código do Cupom</Label>
                   <Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value})} placeholder="EX: GOLD10" />
                 </div>
-                <div className="space-y-1">
-                  <Label>Desconto (%)</Label>
-                  <Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseInt(e.target.value)})} />
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Desconto</Label>
+                  <RadioGroup 
+                    value={newCupom.tipo || 'porcentagem'} 
+                    onValueChange={(val: any) => setNewCupom({...newCupom, tipo: val})}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="porcentagem" id="porcentagem" />
+                      <Label htmlFor="porcentagem" className="flex items-center gap-1"><Percent className="w-3 h-3" /> Porcentagem</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fixo" id="fixo" />
+                      <Label htmlFor="fixo" className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> Valor Fixo</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
+
+                <div className="space-y-1">
+                  <Label>{newCupom.tipo === 'fixo' ? 'Valor do Desconto (R$)' : 'Porcentagem do Desconto (%)'}</Label>
+                  <div className="relative">
+                    <Input 
+                      type="number" 
+                      value={newCupom.desconto} 
+                      onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} 
+                      className="pr-10"
+                    />
+                    {newCupom.tipo === 'fixo' ? (
+                      <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+                
                 <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar Cupom</Button>
               </div>
             </Card>
@@ -697,6 +735,7 @@ export default function AdminDashboard() {
                   <TableRow>
                     <TableHead>Código</TableHead>
                     <TableHead>Desconto</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
@@ -705,7 +744,10 @@ export default function AdminDashboard() {
                   {allCupons?.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-black text-primary">{c.codigo}</TableCell>
-                      <TableCell className="font-bold">{c.desconto}% OFF</TableCell>
+                      <TableCell className="font-bold">
+                        {c.tipo === 'fixo' ? `R$ ${c.desconto.toFixed(2)}` : `${c.desconto}% OFF`}
+                      </TableCell>
+                      <TableCell className="capitalize text-xs font-medium">{c.tipo || 'porcentagem'}</TableCell>
                       <TableCell><Badge>ATIVO</Badge></TableCell>
                       <TableCell className="text-right">
                         <Button size="icon" variant="ghost" onClick={() => handleDeleteItem('cupons', c.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
