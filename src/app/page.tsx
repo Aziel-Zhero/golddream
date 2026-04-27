@@ -77,7 +77,6 @@ export default function Home() {
                 className="w-full h-full object-cover object-center transition-opacity duration-1000 animate-in fade-in"
                 loading="eager"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent md:from-background/60" />
             </>
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -100,10 +99,10 @@ export default function Home() {
                 <Badge className="bg-primary/20 text-primary border-primary/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
                   {config?.heroBadge || 'Nova Coleção 2024'}
                 </Badge>
-                <h1 className="text-4xl md:text-7xl font-headline font-bold leading-tight">
+                <h1 className="text-4xl md:text-7xl font-headline font-bold leading-tight drop-shadow-sm">
                   {config?.heroTitle || 'Crie seu Estilo Único'}
                 </h1>
-                <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed text-balance">
+                <p className="text-sm md:text-lg text-muted-foreground max-w-lg leading-relaxed text-balance drop-shadow-sm">
                   {config?.heroDescription || 'Descubra moda curada que combina artesanato de alta qualidade com silhuetas modernas.'}
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">

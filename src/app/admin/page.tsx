@@ -51,7 +51,8 @@ import {
   Calendar,
   DollarSign,
   BarChart3,
-  Receipt
+  Receipt,
+  Heart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+const ICON_MAP: Record<string, any> = {
+  Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart, ShoppingBag, 
+  Settings, Tag, MapPin, Ticket, Globe, Instagram, Facebook, Twitter, 
+  Mail, MessageCircle, ImageIcon, FileText, Phone, Layout, Layers, X, 
+  Play, Percent, Calendar, DollarSign, BarChart3, Receipt, Clock, 
+  ClipboardList, CheckCircle2, User: UserIcon, Users: UsersIcon
+};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -454,9 +463,8 @@ export default function AdminDashboard() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                  </TableHeader>
+                  <TableBody>
                   {allUsers?.map(u => (
                     <TableRow key={u.id || (u as any).uid}>
                       <TableCell className="font-bold">{u.nome}</TableCell>
@@ -583,7 +591,14 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[10px]">Ícone (Lucide Name)</Label>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <Label className="text-[10px]">Ícone</Label>
+                            {(() => {
+                              const iconName = (siteSettings[`b${num}_icon` as keyof SiteConfig] as string);
+                              const IconComp = ICON_MAP[iconName];
+                              return IconComp ? <IconComp className="w-3 h-3 text-primary animate-in zoom-in" /> : null;
+                            })()}
+                          </div>
                           <Input 
                             value={(siteSettings[`b${num}_icon` as keyof SiteConfig] as string) || ''} 
                             onChange={e => setSiteSettings({...siteSettings, [`b${num}_icon` as keyof SiteConfig]: e.target.value})}
@@ -857,4 +872,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
