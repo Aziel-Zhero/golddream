@@ -18,7 +18,10 @@ import {
   Ruler,
   Upload,
   Trash2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Zap,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +30,8 @@ import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase';
 import { compressImage } from '@/lib/utils';
 import { ProductVariation } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -41,6 +46,9 @@ export default function NewProductPage() {
     preco: 0,
     categoriaId: 'feminino',
     isFeatured: false,
+    isNovidade: false,
+    isLancamento: false,
+    isUltimasPecas: false,
     tamanhosDisponiveis: [] as string[],
     variacoes: [] as ProductVariation[]
   });
@@ -78,7 +86,7 @@ export default function NewProductPage() {
     const files = e.target.files;
     if (files && files.length > 0) {
       setIsUploading(variationIndex);
-      const newImages = [...formData.variacoes[variationIndex].imagens];
+      const newImages = [...formData.variacoes[variationIndex].images || [], ...formData.variacoes[variationIndex].imagens];
       
       for (let i = 0; i < files.length; i++) {
         if (newImages.length >= 8) break;
@@ -137,7 +145,7 @@ export default function NewProductPage() {
           <Link href="/admin/products"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Link>
         </Button>
         <h1 className="text-4xl font-headline font-bold text-primary">Novo Produto Premium</h1>
-        <p className="text-muted-foreground">Gerencie estoque e imagens por variação de cor.</p>
+        <p className="text-muted-foreground">Gerencie estoque e selos promocionais.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -225,7 +233,7 @@ export default function NewProductPage() {
 
         <div className="space-y-8">
           <Card className="border-2 rounded-3xl">
-            <CardHeader><CardTitle>Atributos</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Atributos e Selos</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Categoria</Label>
@@ -235,7 +243,42 @@ export default function NewProductPage() {
                   <option value="acessorios">Acessórios</option>
                 </select>
               </div>
-              <div className="space-y-4">
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    <Label htmlFor="feat">Destaque na Home?</Label>
+                  </div>
+                  <Switch id="feat" checked={formData.isFeatured} onCheckedChange={(checked) => setFormData({...formData, isFeatured: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-green-500" />
+                    <Label htmlFor="novidade">Selo Novidade (Piscante)</Label>
+                  </div>
+                  <Switch id="novidade" checked={formData.isNovidade} onCheckedChange={(checked) => setFormData({...formData, isNovidade: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <Label htmlFor="lanc">Selo Lançamento (Amarelo)</Label>
+                  </div>
+                  <Switch id="lanc" checked={formData.isLancamento} onCheckedChange={(checked) => setFormData({...formData, isLancamento: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="ult">Últimas Peças (Vermelho)</Label>
+                  </div>
+                  <Switch id="ult" checked={formData.isUltimasPecas} onCheckedChange={(checked) => setFormData({...formData, isUltimasPecas: checked})} />
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
                 <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos</Label>
                 <div className="flex gap-2">
                   <Input value={newSize} onChange={(e) => setNewSize(e.target.value.toUpperCase())} placeholder="P, M, G..." />
@@ -246,10 +289,6 @@ export default function NewProductPage() {
                     <Badge key={i} className="bg-primary/10 text-primary border-none">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_, idx) => idx !== i)})} /></Badge>
                   ))}
                 </div>
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <Label htmlFor="feat">Destaque?</Label>
-                <input id="feat" type="checkbox" checked={formData.isFeatured} onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})} className="h-5 w-5 accent-primary" />
               </div>
             </CardContent>
           </Card>

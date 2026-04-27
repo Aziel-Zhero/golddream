@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Eye, XCircle, ImageIcon } from 'lucide-react';
+import { ShoppingCart, Eye, XCircle, Zap, Sparkles, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function ProductCard({ product }: { product: Product }) {
@@ -41,15 +41,37 @@ export function ProductCard({ product }: { product: Product }) {
             decoding="async"
           />
           
-          {isOutOfStock ? (
-            <Badge className="absolute top-3 left-3 bg-destructive text-white border-none shadow-sm font-black uppercase tracking-widest text-[10px]" variant="destructive">
-              ESGOTADO
-            </Badge>
-          ) : product.estoque < 5 && (
-            <Badge className="absolute top-3 left-3 bg-white/90 text-primary border-none shadow-sm font-bold text-[10px]" variant="outline">
-              Só restam {product.estoque} un
-            </Badge>
-          )}
+          {/* Selos Promocionais Flutuantes */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+            {isOutOfStock ? (
+              <Badge className="bg-destructive text-white border-none shadow-sm font-black uppercase tracking-widest text-[10px] px-3 py-1" variant="destructive">
+                ESGOTADO
+              </Badge>
+            ) : (
+              <>
+                {product.isNovidade && (
+                  <Badge className="bg-green-500 text-white border-none shadow-sm font-black uppercase tracking-widest text-[10px] px-3 py-1 animate-pulse flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> NOVIDADE
+                  </Badge>
+                )}
+                {product.isLancamento && (
+                  <Badge className="bg-yellow-400 text-black border-none shadow-sm font-black uppercase tracking-widest text-[10px] px-3 py-1 flex items-center gap-1">
+                    <Zap className="w-3 h-3 fill-current" /> LANÇAMENTO
+                  </Badge>
+                )}
+                {product.isUltimasPecas && (
+                  <Badge className="bg-red-600 text-white border-none shadow-sm font-black uppercase tracking-widest text-[10px] px-3 py-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> ÚLTIMAS PEÇAS
+                  </Badge>
+                )}
+                {product.estoque > 0 && product.estoque < 5 && !product.isUltimasPecas && (
+                  <Badge className="bg-white/90 text-primary border-none shadow-sm font-bold text-[10px] px-3 py-1" variant="outline">
+                    Só restam {product.estoque} un
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
           
           {!isOutOfStock && (
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">

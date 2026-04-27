@@ -16,7 +16,10 @@ import {
   XCircle, 
   ChevronLeft, 
   ChevronRight,
-  Maximize2
+  Maximize2,
+  Zap,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/ProductCard';
@@ -80,6 +83,25 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         {/* Gallery Section */}
         <div className="space-y-4">
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border bg-muted shadow-sm group">
+            {/* Selos Dinâmicos na Galeria */}
+            <div className="absolute top-6 left-6 flex flex-col gap-2 z-20">
+              {product.isNovidade && (
+                <Badge className="bg-green-500 text-white border-none shadow-lg font-black uppercase tracking-widest text-[10px] px-4 py-1.5 animate-pulse flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> NOVIDADE
+                </Badge>
+              )}
+              {product.isLancamento && (
+                <Badge className="bg-yellow-400 text-black border-none shadow-lg font-black uppercase tracking-widest text-[10px] px-4 py-1.5 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 fill-current" /> LANÇAMENTO
+                </Badge>
+              )}
+              {product.isUltimasPecas && (
+                <Badge className="bg-red-600 text-white border-none shadow-lg font-black uppercase tracking-widest text-[10px] px-4 py-1.5 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" /> ÚLTIMAS PEÇAS
+                </Badge>
+              )}
+            </div>
+
             <div className="w-full h-full" ref={emblaRef}>
               <div className="flex h-full">
                 {currentImages.map((img, idx) => (
@@ -161,7 +183,9 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Badge variant="outline" className="uppercase tracking-widest text-[10px] px-3 py-1 text-primary border-primary font-black">{product.categoriaId}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="uppercase tracking-widest text-[10px] px-3 py-1 text-primary border-primary font-black">{product.categoriaId}</Badge>
+              </div>
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon" className="rounded-full"><Share2 className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon" className="rounded-full hover:text-pink-500"><Heart className="w-4 h-4" /></Button>

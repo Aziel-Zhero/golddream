@@ -15,6 +15,9 @@ export type Product = {
   variacoes: ProductVariation[];
   dataCriacao: string;
   isFeatured?: boolean;
+  isNovidade?: boolean;
+  isLancamento?: boolean;
+  isUltimasPecas?: boolean;
   estoque: number; // Total acumulado para exibição rápida
 };
 

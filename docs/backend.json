@@ -47,6 +47,9 @@
         },
         "estoque": { "type": "number", "description": "Total acumulado de todas as variações" },
         "isFeatured": { "type": "boolean" },
+        "isNovidade": { "type": "boolean", "description": "Ativa selo Novidade piscante verde" },
+        "isLancamento": { "type": "boolean", "description": "Ativa selo Lançamento amarelo" },
+        "isUltimasPecas": { "type": "boolean", "description": "Ativa selo Últimas Peças vermelho" },
         "dataCriacao": { "type": "string", "format": "date-time" }
       }
     },

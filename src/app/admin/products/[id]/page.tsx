@@ -18,7 +18,10 @@ import {
   Ruler,
   Upload,
   Trash2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Zap,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +30,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { compressImage } from '@/lib/utils';
 import { ProductVariation } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -46,6 +50,9 @@ export default function EditProductPage() {
     preco: 0,
     categoriaId: 'feminino',
     isFeatured: false,
+    isNovidade: false,
+    isLancamento: false,
+    isUltimasPecas: false,
     tamanhosDisponiveis: [],
     variacoes: [] as ProductVariation[]
   });
@@ -60,6 +67,9 @@ export default function EditProductPage() {
         preco: product.preco || 0,
         categoriaId: product.categoriaId || 'feminino',
         isFeatured: product.isFeatured || false,
+        isNovidade: product.isNovidade || false,
+        isLancamento: product.isLancamento || false,
+        isUltimasPecas: product.isUltimasPecas || false,
         tamanhosDisponiveis: product.tamanhosDisponiveis || [],
         variacoes: product.variacoes || []
       });
@@ -203,7 +213,8 @@ export default function EditProductPage() {
 
         <div className="space-y-8">
           <Card className="border-2 rounded-3xl">
-            <CardContent className="space-y-6 pt-6">
+            <CardHeader><CardTitle>Atributos e Selos</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Categoria</Label>
                 <select className="w-full p-2 border rounded-md" value={formData.categoriaId} onChange={e => setFormData({...formData, categoriaId: e.target.value})}>
@@ -212,7 +223,42 @@ export default function EditProductPage() {
                   <option value="acessorios">Acessórios</option>
                 </select>
               </div>
-              <div className="space-y-4">
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    <Label htmlFor="feat">Destaque na Home?</Label>
+                  </div>
+                  <Switch id="feat" checked={formData.isFeatured} onCheckedChange={(checked) => setFormData({...formData, isFeatured: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-green-500" />
+                    <Label htmlFor="novidade">Selo Novidade (Piscante)</Label>
+                  </div>
+                  <Switch id="novidade" checked={formData.isNovidade} onCheckedChange={(checked) => setFormData({...formData, isNovidade: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <Label htmlFor="lanc">Selo Lançamento (Amarelo)</Label>
+                  </div>
+                  <Switch id="lanc" checked={formData.isLancamento} onCheckedChange={(checked) => setFormData({...formData, isLancamento: checked})} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <Label htmlFor="ult">Últimas Peças (Vermelho)</Label>
+                  </div>
+                  <Switch id="ult" checked={formData.isUltimasPecas} onCheckedChange={(checked) => setFormData({...formData, isUltimasPecas: checked})} />
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
                 <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos</Label>
                 <div className="flex gap-2">
                   <Input value={newSize} onChange={e => setNewSize(e.target.value.toUpperCase())} />
@@ -223,10 +269,6 @@ export default function EditProductPage() {
                     <Badge key={i} variant="secondary" className="pr-1">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_:any, idx:any) => idx !== i)})} /></Badge>
                   ))}
                 </div>
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <Label>Destaque?</Label>
-                <input type="checkbox" checked={formData.isFeatured} onChange={e => setFormData({...formData, isFeatured: e.target.checked})} className="h-5 w-5 accent-primary" />
               </div>
             </CardContent>
           </Card>
