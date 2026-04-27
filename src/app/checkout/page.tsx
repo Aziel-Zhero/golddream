@@ -12,10 +12,10 @@ import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSqu
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, getDocs, doc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig } from '@/types';
+import { addDocumentNonBlocking } from '@/firebase';
+import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig, Product } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -149,6 +149,9 @@ export default function CheckoutPage() {
 👤 *Cliente:* ${order.clienteNome}
 📍 *Endereço:* ${order.clienteEndereco}
 
+📦 *ITENS:*
+${itemsText}
+
 💰 *TOTAL: R$ ${order.total.toFixed(2)}*
 
 ❓ *PERGUNTE AO CLIENTE:*
@@ -160,9 +163,8 @@ export default function CheckoutPage() {
     if (!user || items.length === 0) return;
     
     setIsProcessing(true);
-    setLastPhoneUsed(user.telefone || '');
-    
     const orderId = generateOrderId();
+    
     const pedidoData = {
       codigo: orderId,
       usuarioId: user.uid,
@@ -188,14 +190,28 @@ export default function CheckoutPage() {
       // 1. Criar o Pedido
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // 2. Dar baixa no estoque de cada item (O segredo para os produtos NÃO sumirem, mas sim atualizarem)
-      items.forEach((item) => {
+      // 2. Dar baixa no estoque específico por cor
+      for (const item of items) {
         const productRef = doc(firestore, 'produtos', item.productId);
-        // Usamos increment(-quantidade) para subtrair do valor atual no banco
-        updateDocumentNonBlocking(productRef, {
-          estoque: increment(-item.quantity)
-        });
-      });
+        const productSnap = await getDoc(productRef);
+        
+        if (productSnap.exists()) {
+          const productData = productSnap.data() as Product;
+          const updatedVariations = productData.variacoes?.map(v => {
+            if (v.cor === item.selectedColor) {
+              return { ...v, estoque: Math.max(0, v.estoque - item.quantity) };
+            }
+            return v;
+          }) || [];
+
+          const newTotalEstoque = updatedVariations.reduce((acc, v) => acc + v.estoque, 0);
+
+          await updateDoc(productRef, {
+            variacoes: updatedVariations,
+            estoque: newTotalEstoque
+          });
+        }
+      }
       
       // 3. Notificar Telegram
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
@@ -209,14 +225,13 @@ export default function CheckoutPage() {
         fetch(url).catch(err => console.error("Telegram API Error:", err));
       }
       
-      setTimeout(() => {
-        setIsOrdered(true);
-        clearCart();
-        setIsProcessing(false);
-      }, 800);
+      setLastPhoneUsed(user.telefone || '');
+      setIsOrdered(true);
+      clearCart();
+      setIsProcessing(false);
       
     } catch (error) {
-      toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique sua conexão." });
+      toast({ variant: "destructive", title: "Erro ao processar o pedido" });
       setIsProcessing(false);
     }
   };
@@ -264,7 +279,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      {/* Modal Informativo Premium */}
       <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
         <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg">
           <DialogHeader className="space-y-4">
@@ -307,36 +321,25 @@ export default function CheckoutPage() {
           
           <section className="bg-muted/30 border-2 border-primary/10 rounded-3xl p-8 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="bg-primary text-white p-2 rounded-lg">
-                <Info className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-headline font-bold uppercase tracking-tight">Como funciona seu pedido?</h2>
+              <div className="bg-primary text-white p-2 rounded-lg"><Info className="w-5 h-5" /></div>
+              <h2 className="text-xl font-headline font-bold uppercase tracking-tight">Processo de Compra</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <p className="font-black text-primary text-2xl">01</p>
-                <p className="text-sm font-bold">Faça o Pedido</p>
-                <p className="text-xs text-muted-foreground">Clique em finalizar e reserve seus itens no sistema.</p>
+                <p className="text-sm font-bold">Reserva Online</p>
+                <p className="text-xs text-muted-foreground">Clique em enviar e garanta os itens no seu estoque.</p>
               </div>
               <div className="space-y-2">
                 <p className="font-black text-primary text-2xl">02</p>
-                <p className="text-sm font-bold">Contato WhatsApp</p>
-                <p className="text-xs text-muted-foreground">Nossa equipe chama você para confirmar os dados.</p>
+                <p className="text-sm font-bold">Chamada WhatsApp</p>
+                <p className="text-xs text-muted-foreground">Nossa equipe chama você para o acerto final.</p>
               </div>
               <div className="space-y-2">
                 <p className="font-black text-primary text-2xl">03</p>
-                <p className="text-sm font-bold">Pagamento</p>
-                <p className="text-xs text-muted-foreground">Enviamos a chave Pix ou Link de Pagamento.</p>
+                <p className="text-sm font-bold">Pagamento e Envio</p>
+                <p className="text-xs text-muted-foreground">Você paga via Pix ou Link e o envio é imediato.</p>
               </div>
-            </div>
-            <div className="bg-white/50 p-4 rounded-2xl border border-yellow-200 flex gap-4 items-start">
-               <div className="bg-yellow-100 p-2 rounded-full mt-1">
-                 <CreditCard className="w-4 h-4 text-yellow-700" />
-               </div>
-               <div>
-                 <p className="text-xs font-bold text-yellow-800 uppercase tracking-tighter">Observação Importante:</p>
-                 <p className="text-xs text-yellow-700 font-medium italic">"Qual forma de pagamento? Pix, dinheiro ou crédito? (No crédito tem taxa da máquina, quer consultar o valor?)"</p>
-               </div>
             </div>
           </section>
 
@@ -351,11 +354,11 @@ export default function CheckoutPage() {
                 <p className="text-muted-foreground font-mono text-sm">{user.telefone}</p>
               </div>
               <Separator />
-              <div className="mt-6 space-y-1">
+              <div className="mt-6 space-y-1 text-muted-foreground">
                 {user.endereco?.cidade ? (
                   <>
-                    <p className="font-bold">{user.endereco.rua}, {user.endereco.numero}</p>
-                    <p className="text-muted-foreground">{user.endereco.bairro} — {user.endereco.cidade}</p>
+                    <p className="font-bold text-foreground">{user.endereco.rua}, {user.endereco.numero}</p>
+                    <p>{user.endereco.bairro} — {user.endereco.cidade}</p>
                   </>
                 ) : (
                   <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 font-bold">
@@ -369,79 +372,52 @@ export default function CheckoutPage() {
 
         <div className="space-y-8">
           <Card className="border-2 shadow-xl rounded-3xl overflow-hidden border-primary/5">
-            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Resumo do Pedido</CardTitle></CardHeader>
+            <CardHeader className="bg-muted/50 border-b"><CardTitle className="text-xl">Resumo</CardTitle></CardHeader>
             <CardContent className="space-y-6 pt-8">
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
-                  <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-start gap-4">
+                  <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-start gap-4 text-xs">
                     <div className="flex-1">
-                      <p className="font-bold text-sm truncate">{item.product.nome}</p>
+                      <p className="font-bold truncate">{item.product.nome}</p>
                       <p className="text-[10px] text-muted-foreground uppercase font-black">{item.selectedSize} | {item.selectedColor} (x{item.quantity})</p>
                     </div>
-                    <p className="font-black text-sm">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
+                    <p className="font-black">R$ {(item.product.preco * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
               
               <div className="pt-6 border-t space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cupom</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="CÓDIGO" 
-                    value={couponCode} 
-                    onChange={e => setCouponCode(e.target.value.toUpperCase())} 
-                    className="h-12 rounded-xl font-black uppercase" 
-                  />
+                  <Input placeholder="CUPOM" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} className="h-12 rounded-xl font-black" />
                   <Button variant="secondary" onClick={handleApplyCoupon} disabled={isApplying} className="h-12 rounded-xl font-bold">APLICAR</Button>
                 </div>
               </div>
 
               <div className="space-y-3 pt-4 text-sm">
-                <div className="flex justify-between">
-                  <p className="text-muted-foreground">Subtotal</p>
-                  <p className="font-bold">R$ {totalPrice.toFixed(2)}</p>
-                </div>
-                {discountValue > 0 && (
-                  <div className="flex justify-between text-green-600 font-bold">
-                    <p>Descontos</p>
-                    <p>- R$ {discountValue.toFixed(2)}</p>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <p className="text-muted-foreground">Frete</p>
-                  <p className="font-bold">R$ {shippingCost.toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="py-2">
-                 <p className="text-[10px] font-black text-muted-foreground uppercase">Total Estimado</p>
-                 <p className="text-4xl font-black text-primary leading-none">R$ {finalTotal.toFixed(2)}</p>
+                <div className="flex justify-between"><p className="text-muted-foreground">Subtotal</p><p className="font-bold">R$ {totalPrice.toFixed(2)}</p></div>
+                {discountValue > 0 && <div className="flex justify-between text-green-600 font-bold"><p>Descontos</p><p>- R$ {discountValue.toFixed(2)}</p></div>}
+                <div className="flex justify-between"><p className="text-muted-foreground">Frete</p><p className="font-bold">R$ {shippingCost.toFixed(2)}</p></div>
+                <Separator />
+                <div className="flex justify-between items-end"><p className="text-[10px] font-black uppercase">Total</p><p className="text-3xl font-black text-primary">R$ {finalTotal.toFixed(2)}</p></div>
               </div>
 
               <div className="space-y-3">
                 <Button 
                   onClick={handlePlaceOrder} 
                   disabled={isProcessing || items.length === 0 || !user.endereco?.cidade} 
-                  className="w-full h-16 text-xl font-black rounded-2xl bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]"
+                  className="w-full h-16 text-xl font-black rounded-2xl bg-primary shadow-xl shadow-primary/20"
                 >
-                  {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-7 h-7" />} ENVIAR PEDIDO
+                  {isProcessing ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-3 w-6 h-6" />} ENVIAR PEDIDO
                 </Button>
-                
-                <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-center space-y-1">
-                   <p className="text-[11px] font-black text-yellow-800 uppercase leading-tight">
-                     Nossa equipe perguntará: Qual forma de pagamento? Pix, dinheiro ou crédito?
+                <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-center space-y-1">
+                   <p className="text-[10px] font-black text-yellow-800 uppercase italic">
+                     "Qual forma de pagamento? Pix, dinheiro ou crédito?"
                    </p>
-                   <p className="text-[9px] text-yellow-700 font-medium leading-tight">
-                     (Lembrando que no crédito há taxa da máquina. Você poderá consultar o valor da taxa no WhatsApp).
+                   <p className="text-[8px] text-yellow-700 font-medium">
+                     (No crédito há taxas da maquininha. Consulte o valor no WhatsApp).
                    </p>
                 </div>
               </div>
-              
-              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold px-4">
-                Ao finalizar, você reserva os itens e aguarda nosso contato para o pagamento.
-              </p>
             </CardContent>
           </Card>
         </div>

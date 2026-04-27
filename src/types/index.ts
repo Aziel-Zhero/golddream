@@ -1,16 +1,21 @@
 
+export type ProductVariation = {
+  cor: string;
+  estoque: number;
+  imagens: string[];
+};
+
 export type Product = {
   id: string;
   nome: string;
   preco: number;
   descricao: string;
   categoriaId: string;
-  imagens: string[];
-  tamanhosDisponiveis?: string[];
-  coresDisponiveis?: string[];
-  estoque: number;
+  tamanhosDisponiveis: string[];
+  variacoes: ProductVariation[];
   dataCriacao: string;
   isFeatured?: boolean;
+  estoque: number; // Total acumulado para exibição rápida
 };
 
 export type User = {

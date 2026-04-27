@@ -22,29 +22,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedCart = localStorage.getItem('voguecraft_cart');
+    const storedCart = localStorage.getItem('golddream_cart');
     if (storedCart) {
-      setItems(JSON.parse(storedCart));
+      try {
+        setItems(JSON.parse(storedCart));
+      } catch (e) {
+        console.error("Erro ao carregar carrinho", e);
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('voguecraft_cart', JSON.stringify(items));
+    localStorage.setItem('golddream_cart', JSON.stringify(items));
   }, [items]);
 
   const addItem = (product: Product, quantity: number, size: string, color: string) => {
     let success = true;
+    let errorMessage = "";
     
     setItems(prev => {
       const existingItemIndex = prev.findIndex(
         item => item.productId === product.id && item.selectedSize === size && item.selectedColor === color
       );
 
+      // Acha a variação específica de cor para checar o estoque
+      const variation = product.variacoes?.find(v => v.cor === color);
+      const stockLimit = variation ? variation.estoque : (product.estoque || 0);
+
       const currentQtyInCart = existingItemIndex > -1 ? prev[existingItemIndex].quantity : 0;
       const totalRequested = currentQtyInCart + quantity;
 
-      if (totalRequested > product.estoque) {
+      if (totalRequested > stockLimit) {
         success = false;
+        errorMessage = `Restam apenas ${stockLimit} unidades da cor ${color} no estoque.`;
         return prev;
       }
 
@@ -59,14 +69,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     if (success) {
       toast({
-        title: "Adicionado à sacola",
+        title: "Sacola atualizada!",
         description: `${product.nome} (${size}, ${color}) adicionado com sucesso.`,
       });
     } else {
       toast({
         variant: "destructive",
         title: "Estoque insuficiente",
-        description: `Não é possível adicionar mais unidades deste item. Restam apenas ${product.estoque} no estoque.`,
+        description: errorMessage,
       });
     }
   };
@@ -85,8 +95,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     
     setItems(prev => prev.map(item => {
       if (item.productId === productId && item.selectedSize === size && item.selectedColor === color) {
-        // Garante que a atualização manual também respeite o estoque
-        const newQuantity = Math.min(quantity, item.product.estoque);
+        const variation = item.product.variacoes?.find(v => v.cor === color);
+        const stockLimit = variation ? variation.estoque : (item.product.estoque || 0);
+        const newQuantity = Math.min(quantity, stockLimit);
         return { ...item, quantity: newQuantity };
       }
       return item;

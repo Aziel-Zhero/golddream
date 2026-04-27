@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,15 +16,17 @@ import {
   Loader2,
   Palette,
   Ruler,
-  Star,
-  Upload
+  Upload,
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { compressImage } from '@/lib/utils';
+import { ProductVariation } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -36,22 +39,18 @@ export default function EditProductPage() {
   const { data: product, isLoading: isFetching } = useDoc(productRef);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({
     nome: '',
     descricao: '',
     preco: 0,
-    estoque: 0,
     categoriaId: 'feminino',
-    imagens: [],
     isFeatured: false,
     tamanhosDisponiveis: [],
-    coresDisponiveis: []
+    variacoes: [] as ProductVariation[]
   });
 
-  const [imageUrl, setImageUrl] = useState('');
   const [newSize, setNewSize] = useState('');
-  const [newColor, setNewColor] = useState('#000000');
 
   useEffect(() => {
     if (product) {
@@ -59,38 +58,13 @@ export default function EditProductPage() {
         nome: product.nome || '',
         descricao: product.descricao || '',
         preco: product.preco || 0,
-        estoque: product.estoque || 0,
         categoriaId: product.categoriaId || 'feminino',
-        imagens: product.imagens || [],
         isFeatured: product.isFeatured || false,
         tamanhosDisponiveis: product.tamanhosDisponiveis || [],
-        coresDisponiveis: product.coresDisponiveis || []
+        variacoes: product.variacoes || []
       });
     }
   }, [product]);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && formData.imagens.length < 5) {
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const compressed = await compressImage(base64);
-        setFormData({ ...formData, imagens: [...formData.imagens, compressed] });
-        setIsUploading(false);
-        toast({ title: "Imagem adicionada e otimizada!" });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAddImage = () => {
-    if (imageUrl && formData.imagens.length < 5) {
-      setFormData({ ...formData, imagens: [...formData.imagens, imageUrl] });
-      setImageUrl('');
-    }
-  };
 
   const handleAddSize = () => {
     if (newSize && !formData.tamanhosDisponiveis.includes(newSize)) {
@@ -99,261 +73,165 @@ export default function EditProductPage() {
     }
   };
 
-  const handleAddColor = () => {
-    if (!formData.coresDisponiveis.includes(newColor)) {
-      setFormData({ ...formData, coresDisponiveis: [...formData.coresDisponiveis, newColor] });
+  const handleAddVariation = () => {
+    setFormData({
+      ...formData,
+      variacoes: [...formData.variacoes, { cor: '', estoque: 0, imagens: [] }]
+    });
+  };
+
+  const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
+    const newVariations = [...formData.variacoes];
+    newVariations[index] = { ...newVariations[index], [field]: value };
+    setFormData({ ...formData, variacoes: newVariations });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, variationIndex: number) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setIsUploading(variationIndex);
+      const newImages = [...formData.variacoes[variationIndex].imagens];
+      
+      for (let i = 0; i < files.length; i++) {
+        if (newImages.length >= 8) break;
+        const reader = new FileReader();
+        const promise = new Promise<string>((resolve) => {
+          reader.onloadend = async () => {
+            const compressed = await compressImage(reader.result as string);
+            resolve(compressed);
+          };
+        });
+        reader.readAsDataURL(files[i]);
+        const compressedUrl = await promise;
+        newImages.push(compressedUrl);
+      }
+      
+      updateVariation(variationIndex, 'imagens', newImages);
+      setIsUploading(null);
+      toast({ title: "Imagens adicionadas!" });
     }
   };
 
-  const removeItem = (field: string, index: number) => {
-    setFormData({ ...formData, [field]: formData[field].filter((_: any, i: number) => i !== index) });
+  const removeVariationImage = (variationIndex: number, imageIndex: number) => {
+    const newImages = formData.variacoes[variationIndex].imagens.filter((_, i) => i !== imageIndex);
+    updateVariation(variationIndex, 'imagens', newImages);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productRef) return;
     
     setIsLoading(true);
-    updateDocumentNonBlocking(productRef, formData);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Sucesso!",
-        description: "O produto foi atualizado com sucesso.",
-      });
+    const totalEstoque = formData.variacoes.reduce((acc: number, v: any) => acc + (v.estoque || 0), 0);
+
+    try {
+      await setDoc(productRef, {
+        ...formData,
+        estoque: totalEstoque
+      }, { merge: true });
+      
+      toast({ title: "Sucesso!", description: "Produto atualizado com sucesso." });
       router.push('/admin/products');
-    }, 1000);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao salvar" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (isFetching) {
-    return (
-      <div className="container mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando dados do produto...</p>
-      </div>
-    );
-  }
+  if (isFetching) return <div className="p-24 text-center"><Loader2 className="animate-spin mx-auto w-10 h-10 text-primary" /></div>;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-5xl">
-      <div className="mb-8">
-        <Button asChild variant="ghost" className="mb-4 -ml-4">
-          <Link href="/admin/products">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para Lista
-          </Link>
-        </Button>
-        <h1 className="text-4xl font-headline font-bold text-primary">Editar Produto</h1>
-        <p className="text-muted-foreground">Atualize os detalhes do item # {id}</p>
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <Button asChild variant="ghost" className="mb-4 -ml-4">
+            <Link href="/admin/products"><ArrowLeft className="w-4 h-4 mr-2" /> Lista</Link>
+          </Button>
+          <h1 className="text-4xl font-headline font-bold">Editar Produto Premium</h1>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle>Informações Gerais</CardTitle>
-            </CardHeader>
+          <Card className="border-2 rounded-3xl">
+            <CardHeader><CardTitle>Geral</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome do Produto</Label>
-                <Input 
-                  id="name" 
-                  value={formData.nome} 
-                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                  placeholder="Ex: Camiseta Oversized Premium" 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição Detalhada</Label>
-                <Textarea 
-                  id="description" 
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                  placeholder="Descreva o material, caimento e detalhes..." 
-                  className="min-h-[150px]" 
-                  required 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Preço (R$)</Label>
-                  <Input 
-                    id="price" 
-                    type="number" 
-                    step="0.01" 
-                    value={formData.preco}
-                    onChange={(e) => setFormData({...formData, preco: parseFloat(e.target.value)})}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Estoque</Label>
-                  <Input 
-                    id="stock" 
-                    type="number" 
-                    value={formData.estoque}
-                    onChange={(e) => setFormData({...formData, estoque: parseInt(e.target.value)})}
-                    required 
-                  />
-                </div>
-              </div>
+              <div className="space-y-2"><Label>Nome</Label><Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required /></div>
+              <div className="space-y-2"><Label>Descrição</Label><Textarea value={formData.descricao} onChange={e => setFormData({...formData, descricao: e.target.value})} className="min-h-[120px]" required /></div>
+              <div className="space-y-2"><Label>Preço</Label><Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({...formData, preco: parseFloat(e.target.value)})} required /></div>
             </CardContent>
           </Card>
 
-          <Card className="border-2">
+          <Card className="border-2 rounded-3xl">
             <CardHeader>
-              <CardTitle>Atributos e Variantes</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Variações de Cor e Estoque</CardTitle>
+                <Button type="button" onClick={handleAddVariation} size="sm" variant="outline" className="rounded-xl border-2"><Plus className="w-4 h-4 mr-1" /> Add Cor</Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* Tamanhos */}
-              <div className="space-y-4">
-                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos Disponíveis</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    value={newSize} 
-                    onChange={(e) => setNewSize(e.target.value.toUpperCase())}
-                    placeholder="Ex: P, M, G, 42" 
-                  />
-                  <Button type="button" onClick={handleAddSize} variant="secondary">Adicionar</Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.tamanhosDisponiveis.map((size: string, idx: number) => (
-                    <div key={idx} className="flex items-center gap-1 bg-muted px-3 py-1 rounded-full text-sm font-bold">
-                      {size}
-                      <button type="button" onClick={() => removeItem('tamanhosDisponiveis', idx)} className="text-destructive hover:text-red-700">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cores */}
-              <div className="space-y-4">
-                <Label className="flex items-center gap-2"><Palette className="w-4 h-4" /> Cores Disponíveis</Label>
-                <div className="flex gap-2 items-center">
-                  <Input 
-                    type="color" 
-                    value={newColor} 
-                    onChange={(e) => setNewColor(e.target.value)}
-                    className="w-20 h-10 p-1 rounded-lg"
-                  />
-                  <Input 
-                    value={newColor} 
-                    onChange={(e) => setNewColor(e.target.value)}
-                    placeholder="#000000"
-                    className="font-mono"
-                  />
-                  <Button type="button" onClick={handleAddColor} variant="secondary">Adicionar Cor</Button>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  {formData.coresDisponiveis.map((color: string, idx: number) => (
-                    <div key={idx} className="group relative">
-                      <div 
-                        className="w-8 h-8 rounded-full border shadow-sm" 
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => removeItem('coresDisponiveis', idx)}
-                        className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle>Imagens do Produto</CardTitle>
-              <CardDescription>Gerencie as fotos exibidas no catálogo (máx. 5).</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex gap-2">
-                  <Input 
-                    value={imageUrl} 
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg" 
-                  />
-                  <Button type="button" onClick={handleAddImage} variant="secondary">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="relative">
-                   <Input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="file-up" />
-                   <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl" disabled={isUploading}>
-                     <label htmlFor="file-up">
-                       {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                       Trocar/Adicionar do Dispositivo
-                     </label>
-                   </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-                {formData.imagens.map((url: string, idx: number) => (
-                  <div key={url + idx} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
-                    <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => removeItem('imagens', idx)}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+              {formData.variacoes.map((v: any, vIdx: number) => (
+                <div key={vIdx} className="p-6 border-2 rounded-2xl bg-muted/5 space-y-6 relative">
+                  <button type="button" onClick={() => setFormData({...formData, variacoes: formData.variacoes.filter((_:any, i:any) => i !== vIdx)})} className="absolute top-4 right-4 text-destructive"><Trash2 className="w-5 h-5" /></button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-bold">Cor</Label><Input value={v.cor} onChange={e => updateVariation(vIdx, 'cor', e.target.value)} required /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-bold">Estoque</Label><Input type="number" value={v.estoque} onChange={e => updateVariation(vIdx, 'estoque', parseInt(e.target.value))} required /></div>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-4">
+                    <Label className="text-[10px] uppercase font-bold">Imagens da Cor ({v.imagens?.length || 0}/8)</Label>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                      {v.imagens?.map((img: string, iIdx: number) => (
+                        <div key={iIdx} className="relative aspect-square rounded-lg border overflow-hidden bg-white group">
+                          <img src={img} className="w-full h-full object-cover" alt="" />
+                          <button type="button" onClick={() => removeVariationImage(vIdx, iIdx)} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4 text-white" /></button>
+                        </div>
+                      ))}
+                      {(!v.imagens || v.imagens.length < 8) && (
+                        <label className="aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/20">
+                          <Plus className="w-5 h-5 text-muted-foreground" />
+                          <input type="file" multiple accept="image/*" className="hidden" onChange={e => handleFileUpload(e, vIdx)} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-8">
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle>Configurações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <Card className="border-2 rounded-3xl">
+            <CardContent className="space-y-6 pt-6">
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <select 
-                  value={formData.categoriaId}
-                  onChange={(e) => setFormData({...formData, categoriaId: e.target.value})}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
-                >
+                <select className="w-full p-2 border rounded-md" value={formData.categoriaId} onChange={e => setFormData({...formData, categoriaId: e.target.value})}>
                   <option value="feminino">Feminino</option>
                   <option value="masculino">Masculino</option>
                   <option value="acessorios">Acessórios</option>
                 </select>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Star className={`w-4 h-4 ${formData.isFeatured ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} />
-                    <Label className="cursor-pointer" htmlFor="feat">Destaque?</Label>
-                  </div>
-                  <input 
-                    id="feat"
-                    type="checkbox" 
-                    checked={formData.isFeatured}
-                    onChange={(e) => setFormData({...formData, isFeatured: e.target.checked})}
-                    className="h-5 w-5 accent-primary" 
-                  />
+              <div className="space-y-4">
+                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos</Label>
+                <div className="flex gap-2">
+                  <Input value={newSize} onChange={e => setNewSize(e.target.value.toUpperCase())} />
+                  <Button type="button" onClick={handleAddSize} variant="secondary">Add</Button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.tamanhosDisponiveis.map((s: string, i: number) => (
+                    <Badge key={i} variant="secondary" className="pr-1">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_:any, idx:any) => idx !== i)})} /></Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Label>Destaque?</Label>
+                <input type="checkbox" checked={formData.isFeatured} onChange={e => setFormData({...formData, isFeatured: e.target.checked})} className="h-5 w-5 accent-primary" />
               </div>
             </CardContent>
           </Card>
-
-          <Button type="submit" disabled={isLoading || isUploading} className="w-full h-16 rounded-2xl shadow-xl shadow-primary/20 text-lg font-bold">
-            {isLoading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
-            Salvar Alterações
+          <Button type="submit" disabled={isLoading} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl">
+            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Atualizar Produto
           </Button>
         </div>
       </form>

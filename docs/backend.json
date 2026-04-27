@@ -24,6 +24,32 @@
         "dataCriacao": { "type": "string", "format": "date-time" }
       }
     },
+    "Produto": {
+      "title": "Produto",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "preco": { "type": "number" },
+        "descricao": { "type": "string" },
+        "categoriaId": { "type": "string" },
+        "tamanhosDisponiveis": { "type": "array", "items": { "type": "string" } },
+        "variacoes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "cor": { "type": "string" },
+              "estoque": { "type": "number" },
+              "imagens": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "estoque": { "type": "number", "description": "Total acumulado de todas as variações" },
+        "isFeatured": { "type": "boolean" },
+        "dataCriacao": { "type": "string", "format": "date-time" }
+      }
+    },
     "Pedido": {
       "title": "Pedido",
       "type": "object",
@@ -38,65 +64,6 @@
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["pendente", "confirmado", "em_separacao", "entregue", "cancelado"] },
         "dataCriacao": { "type": "string", "format": "date-time" }
-      }
-    },
-    "ConfiguracaoTelegram": {
-      "title": "ConfiguracaoTelegram",
-      "type": "object",
-      "properties": {
-        "botToken": { "type": "string" },
-        "chatId": { "type": "string" },
-        "testChatId": { "type": "string" },
-        "messageTemplate": { "type": "string" },
-        "isActive": { "type": "boolean" }
-      }
-    },
-    "ConfiguracaoSite": {
-      "title": "ConfiguracaoSite",
-      "type": "object",
-      "properties": {
-        "heroBadge": { "type": "string" },
-        "heroTitle": { "type": "string" },
-        "heroDescription": { "type": "string" },
-        "heroImage": { "type": "string" },
-        "telegramLink": { "type": "string" },
-        "instagramLink": { "type": "string" },
-        "facebookLink": { "type": "string" },
-        "twitterLink": { "type": "string" },
-        "step1_title": { "type": "string" },
-        "step1_desc": { "type": "string" },
-        "step2_title": { "type": "string" },
-        "step2_desc": { "type": "string" },
-        "step3_title": { "type": "string" },
-        "step3_desc": { "type": "string" },
-        "step4_title": { "type": "string" },
-        "step4_desc": { "type": "string" },
-        "b1_title": { "type": "string" },
-        "b1_sub": { "type": "string" },
-        "b1_icon": { "type": "string" },
-        "b1_active": { "type": "boolean" },
-        "b2_title": { "type": "string" },
-        "b2_sub": { "type": "string" },
-        "b2_icon": { "type": "string" },
-        "b2_active": { "type": "boolean" },
-        "b3_title": { "type": "string" },
-        "b3_sub": { "type": "string" },
-        "b3_icon": { "type": "string" },
-        "b3_active": { "type": "boolean" },
-        "b4_title": { "type": "string" },
-        "b4_sub": { "type": "string" },
-        "b4_icon": { "type": "string" },
-        "b4_active": { "type": "boolean" }
-      }
-    },
-    "Cupom": {
-      "title": "Cupom",
-      "type": "object",
-      "properties": {
-        "codigo": { "type": "string" },
-        "desconto": { "type": "number" },
-        "tipo": { "type": "string", "enum": ["porcentagem", "fixo"] },
-        "expira": { "type": "boolean" }
       }
     }
   },
