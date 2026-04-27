@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck, Info, CreditCard, Wallet } from 'lucide-react';
+import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSquare, ArrowRight, PackageCheck, Info, CreditCard, Wallet, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
@@ -17,6 +16,14 @@ import { useToast } from '@/hooks/use-toast';
 import { addDocumentNonBlocking } from '@/firebase';
 import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -32,6 +39,7 @@ export default function CheckoutPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastPhoneUsed, setLastPhoneUsed] = useState('');
+  const [showInfoModal, setShowInfoModal] = useState(true);
 
   const fretesQuery = useMemoFirebase(() => collection(firestore, 'fretes'), [firestore]);
   const { data: freteRules } = useCollection<FreteRule>(fretesQuery);
@@ -243,6 +251,37 @@ export default function CheckoutPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      {/* Modal Informativo Premium */}
+      <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
+        <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg">
+          <DialogHeader className="space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
+            <DialogDescription className="text-center text-base space-y-4 pt-2">
+              <p>
+                Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
+              </p>
+              <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
+                <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
+                <p className="text-sm text-yellow-800 font-medium">
+                  <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button 
+              onClick={() => setShowInfoModal(false)} 
+              className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20"
+            >
+              Entendi, vamos lá!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center gap-4 mb-12">
         <div className="bg-primary/10 p-3 rounded-2xl"><Zap className="w-8 h-8 text-primary" /></div>
         <h1 className="text-4xl font-headline font-bold">Finalizar Pedido</h1>
