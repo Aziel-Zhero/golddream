@@ -52,7 +52,8 @@ import {
   DollarSign,
   BarChart3,
   Receipt,
-  Heart
+  Heart,
+  Star
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -464,7 +465,8 @@ export default function AdminDashboard() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
                   </TableHeader>
-                  <TableBody>
+                </TableHeader>
+                <TableBody>
                   {allUsers?.map(u => (
                     <TableRow key={u.id || (u as any).uid}>
                       <TableCell className="font-bold">{u.nome}</TableCell>
@@ -532,7 +534,7 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações Hero</h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações da Loja</h2>
               <div className="space-y-4">
                 <div className="space-y-2">
                    <Label>WhatsApp Contato</Label>
@@ -559,6 +561,29 @@ export default function AdminDashboard() {
                      </div>
                    </div>
                 </div>
+
+                <div className="pt-4 border-t space-y-4">
+                   <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><LinkIcon className="w-4 h-4 text-primary" /> Redes Sociais</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                         <Label className="text-[10px]">Instagram</Label>
+                         <Input value={siteSettings.instagramLink || ''} onChange={e => setSiteSettings({...siteSettings, instagramLink: e.target.value})} placeholder="https://instagram.com/..." />
+                      </div>
+                      <div className="space-y-1">
+                         <Label className="text-[10px]">Facebook</Label>
+                         <Input value={siteSettings.facebookLink || ''} onChange={e => setSiteSettings({...siteSettings, facebookLink: e.target.value})} placeholder="https://facebook.com/..." />
+                      </div>
+                      <div className="space-y-1">
+                         <Label className="text-[10px]">Twitter (X)</Label>
+                         <Input value={siteSettings.twitterLink || ''} onChange={e => setSiteSettings({...siteSettings, twitterLink: e.target.value})} placeholder="https://twitter.com/..." />
+                      </div>
+                      <div className="space-y-1">
+                         <Label className="text-[10px]">Telegram (Grupo VIP)</Label>
+                         <Input value={siteSettings.telegramLink || ''} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} placeholder="https://t.me/..." />
+                      </div>
+                   </div>
+                </div>
+
                 <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações</Button>
               </div>
             </Card>
@@ -725,8 +750,8 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value})} placeholder="Código (Ex: GOLD10)" />
                 <RadioGroup value={newCupom.tipo} onValueChange={(val: any) => setNewCupom({...newCupom, tipo: val})} className="flex gap-4">
-                  <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="perc" /><Label htmlFor="porcentagem">%</Label></div>
-                  <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="fix" /><Label htmlFor="fixo">R$</Label></div>
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="perc" /><Label htmlFor="perc">%</Label></div>
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="fix" /><Label htmlFor="fix">R$</Label></div>
                 </RadioGroup>
                 <Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} placeholder="Valor Desconto" />
                 <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar</Button>
