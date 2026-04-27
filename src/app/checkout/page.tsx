@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -11,9 +12,9 @@ import { Truck, CheckCircle2, Loader2, LogIn, Zap, ShoppingBag, Send, MessageSqu
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, getDocs, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking } from '@/firebase';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { TelegramConfig, FreteRule, Cupom, Promocao, Pedido, SiteConfig } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -156,7 +157,8 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || items.length === 0) return;
+    
     setIsProcessing(true);
     setLastPhoneUsed(user.telefone || '');
     
@@ -183,8 +185,19 @@ export default function CheckoutPage() {
     };
 
     try {
+      // 1. Criar o Pedido
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
+      // 2. Dar baixa no estoque de cada item (O segredo para os produtos NÃO sumirem, mas sim atualizarem)
+      items.forEach((item) => {
+        const productRef = doc(firestore, 'produtos', item.productId);
+        // Usamos increment(-quantidade) para subtrair do valor atual no banco
+        updateDocumentNonBlocking(productRef, {
+          estoque: increment(-item.quantity)
+        });
+      });
+      
+      // 3. Notificar Telegram
       if (tgConfig?.isActive && tgConfig.botToken && tgConfig.chatId) {
         const message = formatTelegramMessage(pedidoData);
         const confirmUrl = `${window.location.origin}/admin/orders/${orderId}/confirm`;
@@ -200,7 +213,7 @@ export default function CheckoutPage() {
         setIsOrdered(true);
         clearCart();
         setIsProcessing(false);
-      }, 500);
+      }, 800);
       
     } catch (error) {
       toast({ variant: "destructive", title: "Erro ao processar", description: "Verifique sua conexão." });
@@ -259,7 +272,6 @@ export default function CheckoutPage() {
               <AlertCircle className="w-10 h-10" />
             </div>
             <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
-            {/* Correção de Hydration: asChild no DialogDescription para usar div */}
             <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
               <div className="text-center text-base space-y-4 pt-2">
                 <p>
@@ -293,7 +305,6 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-12">
           
-          {/* Card de Como Funciona */}
           <section className="bg-muted/30 border-2 border-primary/10 rounded-3xl p-8 space-y-6">
             <div className="flex items-center gap-3">
               <div className="bg-primary text-white p-2 rounded-lg">
