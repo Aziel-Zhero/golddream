@@ -74,7 +74,7 @@ export default function Home() {
               <img 
                 src={heroImage} 
                 alt="Moda Moderna" 
-                className="w-full h-full object-cover object-center brightness-[0.7] md:brightness-[0.8] transition-opacity duration-1000 animate-in fade-in"
+                className="w-full h-full object-cover object-center transition-opacity duration-1000 animate-in fade-in"
                 loading="eager"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent md:from-background/60" />
