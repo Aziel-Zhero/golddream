@@ -57,8 +57,6 @@ export default function OrdersPage() {
       try {
         let pedidosQuery;
         
-        // Removido orderBy do servidor para evitar erro de índice (Index Error)
-        // A ordenação agora é feita no cliente (JavaScript)
         if (isAdmin) {
           pedidosQuery = query(
             collection(firestore, 'pedidos'),
@@ -79,7 +77,6 @@ export default function OrdersPage() {
           ...doc.data()
         })) as Pedido[];
         
-        // Ordenação manual por data decrescente (mais recentes primeiro)
         const sortedPedidos = pedidosData.sort((a, b) => 
           new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()
         );

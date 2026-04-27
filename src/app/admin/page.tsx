@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -512,7 +511,7 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <Label>Favicon (32x32)</Label>
                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8" /> : <div className="w-8 h-8 bg-muted rounded" />}
+                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8" alt="Favicon" /> : <div className="w-8 h-8 bg-muted rounded" />}
                       <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
                       <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
                       {siteSettings.faviconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('faviconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
@@ -521,7 +520,7 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <Label>WhatsApp (64x64)</Label>
                     <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" /> : <MessageCircle className="w-8 h-8 text-muted" />}
+                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" alt="WA" /> : <MessageCircle className="w-8 h-8 text-muted" />}
                       <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
                       <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
                       {siteSettings.whatsappIconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('whatsappIconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
@@ -690,7 +689,7 @@ export default function AdminDashboard() {
                 <TableBody>
                   {allProducts?.map(prod => (
                     <TableRow key={prod.id}>
-                      <TableCell><img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" /></TableCell>
+                      <TableCell><img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" alt={prod.nome} /></TableCell>
                       <TableCell className="font-bold">{prod.nome}</TableCell>
                       <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un</Badge></TableCell>
                       <TableCell className="text-right">

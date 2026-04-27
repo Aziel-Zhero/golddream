@@ -259,15 +259,18 @@ export default function CheckoutPage() {
               <AlertCircle className="w-10 h-10" />
             </div>
             <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
-            <DialogDescription className="text-center text-base space-y-4 pt-2">
-              <p>
-                Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
-              </p>
-              <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
-                <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
-                <p className="text-sm text-yellow-800 font-medium">
-                  <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
+            {/* Correção de Hydration: asChild no DialogDescription para usar div */}
+            <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
+              <div className="text-center text-base space-y-4 pt-2">
+                <p>
+                  Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
                 </p>
+                <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
+                  <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
+                  <p className="text-sm text-yellow-800 font-medium">
+                    <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
+                  </p>
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
