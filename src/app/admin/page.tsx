@@ -464,7 +464,7 @@ export default function AdminDashboard() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
-                  </TableHeader>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allUsers?.map(u => (
