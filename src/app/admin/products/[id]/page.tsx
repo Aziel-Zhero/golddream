@@ -22,7 +22,8 @@ import {
   Zap,
   Sparkles,
   AlertTriangle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -80,11 +81,43 @@ export default function EditProductPage() {
     }
   }, [product]);
 
-  const handleAddSize = () => {
-    if (newSize && !formData.tamanhosDisponiveis.includes(newSize)) {
-      setFormData({ ...formData, tamanhosDisponiveis: [...formData.tamanhosDisponiveis, newSize] });
+  const handleAddSize = (sizeToAdd: string) => {
+    const size = sizeToAdd.trim().toUpperCase();
+    if (size && !formData.tamanhosDisponiveis.includes(size)) {
+      const updatedSizes = [...formData.tamanhosDisponiveis, size];
+      const updatedVariations = formData.variacoes.map(v => ({
+        ...v,
+        estoquePorTamanho: {
+          ...(v.estoquePorTamanho || {}),
+          [size]: 0
+        }
+      }));
+
+      setFormData({ ...formData, tamanhosDisponiveis: updatedSizes, variacoes: updatedVariations });
       setNewSize('');
     }
+  };
+
+  const addPresetSizes = (type: 'letras' | 'numeros' | 'plus') => {
+    let presets: string[] = [];
+    if (type === 'letras') presets = ['PP', 'P', 'M', 'G', 'GG', 'XG'];
+    if (type === 'numeros') presets = ['34', '36', '38', '40', '42', '44', '46', '48'];
+    if (type === 'plus') presets = ['G1', 'G2', 'G3', 'G4', 'G5'];
+    
+    presets.forEach(s => handleAddSize(s));
+    toast({ title: "Grade adicionada!" });
+  };
+
+  const handleRemoveSize = (sizeToRemove: string) => {
+    const updatedSizes = formData.tamanhosDisponiveis.filter((s: string) => s !== sizeToRemove);
+    const updatedVariations = formData.variacoes.map((v: any) => {
+      const newStockMap = { ...(v.estoquePorTamanho || {}) };
+      delete newStockMap[sizeToRemove];
+      const newTotal = Object.values(newStockMap).reduce((a: any, b: any) => a + b, 0);
+      return { ...v, estoquePorTamanho: newStockMap, estoque: newTotal };
+    });
+
+    setFormData({ ...formData, tamanhosDisponiveis: updatedSizes, variacoes: updatedVariations });
   };
 
   const handleAddVariation = () => {
@@ -259,6 +292,9 @@ export default function EditProductPage() {
                              />
                            </div>
                          ))}
+                         {formData.tamanhosDisponiveis.length === 0 && (
+                           <p className="col-span-full text-[10px] text-muted-foreground italic">Adicione tamanhos primeiro na lateral &gt;</p>
+                         )}
                       </div>
                     </div>
                   </div>
@@ -351,14 +387,27 @@ export default function EditProductPage() {
               </div>
 
               <div className="space-y-4 pt-4 border-t">
-                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos Grade</Label>
-                <div className="flex gap-2">
-                  <Input value={newSize} onChange={e => setNewSize(e.target.value.toUpperCase())} placeholder="Ex: P" />
-                  <Button type="button" onClick={handleAddSize} variant="secondary" className="rounded-xl">Add</Button>
+                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos / Numeração</Label>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex gap-2">
+                    <Input value={newSize} onChange={(e) => setNewSize(e.target.value.toUpperCase())} placeholder="Ex: PP, 36, G1..." />
+                    <Button type="button" onClick={() => handleAddSize(newSize)} variant="secondary" className="rounded-xl">Add</Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={() => addPresetSizes('letras')}>Grade PP-GG</Button>
+                    <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={() => addPresetSizes('numeros')}>Grade 36-48</Button>
+                    <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={() => addPresetSizes('plus')}>Grade G1-G5</Button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+
+                <div className="flex flex-wrap gap-2 pt-2">
                   {formData.tamanhosDisponiveis.map((s: string, i: number) => (
-                    <Badge key={i} variant="secondary" className="pr-1 font-bold">{s} <X className="w-3 h-3 ml-1 cursor-pointer hover:text-destructive" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_:any, idx:any) => idx !== i)})} /></Badge>
+                    <Badge key={i} className="bg-primary/10 text-primary border-none font-bold py-1 pl-3 pr-2 flex items-center gap-2">
+                      {s} 
+                      <X className="w-3.5 h-3.5 cursor-pointer hover:bg-primary/20 rounded-full transition-colors" onClick={() => handleRemoveSize(s)} />
+                    </Badge>
                   ))}
                 </div>
               </div>
