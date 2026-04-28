@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   Plus, 
@@ -9,8 +10,6 @@ import {
   Trash2, 
   Package, 
   ArrowLeft,
-  MoreVertical,
-  ExternalLink,
   Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,10 +24,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { deleteDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -40,17 +38,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Product } from '@/types';
 
 export default function AdminProductsList() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const productsQuery = useMemoFirebase(() => {
-    return query(collection(firestore, 'produtos'), orderBy('dataCriacao', 'desc'));
-  }, [firestore]);
+  // Consulta sem orderBy para garantir que todos os produtos apareçam
+  const productsQuery = useMemoFirebase(() => collection(firestore, 'produtos'), [firestore]);
+  const { data: rawProducts, isLoading } = useCollection<Product>(productsQuery);
 
-  const { data: products, isLoading } = useCollection(productsQuery);
+  // Ordenação e Filtro no lado do cliente
+  const filteredProducts = useMemo(() => {
+    if (!rawProducts) return [];
+    
+    let result = [...rawProducts];
+    
+    // Filtro de busca
+    if (searchTerm) {
+      result = result.filter(p => p.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    // Ordenação (Mais recentes primeiro)
+    result.sort((a, b) => {
+      const dateA = a.dataCriacao ? new Date(a.dataCriacao).getTime() : 0;
+      const dateB = b.dataCriacao ? new Date(b.dataCriacao).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return result;
+  }, [rawProducts, searchTerm]);
 
   const handleDelete = () => {
     if (deleteId) {
@@ -82,7 +101,15 @@ export default function AdminProductsList() {
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input className="pl-10 rounded-full h-11" placeholder="Buscar no estoque..." />
+          <Input 
+            className="pl-10 rounded-full h-11" 
+            placeholder="Buscar no estoque..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="bg-primary/5 px-4 py-2 rounded-full border border-primary/10">
+          <p className="text-[10px] font-black text-primary uppercase tracking-tighter">Total no Inventário: {filteredProducts.length}</p>
         </div>
       </div>
 
@@ -105,18 +132,18 @@ export default function AdminProductsList() {
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                 </TableCell>
               </TableRow>
-            ) : products?.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  Nenhum produto cadastrado.
+                  Nenhum produto encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              products?.map((product) => (
+              filteredProducts.map((product) => (
                 <TableRow key={product.id} className="hover:bg-muted/5">
                   <TableCell className="pl-6 py-4">
                     <div className="w-12 h-12 rounded-xl border bg-muted overflow-hidden">
-                      <img src={product.imagens?.[0] || 'https://placehold.co/100'} alt={product.nome} className="w-full h-full object-cover" />
+                      <img src={product.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/100'} alt={product.nome} className="w-full h-full object-cover" />
                     </div>
                   </TableCell>
                   <TableCell className="font-bold">{product.nome}</TableCell>
@@ -146,7 +173,6 @@ export default function AdminProductsList() {
         </Table>
       </div>
 
-      {/* AlertDialog Premium */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent className="rounded-3xl border-2">
           <AlertDialogHeader>

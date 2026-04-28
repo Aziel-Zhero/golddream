@@ -62,7 +62,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, deleteField } from 'firebase/firestore';
+import { collection, query, doc, setDoc, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -72,25 +72,6 @@ import { sendCustomEmail } from '@/ai/flows/send-custom-email';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { compressImage, cn } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-const ICON_MAP: Record<string, any> = {
-  Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart, ShoppingBag, 
-  Settings, Tag, MapPin, Ticket, Instagram, Facebook, Twitter, 
-  Mail, MessageCircle, ImageIcon, FileText, Phone, Layout, Layers, X, 
-  Play, Percent, Calendar, DollarSign, BarChart3, Receipt, Clock, 
-  ClipboardList, CheckCircle2, User: UserIcon, Users: UsersIcon
-};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -101,15 +82,31 @@ export default function AdminDashboard() {
     return user?.papel === 'admin' || user?.papel === 'administrador';
   }, [user]);
 
-  // Queries
-  const ordersQuery = useMemoFirebase(() => isAdmin ? query(collection(firestore, 'pedidos'), orderBy('dataCriacao', 'desc')) : null, [firestore, isAdmin]);
-  const { data: allOrders } = useCollection<Pedido>(ordersQuery);
+  // Queries administrativas - removido orderBy para garantir que todos os registros apareçam mesmo sem dataCriacao
+  const ordersQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'pedidos') : null, [firestore, isAdmin]);
+  const { data: allOrdersData } = useCollection<Pedido>(ordersQuery);
+  const allOrders = useMemo(() => {
+    if (!allOrdersData) return null;
+    return [...allOrdersData].sort((a, b) => {
+      const dateA = a.dataCriacao ? new Date(a.dataCriacao).getTime() : 0;
+      const dateB = b.dataCriacao ? new Date(b.dataCriacao).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [allOrdersData]);
 
-  const usersQuery = useMemoFirebase(() => isAdmin ? query(collection(firestore, 'usuarios'), orderBy('dataCriacao', 'desc')) : null, [firestore, isAdmin]);
+  const usersQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'usuarios') : null, [firestore, isAdmin]);
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
 
-  const productsQuery = useMemoFirebase(() => isAdmin ? query(collection(firestore, 'produtos'), orderBy('dataCriacao', 'desc')) : null, [firestore, isAdmin]);
-  const { data: allProducts } = useCollection<Product>(productsQuery);
+  const productsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'produtos') : null, [firestore, isAdmin]);
+  const { data: allProductsData } = useCollection<Product>(productsQuery);
+  const allProducts = useMemo(() => {
+    if (!allProductsData) return null;
+    return [...allProductsData].sort((a, b) => {
+      const dateA = a.dataCriacao ? new Date(a.dataCriacao).getTime() : 0;
+      const dateB = b.dataCriacao ? new Date(b.dataCriacao).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [allProductsData]);
 
   const fretesQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'fretes') : null, [firestore, isAdmin]);
   const { data: allFretes } = useCollection<FreteRule>(fretesQuery);
@@ -117,7 +114,7 @@ export default function AdminDashboard() {
   const cuponsQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'cupons') : null, [firestore, isAdmin]);
   const { data: allCupons } = useCollection<Cupom>(cuponsQuery);
 
-  const promosQuery = useMemoFirebase(() => isAdmin ? query(collection(firestore, 'promocoes'), orderBy('dataCriacao', 'desc')) : null, [firestore, isAdmin]);
+  const promosQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'promocoes') : null, [firestore, isAdmin]);
   const { data: allPromotions } = useCollection<Promocao>(promosQuery);
 
   const configRef = useMemoFirebase(() => isAdmin ? doc(firestore, 'configuracoes', 'geral') : null, [firestore, isAdmin]);
@@ -134,7 +131,6 @@ export default function AdminDashboard() {
   const [newCupom, setNewCupom] = useState<Partial<Cupom>>({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
   const [newPromo, setNewPromo] = useState<Partial<Promocao>>({ nome: '', dataInicio: '', dataFim: '', valorDesconto: 0, tipo: 'porcentagem', ativo: true, isBlackFriday: false });
   const [isUploading, setIsUploading] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   
   const [itemToDelete, setItemToDelete] = useState<{ col: string; id: string } | null>(null);
 
@@ -149,8 +145,8 @@ export default function AdminDashboard() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     return allOrders.reduce((acc, order) => {
-      const orderDate = new Date(order.dataCriacao);
-      const isThisMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      const orderDate = order.dataCriacao ? new Date(order.dataCriacao) : null;
+      const isThisMonth = orderDate && orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
       if (isThisMonth && order.status !== 'cancelado') acc.totalMes += order.total || 0;
       if (order.status === 'entregue') acc.entregues += 1;
       else if (order.status === 'cancelado') acc.cancelados += 1;
@@ -181,7 +177,7 @@ export default function AdminDashboard() {
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
-    const userId = u.id || (u as any).uid;
+    const userId = u.uid || u.id;
     setIsSendingEmail(userId);
     try {
       await sendCustomEmail({ clienteNome: u.nome, clienteEmail: u.email, tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao' });
@@ -305,7 +301,6 @@ export default function AdminDashboard() {
               <TabsTrigger value="frete" className="rounded-xl font-bold px-4 py-2">Fretes</TabsTrigger>
               <TabsTrigger value="coupons" className="rounded-xl font-bold px-4 py-2">Cupons</TabsTrigger>
               <TabsTrigger value="promos" className="rounded-xl font-bold px-4 py-2">Promoções</TabsTrigger>
-              <TabsTrigger value="api" className="rounded-xl font-bold px-4 py-2">API</TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -372,7 +367,6 @@ export default function AdminDashboard() {
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'confirmado')}>Confirmar</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'entregue')}>Entregue</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setItemToDelete({ col: 'pedidos', id: order.id })} className="text-destructive text-xs italic"><Trash2 className="w-3 h-3 mr-2" /> Excluir</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -422,12 +416,17 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Outras abas seguem o mesmo padrão responsivo simplificado */}
         <TabsContent value="catalog">
           <Card className="border-2 rounded-[2rem] overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader><TableRow><TableHead>Produto</TableHead><TableHead>Estoque</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>Estoque</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {allProducts?.map(prod => (
                     <TableRow key={prod.id}>
@@ -442,13 +441,6 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-3xl border-2 mx-4 max-w-[95vw] md:max-w-lg">
-          <AlertDialogHeader><AlertDialogTitle>Excluir Registro?</AlertDialogTitle><AlertDialogDescription>Esta ação é irreversível.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-2 mt-4"><AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteItem} className="flex-1 rounded-xl bg-destructive">Sim, Excluir</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
