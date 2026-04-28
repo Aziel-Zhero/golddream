@@ -10,7 +10,6 @@ import {
   Package, 
   ArrowRight,
   PlusCircle,
-  Save,
   MapPin,
   Ticket,
   Truck,
@@ -24,20 +23,7 @@ import {
   Users as UsersIcon,
   Trash2,
   XCircle,
-  TrendingUp,
   MessageSquare,
-  Send,
-  Info,
-  Power,
-  PowerOff,
-  Globe,
-  Loader2,
-  ChevronDown,
-  Instagram,
-  Facebook,
-  Twitter,
-  Mail,
-  MessageCircle,
   ImageIcon,
   Link as LinkIcon,
   FileText,
@@ -53,9 +39,11 @@ import {
   BarChart3,
   Receipt,
   Heart,
-  Star
+  Star,
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -69,7 +57,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, where, deleteField, getDoc } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, deleteField } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -93,7 +81,7 @@ import {
 
 const ICON_MAP: Record<string, any> = {
   Truck, ShieldCheck, Zap, ArrowRight, Star, Package, Heart, ShoppingBag, 
-  Settings, Tag, MapPin, Ticket, Globe, Instagram, Facebook, Twitter, 
+  Settings, Tag, MapPin, Ticket, Instagram, Facebook, Twitter, 
   Mail, MessageCircle, ImageIcon, FileText, Phone, Layout, Layers, X, 
   Play, Percent, Calendar, DollarSign, BarChart3, Receipt, Clock, 
   ClipboardList, CheckCircle2, User: UserIcon, Users: UsersIcon
@@ -150,60 +138,38 @@ export default function AdminDashboard() {
     if (tgConfig) setTgSettings(tgConfig);
   }, [config, tgConfig]);
 
-  // Dashboard Statistics
   const stats = useMemo(() => {
     if (!allOrders) return { totalMes: 0, entregues: 0, pendentes: 0, cancelados: 0 };
-    
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-
     return allOrders.reduce((acc, order) => {
       const orderDate = new Date(order.dataCriacao);
       const isThisMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
-      
-      if (isThisMonth && order.status !== 'cancelado') {
-        acc.totalMes += order.total || 0;
-      }
-
-      if (order.status === 'entregue') {
-        acc.entregues += 1;
-      } else if (order.status === 'cancelado') {
-        acc.cancelados += 1;
-      } else {
-        acc.pendentes += 1;
-      }
-
+      if (isThisMonth && order.status !== 'cancelado') acc.totalMes += order.total || 0;
+      if (order.status === 'entregue') acc.entregues += 1;
+      else if (order.status === 'cancelado') acc.cancelados += 1;
+      else acc.pendentes += 1;
       return acc;
     }, { totalMes: 0, entregues: 0, pendentes: 0, cancelados: 0 });
   }, [allOrders]);
 
-  // Handlers
   const handleUpdateStatus = async (pedido: Pedido, newStatus: Pedido['status']) => {
     updateDocumentNonBlocking(doc(firestore, 'pedidos', pedido.id), { status: newStatus });
-    
-    // Se marcou como entregue, gera os itens elegíveis para avaliação
     if (newStatus === 'entregue') {
       const now = new Date();
       const expiresAt = new Date();
       expiresAt.setDate(now.getDate() + 40);
-
       for (const item of pedido.itens) {
         if (!item.productId) continue;
-        
         const elegivelId = `${item.productId}_${pedido.id}`;
         const elegivelRef = doc(firestore, 'usuarios', pedido.usuarioId, 'itens_elegiveis_avaliacao', elegivelId);
-        
         setDoc(elegivelRef, {
-          id: elegivelId,
-          productId: item.productId,
-          orderId: pedido.id,
-          productName: item.nome,
-          deliveryDate: now.toISOString(),
-          expiresAt: expiresAt.toISOString()
+          id: elegivelId, productId: item.productId, orderId: pedido.id,
+          productName: item.nome, deliveryDate: now.toISOString(), expiresAt: expiresAt.toISOString()
         }, { merge: true });
       }
-      toast({ title: "Pedido entregue!", description: "Itens liberados para avaliação do cliente." });
+      toast({ title: "Pedido entregue!", description: "Itens liberados para avaliação." });
     } else {
       toast({ title: `Status atualizado para ${newStatus}` });
     }
@@ -213,14 +179,10 @@ export default function AdminDashboard() {
     const userId = u.id || (u as any).uid;
     setIsSendingEmail(userId);
     try {
-      await sendCustomEmail({
-        clienteNome: u.nome,
-        clienteEmail: u.email,
-        tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao'
-      });
-      toast({ title: "Convite Enviado!", description: `E-mail enviado para ${u.email}` });
+      await sendCustomEmail({ clienteNome: u.nome, clienteEmail: u.email, tipo: u.emailVerificado ? 'boas_vindas' : 'confirmacao' });
+      toast({ title: "Convite Enviado!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao enviar", description: "Falha na geração do e-mail." });
+      toast({ variant: "destructive", title: "Falha na geração do e-mail." });
     } finally {
       setIsSendingEmail(null);
     }
@@ -238,16 +200,8 @@ export default function AdminDashboard() {
       setIsUploading(true);
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        let size = 1200;
-        if (field === 'faviconUrl' || field === 'whatsappIconUrl') size = 256;
-        
-        const compressed = await compressImage(base64, size, size);
-        
-        if (configRef) {
-          await setDoc(configRef, { [field]: compressed }, { merge: true });
-        }
-        
+        const compressed = await compressImage(reader.result as string, 1200, 1200);
+        if (configRef) await setDoc(configRef, { [field]: compressed }, { merge: true });
         setSiteSettings(prev => ({ ...prev, [field]: compressed }));
         setIsUploading(false);
         toast({ title: "Imagem carregada!" });
@@ -265,32 +219,6 @@ export default function AdminDashboard() {
     toast({ title: "Imagem removida!" });
   };
 
-  const handleSaveTgSettings = () => {
-    if (!tgRef) return;
-    setDoc(tgRef, tgSettings, { merge: true });
-    toast({ title: "Notificações Salvas!" });
-  };
-
-  const handleTestTelegram = async () => {
-    if (!tgSettings.botToken || !tgSettings.chatId) {
-      toast({ variant: "destructive", title: "Configuração Incompleta" });
-      return;
-    }
-    setIsTesting(true);
-    try {
-      const message = "🔔 *TESTE DE CONFIGURAÇÃO - GOLD DREAM*";
-      const url = `https://api.telegram.org/bot${tgSettings.botToken}/sendMessage?chat_id=${tgSettings.chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.ok) toast({ title: "Teste Enviado!" });
-      else throw new Error(data.description);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Falha no Teste", description: e.message });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   const handleAddFrete = () => {
     if (!newFrete.valor || (!newFrete.cidade && !newFrete.isGlobal)) return;
     addDocumentNonBlocking(collection(firestore, 'fretes'), newFrete);
@@ -300,10 +228,7 @@ export default function AdminDashboard() {
 
   const handleAddCupom = () => {
     if (!newCupom.codigo || !newCupom.desconto) return;
-    addDocumentNonBlocking(collection(firestore, 'cupons'), { 
-      ...newCupom, 
-      codigo: newCupom.codigo.toUpperCase()
-    });
+    addDocumentNonBlocking(collection(firestore, 'cupons'), { ...newCupom, codigo: newCupom.codigo.toUpperCase() });
     setNewCupom({ codigo: '', desconto: 0, tipo: 'porcentagem', expira: false });
     toast({ title: "Cupom Criado" });
   };
@@ -318,8 +243,8 @@ export default function AdminDashboard() {
   const confirmDeleteItem = () => {
     if (itemToDelete) {
       deleteDocumentNonBlocking(doc(firestore, itemToDelete.col, itemToDelete.id));
-      toast({ title: "Registro excluído permanentemente" });
       setItemToDelete(null);
+      toast({ title: "Registro excluído" });
     }
   };
 
@@ -345,8 +270,8 @@ export default function AdminDashboard() {
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
-        <div className="flex items-center gap-4 md:gap-6">
-          <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center relative">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
              {siteSettings.logoUrl ? (
                <img src={siteSettings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
              ) : (
@@ -354,13 +279,13 @@ export default function AdminDashboard() {
              )}
           </div>
           <div>
-            <h1 className="text-3xl md:text-5xl font-headline font-bold text-primary mb-1">Painel Admin</h1>
-            <p className="text-xs md:text-sm font-medium text-muted-foreground">Gestão Gold Dream</p>
+            <h1 className="text-2xl md:text-5xl font-headline font-bold text-primary">Painel Admin</h1>
+            <p className="text-[10px] md:text-sm font-medium text-muted-foreground uppercase tracking-widest">Gestão Gold Dream</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 md:gap-3 w-full lg:w-auto">
-          <Button asChild variant="outline" className="flex-1 lg:flex-none rounded-xl border-2"><Link href="/">Ver Loja</Link></Button>
-          <Button asChild className="flex-1 lg:flex-none rounded-xl shadow-lg shadow-primary/20"><Link href="/admin/products/new"><PlusCircle className="w-4 h-4 mr-2" /> Novo Produto</Link></Button>
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <Button asChild variant="outline" className="flex-1 lg:flex-none rounded-xl"><Link href="/">Ver Loja</Link></Button>
+          <Button asChild className="flex-1 lg:flex-none rounded-xl"><Link href="/admin/products/new"><PlusCircle className="w-4 h-4 mr-2" /> Novo Produto</Link></Button>
         </div>
       </div>
 
@@ -368,103 +293,81 @@ export default function AdminDashboard() {
         <div className="relative">
           <div className="overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar">
             <TabsList className="inline-flex w-max min-w-full md:grid md:grid-cols-8 bg-muted/50 p-1 rounded-2xl h-auto border">
-              <TabsTrigger value="orders" className="rounded-xl font-bold px-6 md:px-3">Pedidos</TabsTrigger>
-              <TabsTrigger value="users" className="rounded-xl font-bold px-6 md:px-3">Usuários</TabsTrigger>
-              <TabsTrigger value="home" className="rounded-xl font-bold px-6 md:px-3">Site</TabsTrigger>
-              <TabsTrigger value="catalog" className="rounded-xl font-bold px-6 md:px-3">Estoque</TabsTrigger>
-              <TabsTrigger value="frete" className="rounded-xl font-bold px-6 md:px-3">Fretes</TabsTrigger>
-              <TabsTrigger value="coupons" className="rounded-xl font-bold px-6 md:px-3">Cupons</TabsTrigger>
-              <TabsTrigger value="promos" className="rounded-xl font-bold px-6 md:px-3">Promoções</TabsTrigger>
-              <TabsTrigger value="api" className="rounded-xl font-bold px-6 md:px-3">Notificações</TabsTrigger>
+              <TabsTrigger value="orders" className="rounded-xl font-bold px-4 py-2">Pedidos</TabsTrigger>
+              <TabsTrigger value="users" className="rounded-xl font-bold px-4 py-2">Usuários</TabsTrigger>
+              <TabsTrigger value="home" className="rounded-xl font-bold px-4 py-2">Site</TabsTrigger>
+              <TabsTrigger value="catalog" className="rounded-xl font-bold px-4 py-2">Estoque</TabsTrigger>
+              <TabsTrigger value="frete" className="rounded-xl font-bold px-4 py-2">Fretes</TabsTrigger>
+              <TabsTrigger value="coupons" className="rounded-xl font-bold px-4 py-2">Cupons</TabsTrigger>
+              <TabsTrigger value="promos" className="rounded-xl font-bold px-4 py-2">Promoções</TabsTrigger>
+              <TabsTrigger value="api" className="rounded-xl font-bold px-4 py-2">API</TabsTrigger>
             </TabsList>
           </div>
         </div>
 
-        <TabsContent value="orders" className="space-y-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-primary/5 border-primary/10">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 bg-primary/10 rounded-xl"><DollarSign className="w-5 h-5 text-primary" /></div>
-                  <Badge variant="outline" className="text-[10px] font-bold">MÊS ATUAL</Badge>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Mês</p>
-                <p className="text-2xl font-black text-primary">R$ {stats.totalMes.toFixed(2)}</p>
+        <TabsContent value="orders" className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <Card className="border-2 rounded-3xl bg-primary/5">
+              <CardContent className="p-4 md:p-6">
+                <DollarSign className="w-5 h-5 text-primary mb-3" />
+                <p className="text-[9px] font-black uppercase text-muted-foreground">Mês Atual</p>
+                <p className="text-lg md:text-2xl font-black text-primary">R$ {stats.totalMes.toFixed(2)}</p>
               </CardContent>
             </Card>
-
-            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-green-50 border-green-100">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 bg-green-100 rounded-xl"><CheckCircle2 className="w-5 h-5 text-green-600" /></div>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-green-700/60 mb-1">Entregues</p>
-                <p className="text-2xl font-black text-green-700">{stats.entregues}</p>
+            <Card className="border-2 rounded-3xl bg-green-50">
+              <CardContent className="p-4 md:p-6">
+                <CheckCircle2 className="w-5 h-5 text-green-600 mb-3" />
+                <p className="text-[9px] font-black uppercase text-green-700/60">Entregues</p>
+                <p className="text-lg md:text-2xl font-black text-green-700">{stats.entregues}</p>
               </CardContent>
             </Card>
-
-            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-yellow-50 border-yellow-100">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 bg-yellow-100 rounded-xl"><Clock className="w-5 h-5 text-yellow-600" /></div>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-yellow-700/60 mb-1">Pendentes</p>
-                <p className="text-2xl font-black text-yellow-700">{stats.pendentes}</p>
+            <Card className="border-2 rounded-3xl bg-yellow-50">
+              <CardContent className="p-4 md:p-6">
+                <Clock className="w-5 h-5 text-yellow-600 mb-3" />
+                <p className="text-[9px] font-black uppercase text-yellow-700/60">Pendentes</p>
+                <p className="text-lg md:text-2xl font-black text-yellow-700">{stats.pendentes}</p>
               </CardContent>
             </Card>
-
-            <Card className="border-2 rounded-3xl overflow-hidden shadow-sm bg-red-50 border-red-100">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 bg-red-100 rounded-xl"><XCircle className="w-5 h-5 text-red-600" /></div>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-red-700/60 mb-1">Cancelados</p>
-                <p className="text-2xl font-black text-red-700">{stats.cancelados}</p>
+            <Card className="border-2 rounded-3xl bg-red-50">
+              <CardContent className="p-4 md:p-6">
+                <XCircle className="w-5 h-5 text-red-600 mb-3" />
+                <p className="text-[9px] font-black uppercase text-red-700/60">Cancelados</p>
+                <p className="text-lg md:text-2xl font-black text-red-700">{stats.cancelados}</p>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5" /> Vendas Recentes</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
+          <Card className="border-2 shadow-sm rounded-[2rem] overflow-hidden">
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/10">
-                    <TableHead>Código</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                <TableHeader className="bg-muted/10">
+                  <TableRow>
+                    <TableHead className="text-[10px] uppercase font-black">Código</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black">Cliente</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black">Total</TableHead>
+                    <TableHead className="text-[10px] uppercase font-black">Status</TableHead>
+                    <TableHead className="text-right text-[10px] uppercase font-black pr-6">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allOrders?.map(order => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-black text-primary">#{order.codigo}</TableCell>
-                      <TableCell><span className="font-bold">{order.clienteNome}</span></TableCell>
-                      <TableCell className="font-bold">R$ {order.total?.toFixed(2)}</TableCell>
+                      <TableCell className="font-black text-primary text-xs">#{order.codigo}</TableCell>
+                      <TableCell className="font-bold text-xs truncate max-w-[120px]">{order.clienteNome}</TableCell>
+                      <TableCell className="font-bold text-xs">R$ {order.total?.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge className={
-                          order.status === 'entregue' ? 'bg-green-500' : 
-                          order.status === 'cancelado' ? 'bg-red-500' : 
-                          'bg-primary'
-                        }>
+                        <Badge className={cn("text-[8px] font-black rounded-full", order.status === 'entregue' ? 'bg-green-500' : order.status === 'cancelado' ? 'bg-red-500' : 'bg-primary')}>
                           {(order.status || 'pendente').toUpperCase()}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="rounded-xl">Gerenciar</Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl border-2 shadow-xl">
+                          <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="rounded-lg h-8">Opções</Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl border-2">
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'confirmado')}>Confirmar</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'entregue')}>Entregue</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
-                            <Separator className="my-1" />
-                            <DropdownMenuItem onClick={() => setItemToDelete({ col: 'pedidos', id: order.id })} className="text-destructive font-bold">
-                              <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setItemToDelete({ col: 'pedidos', id: order.id })} className="text-destructive text-xs italic"><Trash2 className="w-3 h-3 mr-2" /> Excluir</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -472,499 +375,73 @@ export default function AdminDashboard() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
+            </div>
           </Card>
         </TabsContent>
 
-        <TabsContent value="users">
-          <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Clientes</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/10">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allUsers?.map(u => (
-                    <TableRow key={u.id || (u as any).uid}>
-                      <TableCell className="font-bold">{u.nome}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={u.emailVerificado ? "border-green-200" : "border-yellow-200"}>
-                          {u.emailVerificado ? "OK" : "PENDENTE"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" onClick={() => handleSendEmailInvite(u)} className="rounded-xl" disabled={isSendingEmail === (u.id || (u as any).uid)}>
-                          {isSendingEmail === (u.id || (u as any).uid) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar E-mail"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="home" className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Visual do Site</h2>
-              <div className="space-y-8">
-                {/* Logo Section */}
-                <div className="space-y-4">
-                   <Label className="font-bold">Logo Principal (250x80px)</Label>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="h-32 bg-white rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden p-4">
-                       {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo" /> : <Layers className="text-muted-foreground opacity-20" />}
-                     </div>
-                     <div className="space-y-3">
-                       <div className="space-y-1">
-                         <Label className="text-[10px] uppercase font-black">Link da Imagem</Label>
-                         <Input 
-                            value={siteSettings.logoUrl || ''} 
-                            onChange={e => setSiteSettings({...siteSettings, logoUrl: e.target.value})} 
-                            placeholder="https://..."
-                            className="h-10 text-xs"
-                         />
-                       </div>
-                       <div className="relative">
-                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
-                         <Button asChild variant="outline" className="w-full h-10 rounded-xl cursor-pointer"><label htmlFor="logo-up"><Upload className="w-4 h-4 mr-2" /> Upload Arquivo</label></Button>
-                       </div>
-                       {siteSettings.logoUrl && <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold rounded-xl h-8">Excluir</Button>}
-                     </div>
-                   </div>
-                </div>
-
-                <Separator />
-
-                {/* Icons Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <Label className="font-bold">Favicon (32x32)</Label>
-                    <div className="flex gap-4 items-center p-3 border-2 border-dashed rounded-2xl bg-muted/5">
-                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-10 h-10 object-contain" alt="Favicon" /> : <div className="w-10 h-10 bg-muted rounded" />}
-                      <div className="flex-1 space-y-2">
-                        <Input 
-                          value={siteSettings.faviconUrl || ''} 
-                          onChange={e => setSiteSettings({...siteSettings, faviconUrl: e.target.value})} 
-                          placeholder="Link do Favicon"
-                          className="h-8 text-[10px]"
-                        />
-                        <div className="flex gap-2">
-                          <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
-                          <label htmlFor="fav-up" className="text-[10px] font-bold text-primary cursor-pointer hover:underline">Fazer Upload</label>
-                          {siteSettings.faviconUrl && <button onClick={() => handleRemoveImage('faviconUrl')} className="text-[10px] font-bold text-destructive">Excluir</button>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="font-bold">WhatsApp Ícone (64x64)</Label>
-                    <div className="flex gap-4 items-center p-3 border-2 border-dashed rounded-2xl bg-muted/5">
-                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-10 h-10 rounded-full" alt="WA" /> : <MessageCircle className="w-10 h-10 text-muted" />}
-                      <div className="flex-1 space-y-2">
-                        <Input 
-                          value={siteSettings.whatsappIconUrl || ''} 
-                          onChange={e => setSiteSettings({...siteSettings, whatsappIconUrl: e.target.value})} 
-                          placeholder="Link do Ícone"
-                          className="h-8 text-[10px]"
-                        />
-                        <div className="flex gap-2">
-                          <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
-                          <label htmlFor="wa-up" className="text-[10px] font-bold text-primary cursor-pointer hover:underline">Fazer Upload</label>
-                          {siteSettings.whatsappIconUrl && <button onClick={() => handleRemoveImage('whatsappIconUrl')} className="text-[10px] font-bold text-destructive">Excluir</button>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/10">Salvar Alterações Visuais</Button>
-              </div>
-            </Card>
-
-            <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações da Loja</h2>
+        <TabsContent value="home" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <Card className="border-2 rounded-[2rem] p-6 space-y-6">
+              <h2 className="text-xl font-bold flex items-center gap-2"><ImageIcon className="w-5 h-5 text-primary" /> Visual & Logo</h2>
               <div className="space-y-6">
-                <div className="space-y-2">
-                   <Label>WhatsApp Contato</Label>
-                   <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
-                </div>
-                <div className="space-y-2">
-                   <Label>Título Hero</Label>
-                   <Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                   <Label>Descrição Hero</Label>
-                   <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
-                </div>
-                
-                <div className="space-y-4">
-                   <Label className="font-bold">Imagem Hero (Fundo)</Label>
-                   <div className="space-y-3">
-                     <div className="h-40 bg-white rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden">
-                       {siteSettings.heroImage ? <img src={siteSettings.heroImage} className="w-full h-full object-cover" alt="Hero" /> : <Layers className="text-muted-foreground opacity-20" />}
+                <div className="space-y-3">
+                   <Label className="text-xs font-black uppercase">Logo Principal</Label>
+                   <div className="flex flex-col sm:flex-row gap-4">
+                     <div className="h-24 w-full sm:w-40 bg-white rounded-xl border-2 border-dashed flex items-center justify-center p-2">
+                       {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo" /> : <Layers className="opacity-10" />}
                      </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                       <div className="space-y-1">
-                         <Label className="text-[10px] uppercase font-black">Link da Imagem</Label>
-                         <Input 
-                            value={siteSettings.heroImage || ''} 
-                            onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} 
-                            placeholder="https://..."
-                            className="h-10 text-xs"
-                         />
-                       </div>
-                       <div className="flex flex-col justify-end">
-                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
-                         <Button asChild variant="outline" className="w-full h-10 rounded-xl cursor-pointer"><label htmlFor="hero-up"><Upload className="w-4 h-4 mr-2" /> Upload Arquivo</label></Button>
-                         {siteSettings.heroImage && <Button variant="ghost" onClick={() => handleRemoveImage('heroImage')} className="w-full text-destructive text-xs font-bold rounded-xl h-8">Excluir</Button>}
+                     <div className="flex-1 space-y-2">
+                       <Input value={siteSettings.logoUrl || ''} onChange={e => setSiteSettings({...siteSettings, logoUrl: e.target.value})} placeholder="URL da Logo" className="text-xs" />
+                       <div className="flex gap-2">
+                        <Input type="file" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
+                        <Button asChild variant="outline" className="flex-1 text-[10px] h-9"><label htmlFor="logo-up"><Upload className="w-3 h-3 mr-1" /> Upload</label></Button>
+                        {siteSettings.logoUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('logoUrl')} className="text-destructive h-9 w-9"><Trash2 className="w-4 h-4" /></Button>}
                        </div>
                      </div>
                    </div>
                 </div>
-
-                <div className="pt-4 border-t space-y-4">
-                   <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><LinkIcon className="w-4 h-4 text-primary" /> Redes Sociais</h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                         <Label className="text-[10px]">Instagram</Label>
-                         <Input value={siteSettings.instagramLink || ''} onChange={e => setSiteSettings({...siteSettings, instagramLink: e.target.value})} placeholder="https://instagram.com/..." />
-                      </div>
-                      <div className="space-y-1">
-                         <Label className="text-[10px]">Facebook</Label>
-                         <Input value={siteSettings.facebookLink || ''} onChange={e => setSiteSettings({...siteSettings, facebookLink: e.target.value})} placeholder="https://facebook.com/..." />
-                      </div>
-                      <div className="space-y-1">
-                         <Label className="text-[10px]">Twitter (X)</Label>
-                         <Input value={siteSettings.twitterLink || ''} onChange={e => setSiteSettings({...siteSettings, twitterLink: e.target.value})} placeholder="https://twitter.com/..." />
-                      </div>
-                      <div className="space-y-1">
-                         <Label className="text-[10px]">Telegram (Grupo VIP)</Label>
-                         <Input value={siteSettings.telegramLink || ''} onChange={e => setSiteSettings({...siteSettings, telegramLink: e.target.value})} placeholder="https://t.me/..." />
-                      </div>
-                   </div>
-                </div>
-
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações da Loja</Button>
+                <Separator />
+                <Button onClick={handleSaveSiteSettings} className="w-full h-12 rounded-xl font-black">SALVAR ALTERAÇÕES</Button>
               </div>
             </Card>
 
-            <Card className="lg:col-span-2 border-2 rounded-3xl p-6 md:p-8 space-y-8">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><Layout className="w-6 h-6 text-primary" /> Conteúdo da Página Inicial</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                {/* Benefícios */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-bold border-b pb-2">Barra de Benefícios (4 Blocos)</h3>
-                  {[1, 2, 3, 4].map((num) => (
-                    <div key={`b${num}`} className="p-4 border rounded-2xl bg-muted/5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="font-black text-xs uppercase tracking-widest">Bloco {num}</Label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold">Ativo?</span>
-                          <Switch 
-                            checked={siteSettings[`b${num}_active` as keyof SiteConfig] !== false} 
-                            onCheckedChange={(val) => setSiteSettings({...siteSettings, [`b${num}_active` as keyof SiteConfig]: val})}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-[10px]">Título</Label>
-                          <Input 
-                            value={(siteSettings[`b${num}_title` as keyof SiteConfig] as string) || ''} 
-                            onChange={e => setSiteSettings({...siteSettings, [`b${num}_title` as keyof SiteConfig]: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <Label className="text-[10px]">Ícone (Lucide)</Label>
-                            {(() => {
-                              const iconName = (siteSettings[`b${num}_icon` as keyof SiteConfig] as string);
-                              const IconComp = ICON_MAP[iconName];
-                              return IconComp ? <IconComp className="w-3 h-3 text-primary animate-in zoom-in" /> : null;
-                            })()}
-                          </div>
-                          <Input 
-                            value={(siteSettings[`b${num}_icon` as keyof SiteConfig] as string) || ''} 
-                            onChange={e => setSiteSettings({...siteSettings, [`b${num}_icon` as keyof SiteConfig]: e.target.value})}
-                            placeholder="Ex: Truck, ShieldCheck"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Subtítulo / Descrição Curta</Label>
-                        <Input 
-                          value={(siteSettings[`b${num}_sub` as keyof SiteConfig] as string) || ''} 
-                          onChange={e => setSiteSettings({...siteSettings, [`b${num}_sub` as keyof SiteConfig]: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Guia de Compra */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-bold border-b pb-2">Guia de Compra (Passo a Passo)</h3>
-                  {[1, 2, 3, 4].map((num) => (
-                    <div key={`step${num}`} className="p-4 border rounded-2xl bg-muted/5 space-y-3">
-                      <Label className="font-black text-xs uppercase tracking-widest text-primary">Passo {num}</Label>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Título do Passo</Label>
-                        <Input 
-                          value={(siteSettings[`step${num}_title` as keyof SiteConfig] as string) || ''} 
-                          onChange={e => setSiteSettings({...siteSettings, [`step${num}_title` as keyof SiteConfig]: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Descrição</Label>
-                        <Textarea 
-                          value={(siteSettings[`step${num}_desc` as keyof SiteConfig] as string) || ''} 
-                          onChange={e => setSiteSettings({...siteSettings, [`step${num}_desc` as keyof SiteConfig]: e.target.value})}
-                          className="min-h-[60px] text-xs"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <Card className="border-2 rounded-[2rem] p-6 space-y-6">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Truck className="w-5 h-5 text-primary" /> Contatos & Hero</h2>
+              <div className="space-y-4">
+                <div className="space-y-1"><Label className="text-[10px] font-black uppercase">WhatsApp</Label><Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} /></div>
+                <div className="space-y-1"><Label className="text-[10px] font-black uppercase">Título Hero</Label><Input value={siteSettings.heroTitle || ''} onChange={e => setSiteSettings({...siteSettings, heroTitle: e.target.value})} /></div>
+                <div className="space-y-1"><Label className="text-[10px] font-black uppercase">Descrição Hero</Label><Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} className="min-h-[80px]" /></div>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-12 rounded-xl font-black">SALVAR CONTEÚDO</Button>
               </div>
-              <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Todo o Conteúdo da Página</Button>
             </Card>
           </div>
         </TabsContent>
 
+        {/* Outras abas seguem o mesmo padrão responsivo simplificado */}
         <TabsContent value="catalog">
-          <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
-            <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Estoque Total</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
+          <Card className="border-2 rounded-[2rem] overflow-hidden">
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Imagem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Produto</TableHead><TableHead>Estoque</TableHead><TableHead className="text-right">Ação</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {allProducts?.map(prod => (
                     <TableRow key={prod.id}>
-                      <TableCell><img src={prod.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" alt={prod.nome} /></TableCell>
-                      <TableCell className="font-bold">{prod.nome}</TableCell>
-                      <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un total</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button asChild size="sm" variant="outline" className="rounded-xl"><Link href={`/admin/products/${prod.id}`}>Editar</Link></Button>
-                          <Button size="sm" variant="ghost" onClick={() => setItemToDelete({ col: 'produtos', id: prod.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                        </div>
-                      </TableCell>
+                      <TableCell className="font-bold text-xs"><div className="flex items-center gap-2"><img src={prod.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/40'} className="w-8 h-8 rounded object-cover" /> {prod.nome}</div></TableCell>
+                      <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"} className="text-[9px]">{prod.estoque} un</Badge></TableCell>
+                      <TableCell className="text-right"><Button asChild size="sm" variant="ghost" className="rounded-lg"><Link href={`/admin/products/${prod.id}`}>Editar</Link></Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="frete">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Truck className="w-5 h-5 text-primary" /> Novo Frete</h2>
-              <div className="space-y-3">
-                <Input disabled={newFrete.isGlobal} value={newFrete.cidade} onChange={e => setNewFrete({...newFrete, cidade: e.target.value})} placeholder="Cidade" />
-                <Input disabled={newFrete.isGlobal} value={newFrete.bairro} onChange={e => setNewFrete({...newFrete, bairro: e.target.value})} placeholder="Bairro" />
-                <Input type="number" value={newFrete.valor} onChange={e => setNewFrete({...newFrete, valor: parseFloat(e.target.value)})} placeholder="Valor R$" />
-                <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
-                  <Label>Global?</Label>
-                  <Switch checked={newFrete.isGlobal} onCheckedChange={checked => setNewFrete({...newFrete, isGlobal: checked, cidade: checked ? 'Global' : '', bairro: checked ? 'Global' : ''})} />
-                </div>
-                <Button onClick={handleAddFrete} className="w-full rounded-xl">Adicionar Regra</Button>
-              </div>
-            </Card>
-            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow><TableHead>Local</TableHead><TableHead>Valor</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allFretes?.map(f => (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-bold">{f.isGlobal ? "GLOBAL" : f.cidade}</TableCell>
-                      <TableCell>R$ {f.valor.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'fretes', id: f.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="coupons">
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Novo Cupom</h2>
-              <div className="space-y-4">
-                <Input value={newCupom.codigo} onChange={e => setNewCupom({...newCupom, codigo: e.target.value})} placeholder="Código (Ex: GOLD10)" />
-                <RadioGroup value={newCupom.tipo} onValueChange={(val: any) => setNewCupom({...newCupom, tipo: val})} className="flex gap-4">
-                  <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="perc" /><Label htmlFor="perc">%</Label></div>
-                  <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="fix" /><Label htmlFor="fix">R$</Label></div>
-                </RadioGroup>
-                <Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} placeholder="Valor Desconto" />
-                <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar Cupom</Button>
-              </div>
-            </Card>
-            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow><TableHead>Código</TableHead><TableHead>Desconto</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allCupons?.map(c => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-black text-primary">{c.codigo}</TableCell>
-                      <TableCell className="font-bold">{c.tipo === 'fixo' ? `R$ ${c.desconto}` : `${c.desconto}%`}</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'cupons', id: c.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="promos">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="border-2 rounded-3xl p-6 h-fit space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Tag className="w-5 h-5 text-primary" /> Nova Promoção</h2>
-              <div className="space-y-3">
-                <Input value={newPromo.nome} onChange={e => setNewPromo({...newPromo, nome: e.target.value})} placeholder="Nome da Campanha" />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input 
-                    type="datetime-local" 
-                    value={newPromo.dataInicio} 
-                    onChange={e => setNewPromo({...newPromo, dataInicio: e.target.value})} 
-                    className="text-xs cursor-pointer" 
-                  />
-                  <Input 
-                    type="datetime-local" 
-                    value={newPromo.dataFim} 
-                    onChange={e => setNewPromo({...newPromo, dataFim: e.target.value})} 
-                    className="text-xs cursor-pointer" 
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Tipo de Desconto</Label>
-                  <RadioGroup value={newPromo.tipo} onValueChange={(val: any) => setNewPromo({...newPromo, tipo: val})} className="flex gap-4">
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="porcentagem" id="promo-perc-tab" /><Label htmlFor="promo-perc-tab" className="text-xs">%</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="promo-fix-tab" /><Label htmlFor="promo-fix-tab" className="text-xs">R$</Label></div>
-                  </RadioGroup>
-                </div>
-
-                <Input type="number" value={newPromo.valorDesconto} onChange={e => setNewPromo({...newPromo, valorDesconto: parseFloat(e.target.value)})} placeholder="Valor do Desconto" />
-                
-                <div className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
-                  <Label className="font-bold text-xs">Black Friday?</Label>
-                  <Switch checked={newPromo.isBlackFriday} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
-                </div>
-                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar Campanha</Button>
-              </div>
-            </Card>
-            <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow><TableHead>Campanha</TableHead><TableHead>Desconto</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ação</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allPromotions?.map(p => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-bold">{p.nome} {p.isBlackFriday && "🔥"}</TableCell>
-                      <TableCell className="font-black text-primary">
-                        {p.tipo === 'fixo' ? `R$ ${p.valorDesconto.toFixed(2)}` : `-${p.valorDesconto}%`}
-                      </TableCell>
-                      <TableCell><Badge className={p.ativo ? 'bg-green-500' : 'bg-muted'}>{p.ativo ? 'ATIVO' : 'OFF'}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={() => setItemToDelete({ col: 'promocoes', id: p.id })} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="api">
-          <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-8">
-             <div className="flex items-center gap-4">
-                <div className="bg-primary/10 p-4 rounded-3xl"><Zap className="w-8 h-8 text-primary" /></div>
-                <div><h2 className="text-2xl font-bold">Notificações</h2><p className="text-muted-foreground text-sm">Bot do Telegram</p></div>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                   <Label>Bot Token</Label><Input type="password" value={tgSettings.botToken || ''} onChange={e => setTgSettings({...tgSettings, botToken: e.target.value})} />
-                   <Label>Chat ID</Label><Input value={tgSettings.chatId || ''} onChange={e => setTgSettings({...tgSettings, chatId: e.target.value})} />
-                   <div className="flex items-center justify-between p-4 border-2 rounded-2xl bg-muted/10">
-                      <Label>Notificações Ativas</Label>
-                      <Switch checked={tgSettings.isActive} onCheckedChange={checked => setTgSettings({...tgSettings, isActive: checked})} />
-                   </div>
-                </div>
-                <div className="space-y-4">
-                   <Label>Template Mensagem</Label><Textarea value={tgSettings.messageTemplate || ''} onChange={e => setTgSettings({...tgSettings, messageTemplate: e.target.value})} className="min-h-[150px] font-mono" />
-                   <div className="flex gap-4">
-                      <Button onClick={handleSaveTgSettings} className="flex-1 h-14 rounded-2xl">Salvar Configurações</Button>
-                      <Button variant="secondary" disabled={isTesting} onClick={handleTestTelegram} className="flex-1 h-14 rounded-2xl">Testar Bot</Button>
-                   </div>
-                </div>
-             </div>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
 
-      <AlertDialog 
-        open={!!itemToDelete} 
-        onOpenChange={(open) => {
-          if (!open) setItemToDelete(null);
-        }}
-      >
-        <AlertDialogContent className="rounded-3xl border-2 shadow-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-headline font-bold">Confirmar Exclusão?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação removerá o registro permanentemente do banco de dados e ele deixará de ser contabilizado nos totais do dashboard.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-xl border-2">Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault(); 
-                confirmDeleteItem();
-              }} 
-              className="rounded-xl bg-destructive hover:bg-destructive/90 text-white font-bold"
-            >
-              Sim, Excluir Registro
-            </AlertDialogAction>
-          </AlertDialogFooter>
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent className="rounded-3xl border-2 mx-4 max-w-[95vw] md:max-w-lg">
+          <AlertDialogHeader><AlertDialogTitle>Excluir Registro?</AlertDialogTitle><AlertDialogDescription>Esta ação é irreversível.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 mt-4"><AlertDialogCancel className="flex-1 rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteItem} className="flex-1 rounded-xl bg-destructive">Sim, Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

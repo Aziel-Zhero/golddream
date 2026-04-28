@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   ArrowLeft, 
   Plus, 
@@ -22,8 +22,6 @@ import {
   Zap,
   Sparkles,
   AlertTriangle,
-  Link as LinkIcon,
-  Check,
   Info
 } from 'lucide-react';
 import Link from 'next/link';
@@ -64,20 +62,11 @@ export default function NewProductPage() {
     const size = sizeToAdd.trim().toUpperCase();
     if (size && !formData.tamanhosDisponiveis.includes(size)) {
       const updatedSizes = [...formData.tamanhosDisponiveis, size];
-      
       const updatedVariations = formData.variacoes.map(v => ({
         ...v,
-        estoquePorTamanho: {
-          ...(v.estoquePorTamanho || {}),
-          [size]: 0
-        }
+        estoquePorTamanho: { ...(v.estoquePorTamanho || {}), [size]: 0 }
       }));
-
-      setFormData({ 
-        ...formData, 
-        tamanhosDisponiveis: updatedSizes,
-        variacoes: updatedVariations
-      });
+      setFormData({ ...formData, tamanhosDisponiveis: updatedSizes, variacoes: updatedVariations });
       setNewSize('');
     }
   };
@@ -87,7 +76,6 @@ export default function NewProductPage() {
     if (type === 'letras') presets = ['PP', 'P', 'M', 'G', 'GG', 'XG'];
     if (type === 'numeros') presets = ['34', '36', '38', '40', '42', '44', '46', '48'];
     if (type === 'plus') presets = ['G1', 'G2', 'G3', 'G4', 'G5'];
-    
     presets.forEach(s => handleAddSize(s));
     toast({ title: "Grade adicionada!" });
   };
@@ -97,21 +85,15 @@ export default function NewProductPage() {
     const updatedVariations = formData.variacoes.map(v => {
       const newStockMap = { ...(v.estoquePorTamanho || {}) };
       delete newStockMap[sizeToRemove];
-      const newTotal = Object.values(newStockMap).reduce((a, b) => a + b, 0);
+      const newTotal = Object.values(newStockMap).reduce((a: any, b: any) => a + b, 0);
       return { ...v, estoquePorTamanho: newStockMap, estoque: newTotal };
     });
-
-    setFormData({ 
-      ...formData, 
-      tamanhosDisponiveis: updatedSizes,
-      variacoes: updatedVariations
-    });
+    setFormData({ ...formData, tamanhosDisponiveis: updatedSizes, variacoes: updatedVariations });
   };
 
   const handleAddVariation = () => {
     const initialSizeStock: Record<string, number> = {};
     formData.tamanhosDisponiveis.forEach(s => initialSizeStock[s] = 0);
-
     setFormData({
       ...formData,
       variacoes: [...formData.variacoes, { 
@@ -124,21 +106,16 @@ export default function NewProductPage() {
   };
 
   const handleRemoveVariation = (index: number) => {
-    setFormData({
-      ...formData,
-      variacoes: formData.variacoes.filter((_, i) => i !== index)
-    });
+    setFormData({ ...formData, variacoes: formData.variacoes.filter((_, i) => i !== index) });
   };
 
   const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
     const newVariations = [...formData.variacoes];
     newVariations[index] = { ...newVariations[index], [field]: value };
-    
     if (field === 'estoquePorTamanho') {
       const total = Object.values(value as Record<string, number>).reduce((a, b) => a + b, 0);
       newVariations[index].estoque = total;
     }
-
     setFormData({ ...formData, variacoes: newVariations });
   };
 
@@ -153,7 +130,6 @@ export default function NewProductPage() {
     if (files && files.length > 0) {
       setIsUploading(variationIndex);
       const newImages = [...formData.variacoes[variationIndex].imagens];
-      
       for (let i = 0; i < files.length; i++) {
         if (newImages.length >= 12) break;
         const reader = new FileReader();
@@ -167,7 +143,6 @@ export default function NewProductPage() {
         const compressedUrl = await promise;
         newImages.push(compressedUrl);
       }
-      
       updateVariation(variationIndex, 'imagens', newImages);
       setIsUploading(null);
       toast({ title: "Imagens carregadas!" });
@@ -177,11 +152,10 @@ export default function NewProductPage() {
   const addImageUrl = (variationIndex: number) => {
     const url = imageUrlInputs[variationIndex];
     if (!url) return;
-    
     const newImages = [...formData.variacoes[variationIndex].imagens, url];
     updateVariation(variationIndex, 'imagens', newImages);
     setImageUrlInputs({ ...imageUrlInputs, [variationIndex]: '' });
-    toast({ title: "URL de imagem adicionada!" });
+    toast({ title: "URL adicionada!" });
   };
 
   const removeVariationImage = (variationIndex: number, imageIndex: number) => {
@@ -192,37 +166,34 @@ export default function NewProductPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.variacoes.length === 0) {
-      toast({ variant: "destructive", title: "Adicione ao menos uma variação de cor." });
+      toast({ variant: "destructive", title: "Adicione ao menos uma cor." });
       return;
     }
-
     setIsLoading(true);
     const totalEstoque = formData.variacoes.reduce((acc, v) => acc + (v.estoque || 0), 0);
-    
     addDocumentNonBlocking(collection(firestore, 'produtos'), {
       ...formData,
       estoque: totalEstoque,
       dataCriacao: new Date().toISOString()
     });
-    
     setTimeout(() => {
       setIsLoading(false);
-      toast({ title: "Sucesso!", description: "Produto cadastrado com sucesso." });
+      toast({ title: "Sucesso!", description: "Produto cadastrado." });
       router.push('/admin/products');
     }, 1000);
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl">
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
       <div className="mb-8">
-        <Button asChild variant="ghost" className="mb-4">
+        <Button asChild variant="ghost" className="mb-4 -ml-4">
           <Link href="/admin/products"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Link>
         </Button>
-        <h1 className="text-4xl font-headline font-bold text-primary">Novo Produto Premium</h1>
+        <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary">Novo Produto Premium</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
           <Card className="border-2 rounded-3xl">
             <CardHeader><CardTitle>Informações Gerais</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -243,134 +214,86 @@ export default function NewProductPage() {
 
           <Card className="border-2 rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/10 border-b">
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2"><Palette className="w-5 h-5 text-primary" /> Variações e Grade de Tamanhos</CardTitle>
-                <Button type="button" onClick={handleAddVariation} size="sm" className="rounded-xl shadow-lg shadow-primary/10">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="flex items-center gap-2"><Palette className="w-5 h-5 text-primary" /> Variações e Grade</CardTitle>
+                <Button type="button" onClick={handleAddVariation} size="sm" className="rounded-xl shadow-lg w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-1" /> Adicionar Cor
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Seção de Definição de Grade Movida para cá */}
-              <div className="p-8 bg-primary/[0.02] border-b space-y-6">
+              <div className="p-4 md:p-8 bg-primary/[0.02] border-b space-y-6">
                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Ruler className="w-5 h-5 text-primary" />
-                      <Label className="text-lg font-bold">1. Defina os Tamanhos do Produto</Label>
+                      <Label className="text-lg font-bold">1. Defina os Tamanhos</Label>
                     </div>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
                         <div className="flex gap-2">
                           <Input value={newSize} onChange={(e) => setNewSize(e.target.value.toUpperCase())} placeholder="Ex: PP, 36, G1..." className="h-12 rounded-xl" />
-                          <Button type="button" onClick={() => handleAddSize(newSize)} variant="secondary" className="h-12 px-6 rounded-xl font-bold">Adicionar</Button>
+                          <Button type="button" onClick={() => handleAddSize(newSize)} variant="secondary" className="h-12 px-4 rounded-xl font-bold">Add</Button>
                         </div>
-                        
                         <div className="flex flex-wrap gap-1.5">
-                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-3 rounded-lg border-primary/20 hover:bg-primary/5" onClick={() => addPresetSizes('letras')}>Grade PP-GG</Button>
-                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-3 rounded-lg border-primary/20 hover:bg-primary/5" onClick={() => addPresetSizes('numeros')}>Grade 34-48</Button>
-                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-3 rounded-lg border-primary/20 hover:bg-primary/5" onClick={() => addPresetSizes('plus')}>Grade G1-G5</Button>
+                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-2 rounded-lg" onClick={() => addPresetSizes('letras')}>PP-GG</Button>
+                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-2 rounded-lg" onClick={() => addPresetSizes('numeros')}>34-48</Button>
+                          <Button type="button" variant="outline" size="sm" className="text-[10px] h-8 px-2 rounded-lg" onClick={() => addPresetSizes('plus')}>G1-G5</Button>
                         </div>
-
                         <div className="flex flex-wrap gap-2 pt-2">
                           {formData.tamanhosDisponiveis.map((s, i) => (
-                            <Badge key={i} className="bg-primary text-white border-none font-black py-1.5 pl-4 pr-2 flex items-center gap-2 rounded-xl shadow-sm">
-                              {s} 
-                              <X className="w-4 h-4 cursor-pointer hover:bg-white/20 rounded-full transition-colors p-0.5" onClick={() => handleRemoveSize(s)} />
+                            <Badge key={i} className="bg-primary text-white py-1.5 pl-3 pr-2 flex items-center gap-2 rounded-xl">
+                              {s} <X className="w-3 h-3 cursor-pointer" onClick={() => handleRemoveSize(s)} />
                             </Badge>
                           ))}
-                          {formData.tamanhosDisponiveis.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum tamanho adicionado ainda.</p>}
                         </div>
                       </div>
-
-                      <div className="bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 shadow-inner">
-                        <p className="text-[11px] font-black text-primary uppercase tracking-wider flex items-center gap-2">
-                          <Info className="w-4 h-4" /> Sugestão de Numeração:
-                        </p>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground font-medium">
-                          <p>• PP: Veste 34/36</p>
-                          <p>• P: Veste 38</p>
-                          <p>• M: Veste 40/42</p>
-                          <p>• G: Veste 44/46</p>
-                          <p>• GG: Veste 46/48</p>
-                          <p>• G1-G5: 48 ao 60+</p>
+                      <div className="bg-white border-2 border-dashed rounded-2xl p-4 space-y-2">
+                        <p className="text-[11px] font-black text-primary uppercase flex items-center gap-2"><Info className="w-3 h-3" /> Conversão:</p>
+                        <div className="grid grid-cols-2 gap-x-2 text-[9px] text-muted-foreground font-medium">
+                          <p>P: 38 | M: 40/42 | G: 44/46</p>
+                          <p>GG: 46/48 | G1+: 48 ao 60</p>
                         </div>
                       </div>
                     </div>
                  </div>
               </div>
 
-              {/* Seção de Cores e Estoque */}
-              <div className="p-8 space-y-12">
-                <div className="flex items-center gap-2 mb-2">
-                   <Palette className="w-5 h-5 text-primary" />
-                   <Label className="text-lg font-bold">2. Configure as Cores e Estoque</Label>
-                </div>
-
+              <div className="p-4 md:p-8 space-y-12">
                 {formData.variacoes.length === 0 ? (
-                  <div className="text-center py-12 border-2 border-dashed rounded-3xl bg-muted/5 space-y-4">
-                    <p className="text-muted-foreground">Nenhuma cor adicionada. Clique em "Adicionar Cor" para começar.</p>
-                    <Button type="button" onClick={handleAddVariation} variant="outline" className="rounded-xl"><Plus className="w-4 h-4 mr-2" /> Adicionar Primeira Cor</Button>
+                  <div className="text-center py-12 border-2 border-dashed rounded-3xl bg-muted/5">
+                    <p className="text-muted-foreground text-sm">Nenhuma cor adicionada.</p>
                   </div>
                 ) : (
                   formData.variacoes.map((v, vIdx) => (
-                    <div key={vIdx} className="p-6 border-2 rounded-3xl bg-card space-y-8 relative shadow-sm hover:shadow-md transition-shadow border-primary/5">
-                      <button type="button" onClick={() => handleRemoveVariation(vIdx)} className="absolute -top-3 -right-3 bg-white text-destructive border-2 border-destructive/20 p-2 hover:bg-destructive hover:text-white rounded-full transition-all shadow-xl z-10">
-                        <Trash2 className="w-5 h-5" />
+                    <div key={vIdx} className="p-4 md:p-6 border-2 rounded-3xl bg-card space-y-6 relative shadow-sm border-primary/5">
+                      <button type="button" onClick={() => handleRemoveVariation(vIdx)} className="absolute -top-3 -right-3 bg-white text-destructive border-2 p-2 hover:bg-destructive hover:text-white rounded-full transition-all shadow-lg z-10">
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                          <div className="space-y-3">
-                            <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Identificação da Cor</Label>
-                            <div className="flex gap-3">
-                              <Input 
-                                value={v.cor} 
-                                onChange={(e) => updateVariation(vIdx, 'cor', e.target.value)} 
-                                placeholder="Ex: Preto, Azul Marinho..." 
-                                required 
-                                className="flex-1 h-12 rounded-xl"
-                              />
-                              <div className="relative w-12 h-12 shrink-0 border-2 rounded-xl overflow-hidden cursor-pointer shadow-inner">
-                                <input 
-                                  type="color" 
-                                  value={v.cor.startsWith('#') && v.cor.length === 7 ? v.cor : '#000000'} 
-                                  onChange={e => updateVariation(vIdx, 'cor', e.target.value)} 
-                                  className="absolute inset-0 w-full h-full scale-150 cursor-pointer"
-                                />
-                              </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                        <div className="space-y-4">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Cor / Identificação</Label>
+                          <div className="flex gap-3">
+                            <Input value={v.cor} onChange={(e) => updateVariation(vIdx, 'cor', e.target.value)} placeholder="Ex: Preto..." required className="flex-1 h-12 rounded-xl" />
+                            <div className="relative w-12 h-12 shrink-0 border-2 rounded-xl overflow-hidden shadow-inner">
+                              <input type="color" value={v.cor.startsWith('#') && v.cor.length === 7 ? v.cor : '#000000'} onChange={e => updateVariation(vIdx, 'cor', e.target.value)} className="absolute inset-0 w-full h-full scale-150 cursor-pointer" />
                             </div>
                           </div>
-
-                          <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex justify-between items-center">
-                             <p className="text-[10px] font-black uppercase text-primary">Estoque Total ({v.cor}):</p>
-                             <p className="text-2xl font-black text-primary">{v.estoque}</p>
+                          <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex justify-between items-center">
+                             <p className="text-[10px] font-black text-primary uppercase">Estoque ({v.cor}):</p>
+                             <p className="text-xl font-black text-primary">{v.estoque}</p>
                           </div>
                         </div>
 
                         <div className="space-y-4">
-                          <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-                            Estoque por Tamanho
-                            <Badge variant="outline" className="text-[9px] font-bold py-0">{formData.tamanhosDisponiveis.length} TAM</Badge>
-                          </Label>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground">Estoque por Tamanho</Label>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                              {formData.tamanhosDisponiveis.map(size => (
                                <div key={size} className="space-y-1">
-                                 <Label className="text-[10px] font-bold text-muted-foreground ml-1">{size}</Label>
-                                 <Input 
-                                    type="number" 
-                                    min="0"
-                                    value={v.estoquePorTamanho?.[size] || 0}
-                                    onChange={(e) => updateSizeStock(vIdx, size, parseInt(e.target.value) || 0)}
-                                    className="h-10 text-sm font-black rounded-lg bg-white border-2 focus-visible:ring-primary/20"
-                                 />
+                                 <Label className="text-[9px] font-bold text-muted-foreground ml-1">{size}</Label>
+                                 <Input type="number" min="0" value={v.estoquePorTamanho?.[size] || 0} onChange={(e) => updateSizeStock(vIdx, size, parseInt(e.target.value) || 0)} className="h-9 text-xs font-black rounded-lg border-2" />
                                </div>
                              ))}
-                             {formData.tamanhosDisponiveis.length === 0 && (
-                               <p className="col-span-full text-[10px] text-red-500 font-bold italic bg-red-50 p-3 rounded-xl border border-red-100">
-                                 &uarr; Adicione os tamanhos no passo 1 acima!
-                               </p>
-                             )}
+                             {formData.tamanhosDisponiveis.length === 0 && <p className="col-span-full text-[9px] text-red-500 font-bold bg-red-50 p-2 rounded-lg border border-red-100 italic">Adicione tamanhos no passo 1 &uarr;</p>}
                           </div>
                         </div>
                       </div>
@@ -378,39 +301,27 @@ export default function NewProductPage() {
                       <Separator />
 
                       <div className="space-y-4">
-                        <Label className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                          <ImageIcon className="w-4 h-4 text-primary" /> Fotos Desta Cor ({v.images?.length || v.imagens.length}/12)
-                        </Label>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex gap-2 items-center bg-white p-2 rounded-xl border-2 shadow-inner">
-                            <Input 
-                              placeholder="Colar link de imagem externa..." 
-                              value={imageUrlInputs[vIdx] || ''} 
-                              onChange={e => setImageUrlInputs({...imageUrlInputs, [vIdx]: e.target.value})}
-                              className="h-9 text-xs border-none focus-visible:ring-0"
-                            />
-                            <Button type="button" onClick={() => addImageUrl(vIdx)} size="sm" variant="secondary" className="h-9 px-4 rounded-lg font-bold">Add Link</Button>
+                        <Label className="text-[10px] font-black uppercase flex items-center gap-2"><ImageIcon className="w-3 h-3 text-primary" /> Fotos ({v.imagens.length}/12)</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="flex gap-2 p-1.5 bg-white rounded-xl border-2 shadow-inner">
+                            <Input placeholder="Link da foto..." value={imageUrlInputs[vIdx] || ''} onChange={e => setImageUrlInputs({...imageUrlInputs, [vIdx]: e.target.value})} className="h-8 text-[10px] border-none focus-visible:ring-0" />
+                            <Button type="button" onClick={() => addImageUrl(vIdx)} size="sm" variant="secondary" className="h-8 px-2 rounded-lg text-[10px] font-bold">Add</Button>
                           </div>
-                          
-                          <label className="flex items-center justify-center h-13 border-2 border-dashed rounded-xl cursor-pointer hover:bg-primary/5 transition-colors border-primary/20 group">
-                            <Upload className="w-4 h-4 mr-2 text-primary group-hover:scale-110 transition-transform" />
-                            <span className="text-xs font-bold text-primary">UPLOAD ARQUIVOS</span>
+                          <label className="flex items-center justify-center h-11 border-2 border-dashed rounded-xl cursor-pointer hover:bg-primary/5 transition-colors border-primary/20">
+                            <Upload className="w-4 h-4 mr-2 text-primary" />
+                            <span className="text-[10px] font-bold text-primary">UPLOAD</span>
                             <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, vIdx)} />
                           </label>
                         </div>
-
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 pt-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 pt-2">
                           {v.imagens.map((img, iIdx) => (
-                            <div key={iIdx} className="relative aspect-square rounded-xl border-2 overflow-hidden bg-white group shadow-sm">
+                            <div key={iIdx} className="relative aspect-square rounded-lg border-2 overflow-hidden group shadow-sm bg-white">
                               <img src={img} className="w-full h-full object-cover" alt="" />
-                              <button type="button" onClick={() => removeVariationImage(vIdx, iIdx)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <X className="w-6 h-6 text-white" />
-                              </button>
+                              <button type="button" onClick={() => removeVariationImage(vIdx, iIdx)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 md:group-hover:opacity-100 transition-opacity"><X className="w-5 h-5 text-white" /></button>
                             </div>
                           ))}
                         </div>
-                        {isUploading === vIdx && <div className="flex items-center gap-2 text-[10px] text-primary animate-pulse font-bold bg-primary/5 p-2 rounded-lg w-fit"><Loader2 className="w-3 h-3 animate-spin" /> PROCESSANDO IMAGENS...</div>}
+                        {isUploading === vIdx && <div className="flex items-center gap-2 text-[10px] text-primary animate-pulse font-bold"><Loader2 className="w-3 h-3 animate-spin" /> PROCESSANDO...</div>}
                       </div>
                     </div>
                   ))
@@ -420,7 +331,7 @@ export default function NewProductPage() {
           </Card>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           <Card className="border-2 rounded-3xl">
             <CardHeader><CardTitle>Organização</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -435,51 +346,28 @@ export default function NewProductPage() {
 
               <div className="space-y-4 pt-4 border-t">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4">Selos de Destaque</p>
-                
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-yellow-500 fill-current" />
-                    <Label htmlFor="feat" className="font-bold text-xs cursor-pointer">Destaque na Home</Label>
-                  </div>
+                  <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-500 fill-current" /><Label htmlFor="feat" className="font-bold text-xs">Home</Label></div>
                   <Switch id="feat" checked={formData.isFeatured} onCheckedChange={(checked) => setFormData({...formData, isFeatured: checked})} />
                 </div>
-
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-green-500" />
-                    <Label htmlFor="novidade" className="font-bold text-xs cursor-pointer">Novidade (Piscante)</Label>
-                  </div>
+                  <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-green-500" /><Label htmlFor="novidade" className="font-bold text-xs">Novidade</Label></div>
                   <Switch id="novidade" checked={formData.isNovidade} onCheckedChange={(checked) => setFormData({...formData, isNovidade: checked})} />
                 </div>
-
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-orange-500" />
-                    <Label htmlFor="lanc" className="font-bold text-xs cursor-pointer">Lançamento</Label>
-                  </div>
+                  <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-orange-500" /><Label htmlFor="lanc" className="font-bold text-xs">Lançamento</Label></div>
                   <Switch id="lanc" checked={formData.isLancamento} onCheckedChange={(checked) => setFormData({...formData, isLancamento: checked})} />
                 </div>
-
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <Label htmlFor="ult" className="font-bold text-xs cursor-pointer">Últimas Peças</Label>
-                  </div>
+                  <div className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-500" /><Label htmlFor="ult" className="font-bold text-xs">Últimas Peças</Label></div>
                   <Switch id="ult" checked={formData.isUltimasPecas} onCheckedChange={(checked) => setFormData({...formData, isUltimasPecas: checked})} />
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Button type="submit" disabled={isLoading || isUploading !== null} className="w-full h-20 text-xl font-black rounded-3xl bg-primary shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-transform uppercase tracking-tighter">
-            {isLoading ? <Loader2 className="animate-spin mr-3 w-6 h-6" /> : <Save className="mr-3 w-6 h-6" />} Salvar Produto
+          <Button type="submit" disabled={isLoading || isUploading !== null} className="w-full h-16 md:h-20 text-xl font-black rounded-3xl bg-primary shadow-2xl hover:scale-[1.02] transition-transform uppercase">
+            {isLoading ? <Loader2 className="animate-spin mr-3 w-6 h-6" /> : <Save className="mr-3 w-6 h-6" />} Salvar
           </Button>
-          
-          <div className="p-4 bg-muted/30 border-2 border-dashed rounded-2xl text-center">
-            <p className="text-[10px] font-bold text-muted-foreground">
-              O estoque total será calculado automaticamente com base nas variações preenchidas.
-            </p>
-          </div>
         </div>
       </form>
     </div>
