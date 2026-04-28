@@ -60,7 +60,8 @@ export default function EditProductPage() {
     isLancamento: false,
     isUltimasPecas: false,
     tamanhosDisponiveis: [],
-    variacoes: [] as ProductVariation[]
+    variacoes: [] as ProductVariation[],
+    dataCriacao: null
   });
 
   const [newSize, setNewSize] = useState('');
@@ -77,7 +78,8 @@ export default function EditProductPage() {
         isLancamento: product.isLancamento || false,
         isUltimasPecas: product.isUltimasPecas || false,
         tamanhosDisponiveis: product.tamanhosDisponiveis || [],
-        variacoes: product.variacoes || []
+        variacoes: product.variacoes || [],
+        dataCriacao: product.dataCriacao || null
       });
     }
   }, [product]);
@@ -210,12 +212,16 @@ export default function EditProductPage() {
     const totalEstoque = formData.variacoes.reduce((acc: number, v: any) => acc + (v.estoque || 0), 0);
 
     try {
-      await setDoc(productRef, {
+      // Se não tem dataCriacao, cria com a data atual (Reparo Automático)
+      const dataToSave = {
         ...formData,
-        estoque: totalEstoque
-      }, { merge: true });
+        estoque: totalEstoque,
+        dataCriacao: formData.dataCriacao || new Date().toISOString()
+      };
+
+      await setDoc(productRef, dataToSave, { merge: true });
       
-      toast({ title: "Sucesso!", description: "Produto atualizado com sucesso." });
+      toast({ title: "Sucesso!", description: "Produto atualizado e indexação reparada." });
       router.push('/admin/products');
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao salvar" });
@@ -256,7 +262,6 @@ export default function EditProductPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Seção de Definição de Grade Movida para cá */}
               <div className="p-8 bg-primary/[0.02] border-b space-y-6">
                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
@@ -305,7 +310,6 @@ export default function EditProductPage() {
                  </div>
               </div>
 
-              {/* Seção de Cores e Estoque */}
               <div className="p-8 space-y-12">
                 <div className="flex items-center gap-2 mb-2">
                    <Palette className="w-5 h-5 text-primary" />
