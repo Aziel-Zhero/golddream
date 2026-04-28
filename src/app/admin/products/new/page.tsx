@@ -257,7 +257,7 @@ export default function NewProductPage() {
                            </div>
                          ))}
                          {formData.tamanhosDisponiveis.length === 0 && (
-                           <p className="col-span-full text-[10px] text-muted-foreground italic">Adicione tamanhos primeiro na lateral --></p>
+                           <p className="col-span-full text-[10px] text-muted-foreground italic">Adicione tamanhos primeiro na lateral --&gt;</p>
                          )}
                       </div>
                     </div>
