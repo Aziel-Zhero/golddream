@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -44,12 +43,14 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
     );
   }, [variacoes]);
 
+  // Sempre mostrar o primeiro item por padrão na carga da página
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(variacoes[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.tamanhosDisponiveis?.[0] || '');
   const [quantity, setQuantity] = useState(1);
 
   const { addItem } = useCart();
 
+  // Carrossel inicia no primeiro item (index 0)
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, skipSnaps: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -58,11 +59,12 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
     const index = emblaApi.selectedScrollSnap();
     setSelectedIndex(index);
     
+    // Sincroniza a variação com a imagem exibida no carrossel
     const currentImageInfo = allImages[index];
     if (currentImageInfo && currentImageInfo.variation.cor !== selectedVariation?.cor) {
       setSelectedVariation(currentImageInfo.variation);
     }
-  }, [emblaApi, allImages, selectedVariation]);
+  }, [emblaApi, allImages, selectedVariation?.cor]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -74,7 +76,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
   const scrollNext = () => emblaApi?.scrollNext();
 
   const isSizeAvailableForCurrentColor = (size: string) => {
-    if (!selectedVariation?.estoquePorTamanho) return selectedVariation?.estoque > 0;
+    if (!selectedVariation?.estoquePorTamanho) return (selectedVariation?.estoque || 0) > 0;
     return (selectedVariation.estoquePorTamanho[size] || 0) > 0;
   };
 
@@ -99,6 +101,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
   const handleColorSelection = (v: ProductVariation) => {
     if (!emblaApi) return;
+    // Scrola para a primeira imagem da cor selecionada (sempre o primeiro item daquela cor)
     const index = allImages.findIndex(info => info.variation.cor === v.cor);
     if (index !== -1) {
       emblaApi.scrollTo(index);

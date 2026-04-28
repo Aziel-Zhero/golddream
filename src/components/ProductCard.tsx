@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,7 +5,7 @@ import Link from 'next/link';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Eye, XCircle, Zap, Sparkles, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, XCircle, Zap, Sparkles, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function ProductCard({ product }: { product: Product }) {
@@ -18,6 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
     if (isOutOfStock) return;
     
+    // Sempre pega a primeira variação disponível ou a primeira absoluta como fallback
     const variation = product.variacoes?.find(v => v.estoque > 0) || product.variacoes?.[0];
     if (!variation) return;
 
@@ -25,6 +25,7 @@ export function ProductCard({ product }: { product: Product }) {
     addItem(product, 1, tamanho, variation.cor);
   };
 
+  // Garante que sempre mostra o primeiro item (primeira imagem da primeira variação)
   const displayImage = product.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/800x1000?text=Sem+Imagem';
 
   return (
@@ -84,10 +85,13 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="p-3 md:p-6 flex flex-col flex-1 text-left bg-white">
-          <h3 className={`text-xs md:text-lg font-bold mb-1 leading-tight flex-grow ${!isOutOfStock ? 'text-foreground group-hover:text-primary transition-colors' : 'text-muted-foreground'}`}>
+          {/* Nome completo sem "...", quebra linha se necessário */}
+          <h3 className={`text-xs md:text-lg font-bold mb-2 leading-tight ${!isOutOfStock ? 'text-foreground group-hover:text-primary transition-colors' : 'text-muted-foreground'}`}>
             {product.nome}
           </h3>
-          <div className="flex items-center justify-between mt-2 md:mt-4">
+          
+          {/* Categoria e Preço empilhados na base para manter uniformidade */}
+          <div className="mt-auto space-y-1">
             <p className="text-[8px] md:text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
               {product.categoriaId}
             </p>
