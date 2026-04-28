@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, SiteConfig, ProductVariation } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import {
   XCircle, 
   ChevronLeft, 
   ChevronRight,
-  Maximize2,
   Zap,
   Sparkles,
   AlertTriangle
@@ -27,14 +26,6 @@ import { Separator } from '@/components/ui/separator';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import useEmblaCarousel from 'embla-carousel-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 export function ProductClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
   const firestore = useFirestore();
@@ -44,11 +35,17 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
   const exchangeDays = config?.exchangeDays || 30;
 
   const variacoes = product.variacoes || [];
+
+  // Mapeia todas as imagens de todas as variações em uma lista única para o carrossel
+  const allImages = useMemo(() => {
+    return variacoes.flatMap(v => 
+      (v.imagens || []).map(img => ({ url: img, variation: v }))
+    );
+  }, [variacoes]);
+
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(variacoes[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.tamanhosDisponiveis?.[0] || '');
   const [quantity, setQuantity] = useState(1);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const { addItem } = useCart();
 
@@ -58,8 +55,15 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
+    const index = emblaApi.selectedScrollSnap();
+    setSelectedIndex(index);
+    
+    // Sincroniza a variação selecionada com base no slide atual do carrossel
+    const currentImageInfo = allImages[index];
+    if (currentImageInfo && currentImageInfo.variation.cor !== selectedVariation?.cor) {
+      setSelectedVariation(currentImageInfo.variation);
+    }
+  }, [emblaApi, allImages, selectedVariation]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -77,8 +81,17 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
   const isHexColor = (color: string) => /^#[0-9A-F]{6}$/i.test(color);
 
-  const currentImages = selectedVariation?.imagens || [];
   const isOutOfStock = !selectedVariation || selectedVariation.estoque <= 0;
+
+  // Ao clicar em uma cor, rola o carrossel para a primeira imagem dessa variação
+  const handleColorSelection = (v: ProductVariation) => {
+    if (!emblaApi) return;
+    const index = allImages.findIndex(info => info.variation.cor === v.cor);
+    if (index !== -1) {
+      emblaApi.scrollTo(index);
+    }
+    setSelectedVariation(v);
+  };
 
   return (
     <div className="space-y-24">
@@ -107,32 +120,28 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
             <div className="w-full h-full" ref={emblaRef}>
               <div className="flex h-full">
-                {currentImages.map((img, idx) => (
+                {allImages.map((imgInfo, idx) => (
                   <div 
                     key={idx} 
-                    className="flex-[0_0_100%] min-w-0 relative h-full cursor-zoom-in"
-                    onClick={() => {
-                      setLightboxIndex(idx);
-                      setIsLightboxOpen(true);
-                    }}
+                    className="flex-[0_0_100%] min-w-0 relative h-full"
                   >
                     <img 
-                      src={img} 
+                      src={imgInfo.url} 
                       alt={`${product.nome} ${idx}`} 
-                      className={`w-full h-full object-cover transition-transform duration-700 ${!isOutOfStock ? 'group-hover:scale-105' : 'grayscale'}`}
+                      className={`w-full h-full object-cover transition-transform duration-700 ${imgInfo.variation.estoque > 0 ? 'group-hover:scale-105' : 'grayscale'}`}
                     />
                   </div>
                 ))}
-                {currentImages.length === 0 && (
+                {allImages.length === 0 && (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
-                    Nenhuma imagem disponível para esta cor.
+                    Nenhuma imagem disponível.
                   </div>
                 )}
               </div>
             </div>
 
             {/* Carousel Controls */}
-            {currentImages.length > 1 && (
+            {allImages.length > 1 && (
               <>
                 <button 
                   onClick={scrollPrev}
@@ -147,7 +156,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
                   <ChevronRight className="w-6 h-6" />
                 </button>
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-                  {currentImages.map((_, i) => (
+                  {allImages.map((_, i) => (
                     <div key={i} className={`h-1.5 rounded-full transition-all ${i === selectedIndex ? 'w-8 bg-primary' : 'w-1.5 bg-primary/20'}`} />
                   ))}
                 </div>
@@ -159,24 +168,17 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
                 <Badge className="bg-destructive text-white px-8 py-3 text-xl font-black rotate-[-5deg]">ESGOTADO</Badge>
               </div>
             )}
-
-            <button 
-              onClick={() => setIsLightboxOpen(true)}
-              className="absolute top-4 right-4 p-3 bg-white/50 backdrop-blur rounded-2xl text-primary hover:bg-white transition-all shadow-sm"
-            >
-              <Maximize2 className="w-5 h-5" />
-            </button>
           </div>
 
-          {/* Thumbnails */}
+          {/* Thumbnails de todas as imagens */}
           <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
-            {currentImages.map((img, idx) => (
+            {allImages.map((imgInfo, idx) => (
               <button 
                 key={idx}
                 onClick={() => emblaApi?.scrollTo(idx)}
                 className={`flex-shrink-0 w-20 h-24 rounded-xl border-2 overflow-hidden transition-all ${idx === selectedIndex ? 'border-primary scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
               >
-                <img src={img} className="w-full h-full object-cover" alt="" />
+                <img src={imgInfo.url} className="w-full h-full object-cover" alt="" />
               </button>
             ))}
           </div>
@@ -218,11 +220,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               {variacoes.map((v, idx) => (
                 <button
                   key={idx}
-                  onClick={() => {
-                    setSelectedVariation(v);
-                    setSelectedIndex(0);
-                    emblaApi?.scrollTo(0);
-                  }}
+                  onClick={() => handleColorSelection(v)}
                   className={`relative w-14 h-14 rounded-2xl border-2 transition-all flex items-center justify-center overflow-hidden ${
                     selectedVariation?.cor === v.cor ? 'border-primary ring-4 ring-primary/10 scale-110 shadow-lg' : 'border-muted hover:border-primary/50'
                   }`}
@@ -295,52 +293,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
           </div>
         </div>
       </div>
-
-      {/* Lightbox / Gallery Viewer */}
-      <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
-        <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-black/95 border-none flex flex-col items-center justify-center rounded-none sm:rounded-none">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Galeria de Imagens</DialogTitle>
-            <DialogDescription>Visualização ampliada das fotos do produto {product.nome}</DialogDescription>
-          </DialogHeader>
-          <div className="relative w-full h-full flex items-center justify-center">
-             <img 
-               src={currentImages[lightboxIndex]} 
-               className="max-w-full max-h-full object-contain" 
-               alt="Zoom view"
-             />
-             
-             {currentImages.length > 1 && (
-               <>
-                 <button 
-                   onClick={() => setLightboxIndex(prev => (prev === 0 ? currentImages.length - 1 : prev - 1))}
-                   className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
-                 >
-                   <ChevronLeft size={32} />
-                 </button>
-                 <button 
-                   onClick={() => setLightboxIndex(prev => (prev === currentImages.length - 1 ? 0 : prev + 1))}
-                   className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"
-                 >
-                   <ChevronRight size={32} />
-                 </button>
-               </>
-             )}
-
-             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 overflow-x-auto p-2 bg-white/10 backdrop-blur rounded-2xl max-w-[80%]">
-               {currentImages.map((img, i) => (
-                 <button 
-                   key={i} 
-                   onClick={() => setLightboxIndex(i)}
-                   className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === lightboxIndex ? 'border-primary' : 'border-transparent opacity-50'}`}
-                 >
-                   <img src={img} className="w-full h-full object-cover" alt="" />
-                 </button>
-               ))}
-             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Related Products Section */}
       <section className="space-y-12">
