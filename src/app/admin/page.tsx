@@ -69,7 +69,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCollection, useMemoFirebase, useFirestore, useDoc } from '@/firebase';
-import { collection, query, doc, orderBy, setDoc, where, deleteField } from 'firebase/firestore';
+import { collection, query, doc, orderBy, setDoc, where, deleteField, getDoc } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -179,9 +179,34 @@ export default function AdminDashboard() {
   }, [allOrders]);
 
   // Handlers
-  const handleUpdateStatus = (id: string, newStatus: Pedido['status']) => {
-    updateDocumentNonBlocking(doc(firestore, 'pedidos', id), { status: newStatus });
-    toast({ title: `Status atualizado para ${newStatus}` });
+  const handleUpdateStatus = async (pedido: Pedido, newStatus: Pedido['status']) => {
+    updateDocumentNonBlocking(doc(firestore, 'pedidos', pedido.id), { status: newStatus });
+    
+    // Se marcou como entregue, gera os itens elegíveis para avaliação
+    if (newStatus === 'entregue') {
+      const now = new Date();
+      const expiresAt = new Date();
+      expiresAt.setDate(now.getDate() + 40);
+
+      for (const item of pedido.itens) {
+        if (!item.productId) continue;
+        
+        const elegivelId = `${item.productId}_${pedido.id}`;
+        const elegivelRef = doc(firestore, 'usuarios', pedido.usuarioId, 'itens_elegiveis_avaliacao', elegivelId);
+        
+        setDoc(elegivelRef, {
+          id: elegivelId,
+          productId: item.productId,
+          orderId: pedido.id,
+          productName: item.nome,
+          deliveryDate: now.toISOString(),
+          expiresAt: expiresAt.toISOString()
+        }, { merge: true });
+      }
+      toast({ title: "Pedido entregue!", description: "Itens liberados para avaliação do cliente." });
+    } else {
+      toast({ title: `Status atualizado para ${newStatus}` });
+    }
   };
 
   const handleSendEmailInvite = async (u: AppUser) => {
@@ -433,9 +458,9 @@ export default function AdminDashboard() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="rounded-xl">Gerenciar</Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl border-2 shadow-xl">
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmado')}>Confirmar</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'entregue')}>Entregue</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'confirmado')}>Confirmar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'entregue')}>Entregue</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order, 'cancelado')} className="text-destructive font-bold">Cancelar</DropdownMenuItem>
                             <Separator className="my-1" />
                             <DropdownMenuItem onClick={() => setItemToDelete({ col: 'pedidos', id: order.id })} className="text-destructive font-bold">
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro

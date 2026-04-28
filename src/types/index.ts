@@ -18,7 +18,30 @@ export type Product = {
   isNovidade?: boolean;
   isLancamento?: boolean;
   isUltimasPecas?: boolean;
-  estoque: number; // Total acumulado para exibição rápida
+  estoque: number;
+  averageRating?: number;
+  reviewCount?: number;
+};
+
+export type Review = {
+  id: string;
+  userId: string;
+  userName: string;
+  productId: string;
+  orderId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
+
+export type EligibleReviewItem = {
+  id: string;
+  productId: string;
+  orderId: string;
+  productName: string;
+  productImage: string;
+  deliveryDate: string;
+  expiresAt: string;
 };
 
 export type User = {
@@ -52,6 +75,7 @@ export type Pedido = {
     cor: string;
     valor: number;
     quantidade: number;
+    productId?: string; // Garantir que temos o ID do produto para avaliações
   }[];
   subtotal: number;
   frete: number;

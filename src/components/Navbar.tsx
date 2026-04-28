@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut, Package } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, LogIn, ChevronDown, LayoutDashboard, LogOut, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -122,6 +122,11 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/account/reviewable">
+                      <Star className="w-4 h-4 mr-2 text-yellow-500 fill-current" /> Avaliar Compras
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                     <Link href="/auth/complete-profile">
                       <User className="w-4 h-4 mr-2" /> Meus Dados
                     </Link>
@@ -185,7 +190,7 @@ export function Navbar() {
                         <div key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`} className="flex gap-4 p-2 rounded-xl hover:bg-muted/50 transition-colors">
                           <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl border shadow-sm">
                             <img
-                              src={item.product.imagens?.[0] || 'https://placehold.co/100'}
+                              src={item.product.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/100'}
                               alt={item.product.nome}
                               className="h-full w-full object-cover"
                             />
@@ -253,6 +258,7 @@ export function Navbar() {
                 </SheetHeader>
                 <div className="flex flex-col gap-6 mt-12 px-2">
                   <SheetClose asChild><Link href="/account/orders" className="text-xl font-bold hover:text-primary transition-colors">Meus Pedidos</Link></SheetClose>
+                  <SheetClose asChild><Link href="/account/reviewable" className="text-xl font-bold text-yellow-600 hover:text-primary transition-colors flex items-center gap-2"><Star className="w-5 h-5 fill-current" /> Avaliar Compras</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/feminino" className="text-xl font-bold hover:text-primary transition-colors">Moda Feminina</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/masculino" className="text-xl font-bold hover:text-primary transition-colors">Moda Masculina</Link></SheetClose>
                   <SheetClose asChild><Link href="/category/acessorios" className="text-xl font-bold hover:text-primary transition-colors">Acessórios</Link></SheetClose>

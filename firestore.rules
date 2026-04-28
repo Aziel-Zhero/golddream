@@ -1,152 +1,71 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * CORE PHILOSOPHY:
-     * This ruleset implements a robust e-commerce security model with a specific focus on 
-     * verified review eligibility. It utilizes "Authorization Independence" by denormalizing 
-     * critical fields (like userId and productId) onto documents to avoid nested lookups.
-     * 
-     * DATA STRUCTURE:
-     * - /users/{userId}: Private user profiles and nested order history.
-     * - /products/{productId}: Public product catalog.
-     * - /products/{productId}/reviews/{reviewId}: Publicly readable reviews with strict 
-     *   write-authorization based on purchase history and eligibility.
-     * 
-     * KEY SECURITY DECISIONS:
-     * - Ownership Model: Users have exclusive access to their own data tree (/users/{userId}).
-     * - Review Eligibility: Creation of reviews is gated by the existence of a document 
-     *   in the user's /eligibleOrderItems subcollection, which is managed by backend logic.
-     * - Immutability: Relational fields such as 'userId' and 'productId' are enforced 
-     *   as immutable once created to maintain database integrity.
-     * - Prototyping Flexibility: Rules strictly enforce 'who' can write but remain 
-     *   flexible on 'what' (data types/shapes) to allow for rapid frontend iteration.
-     */
-
-    // --- Helper Functions ---
-
-    /** Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the current user is the owner of the document based on the path ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if the user is the owner AND the document exists (for update/delete). */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** Placeholder for administrative access logic. */
     function isAdmin() {
-      // In prototyping, we default to false or a specific UID. 
-      // Replace with custom claims or an 'admins' collection check in production.
-      return false; 
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
+      );
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Stores user profile information.
-     * @path /users/{userId}
-     * @allow (get, list, create, update): If request.auth.uid matches {userId}.
-     * @deny (delete): Deletion of user profiles is restricted to admin/system.
-     * @principle Restricts access to a user's own data tree and enforces identity consistency.
-     */
-    match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if false; // User accounts usually require admin or specialized deletion logic.
+    // Configurações Gerais
+    match /configuracoes/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Stores the catalog of clothing products.
-     * @path /products/{productId}
-     * @allow (get, list): Publicly readable.
-     * @deny (write): Only admins can modify the catalog.
-     * @principle Public Read with Admin-Only Writes.
-     */
-    match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+    // Usuários
+    match /usuarios/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+
+      match /itens_elegiveis_avaliacao/{itemId} {
+        allow read: if isOwner(userId);
+        allow write: if isAdmin();
+      }
+
+      match /produtos_avaliados/{productId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+      }
     }
 
-    /**
-     * @description Stores individual orders placed by users.
-     * @path /users/{userId}/orders/{orderId}
-     * @allow (get, list, create): If the owner of the parent user path.
-     * @deny (update, delete): Orders are historically immutable after placement.
-     * @principle Enforces document ownership and relational integrity.
-     */
-    match /users/{userId}/orders/{orderId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update, delete: if false; 
+    // Produtos
+    match /produtos/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /avaliacoes/{reviewId} {
+        allow read: if true;
+        // Só cria se for o dono, se o item estiver na lista de elegíveis e não tiver sido avaliado
+        allow create: if isSignedIn() 
+          && request.resource.data.userId == request.auth.uid
+          && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)/itens_elegiveis_avaliacao/$(request.resource.data.productId + "_" + request.resource.data.orderId));
+        allow delete: if isAdmin();
+      }
     }
 
-    /**
-     * @description Stores items within a specific order.
-     * @path /users/{userId}/orders/{orderId}/orderItems/{orderItemId}
-     * @allow (get, list, create): If the owner of the order tree.
-     * @deny (update, delete): Order items should not be modified by clients.
-     */
-    match /users/{userId}/orders/{orderId}/orderItems/{orderItemId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if false;
+    // Pedidos
+    match /pedidos/{orderId} {
+      allow read: if isSignedIn() && (resource.data.usuarioId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
 
-    /**
-     * @description Stores user-submitted reviews for products.
-     * @path /products/{productId}/reviews/{reviewId}
-     * @allow (get, list): Publicly readable.
-     * @allow (create): If user is authenticated, matches review userId, and hasn't reviewed before.
-     * @allow (update, delete): If the original author of the review.
-     * @principle Public Read with Owner-Only Writes. Relational integrity for 'userId' is enforced.
-     */
-    match /products/{productId}/reviews/{reviewId} {
-      allow get, list: if true;
-      
-      // Note: "Once per product" and "Delivery status" is gated by the existence check 
-      // of the 'reviewedProducts' flag or 'eligibleOrderItems', which is managed by functions.
-      allow create: if isSignedIn() 
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.productId == productId;
-      
-      allow update: if isExistingOwner(resource.data.userId) 
-                    && request.resource.data.userId == resource.data.userId
-                    && request.resource.data.productId == resource.data.productId;
-                    
-      allow delete: if isExistingOwner(resource.data.userId);
-    }
-
-    /**
-     * @description Track which products a specific user has already reviewed.
-     * @path /users/{userId}/reviewedProducts/{productId}
-     * @allow (get, list): Accessible only to the user to check their own status.
-     * @deny (write): Only backend services (Cloud Functions) manage these flags.
-     * @principle Structural Segregation for security flags.
-     */
-    match /users/{userId}/reviewedProducts/{productId} {
-      allow get, list: if isOwner(userId);
-      allow create, update, delete: if false; // System-managed collection.
-    }
-
-    /**
-     * @description Stores order items eligible for review (Delivered < 40 days ago).
-     * @path /users/{userId}/eligibleOrderItems/{orderItemId}
-     * @allow (get, list): Accessible to the owner to see what they can review.
-     * @deny (write): Only backend services manage the eligibility lifecycle.
-     * @principle Secure lookup for client-side review eligibility menus.
-     */
-    match /users/{userId}/eligibleOrderItems/{orderItemId} {
-      allow get, list: if isOwner(userId);
-      allow create, update, delete: if false; // System-managed collection.
-    }
+    // Fretes, Cupons, Promoções, Suporte
+    match /fretes/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /cupons/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /promocoes/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /suporte/{id} { allow read: if true; allow write: if isAdmin(); }
   }
 }

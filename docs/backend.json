@@ -1,337 +1,90 @@
+
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user account in the e-commerce platform.",
+      "description": "Dados do usuário na plataforma.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The unique email address of the user.",
-          "format": "email"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "telefone": { "type": "string" },
+        "papel": { "type": "string", "enum": ["cliente", "admin"] },
+        "dataCriacao": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "email",
-        "createdAt"
-      ]
+      "required": ["id", "nome", "email", "papel", "dataCriacao"]
     },
     "Product": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a clothing product available in the e-commerce catalog.",
+      "description": "Produto do catálogo.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the product."
-        },
-        "price": {
-          "type": "number",
-          "description": "The selling price of the product."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the product."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category to which the product belongs (e.g., 'Shirts', 'Dresses')."
-        },
-        "imageUrls": {
-          "type": "array",
-          "description": "A list of URLs for product images.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "availableSizes": {
-          "type": "array",
-          "description": "A list of available sizes for the product (e.g., 'S', 'M', 'L').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "availableColors": {
-          "type": "array",
-          "description": "A list of available colors for the product (e.g., 'Red', 'Blue').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "stock": {
-          "type": "number",
-          "description": "The current quantity of the product in stock."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the product was added to the catalog.",
-          "format": "date-time"
-        },
-        "averageRating": {
-          "type": "number",
-          "description": "The calculated average rating for the product based on all submitted reviews."
-        },
-        "reviewCount": {
-          "type": "number",
-          "description": "The total number of reviews submitted for this product."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "price",
-        "description",
-        "category",
-        "imageUrls",
-        "availableSizes",
-        "availableColors",
-        "stock",
-        "createdAt",
-        "averageRating",
-        "reviewCount"
-      ]
-    },
-    "Order": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Order",
-      "type": "object",
-      "description": "Represents a customer's confirmed purchase, containing references to the ordered items.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who placed the order. (Relationship: User 1:N Order)"
-        },
-        "orderItemIds": {
-          "type": "array",
-          "description": "References to the specific items included in this order. (Relationship: Order 1:N OrderItem)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total monetary amount of the order, including all items and shipping."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the order (e.g., 'Pending', 'Processing', 'Shipped', 'Delivered')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the order was placed.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "orderItemIds",
-        "totalAmount",
-        "status",
-        "createdAt"
-      ]
-    },
-    "OrderItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OrderItem",
-      "type": "object",
-      "description": "Represents a single line item within an order, detailing a specific product, quantity, and selected variations at the time of purchase.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the OrderItem entity."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product purchased. (Relationship: Product 1:N OrderItem)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of this product ordered."
-        },
-        "priceAtPurchase": {
-          "type": "number",
-          "description": "The price of the product at the time of purchase for this specific item."
-        },
-        "size": {
-          "type": "string",
-          "description": "The specific size chosen for this product item."
-        },
-        "color": {
-          "type": "string",
-          "description": "The specific color chosen for this product item."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when this specific item was added to the order.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "productId",
-        "quantity",
-        "priceAtPurchase",
-        "size",
-        "color",
-        "createdAt"
-      ]
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "preco": { "type": "number" },
+        "descricao": { "type": "string" },
+        "categoriaId": { "type": "string" },
+        "estoque": { "type": "number" },
+        "averageRating": { "type": "number" },
+        "reviewCount": { "type": "number" }
+      }
     },
     "Review": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Review",
       "type": "object",
-      "description": "Represents a user's review and rating for a specific product they have purchased.",
+      "description": "Avaliação de um produto por um usuário.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Review entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who submitted the review. (Relationship: User 1:N Review)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product being reviewed. (Relationship: Product 1:N Review)"
-        },
-        "rating": {
-          "type": "number",
-          "description": "The rating given by the user, typically on a scale (e.g., 1 to 5 stars)."
-        },
-        "comment": {
-          "type": "string",
-          "description": "The textual comment provided by the user as part of the review."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the review was submitted.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Optional timestamp when the review was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "productId": { "type": "string" },
+        "rating": { "type": "number", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "userId",
-        "productId",
-        "rating",
-        "createdAt"
-      ]
+      "required": ["userId", "productId", "rating", "createdAt"]
+    },
+    "EligibleReview": {
+      "title": "EligibleReview",
+      "type": "object",
+      "description": "Item comprado e entregue que pode ser avaliado.",
+      "properties": {
+        "productId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "productName": { "type": "string" },
+        "deliveryDate": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information. Access is private, restricted to the user whose ID matches '{userId}'. Denormalized 'id' field matches '{userId}' path parameter for authorization."
-        }
-      },
-      {
-        "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores the catalog of clothing products. Documents are publicly readable to all users. Write access is restricted to administrative users. Includes denormalized 'id' matching '{productId}' path parameter."
-        }
-      },
-      {
-        "path": "/users/{userId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores individual orders placed by users. Access is private, restricted to the user whose ID matches '{userId}'. Documents include denormalized 'userId' matching '{userId}' path parameter for authorization independence."
-        }
-      },
-      {
-        "path": "/users/{userId}/orders/{orderId}/orderItems/{orderItemId}",
-        "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "Stores individual items within a specific order. Access is private, restricted to the user whose ID matches '{userId}'. Documents include denormalized 'orderId' and 'productId' for authorization context. The parent 'Order's status (e.g., 'Delivered') will trigger backend logic for review eligibility."
-        }
-      },
-      {
-        "path": "/products/{productId}/reviews/{reviewId}",
-        "definition": {
-          "entityName": "Review",
-          "schema": {
-            "$ref": "#/backend/entities/Review"
-          },
-          "description": "Stores user-submitted reviews for products. Documents are publicly readable, enabling QAPs for product review displays. Write access is strictly controlled: only the original 'userId' can create/update their review, only if eligible, and only once per product. Includes denormalized 'userId' and 'productId' for authorization independence."
-        }
-      },
-      {
-        "path": "/users/{userId}/reviewedProducts/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "A collection used to track which products a specific user has already reviewed. The *existence* of a document at this path signifies that the user '{userId}' has reviewed the product '{productId}'. This document primarily serves as a flag for security rules to enforce the 'once per customer per product' constraint for reviews. Created and managed by Cloud Functions upon review submission. Contains minimal data, effectively using 'productId' as the key to indicate a reviewed status."
-        }
-      },
-      {
-        "path": "/users/{userId}/eligibleOrderItems/{orderItemId}",
-        "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "A temporary collection storing order items that are eligible for review by the user. Documents are created by a Cloud Function when the associated order is marked 'Delivered' and include denormalized 'userId', 'productId', 'orderId', 'deliveryDate', 'status' ('eligible' or 'reviewed'), and 'expiresAt' (40 days after delivery) fields. This collection powers the 'purchase history for review' client menu and is crucial for authorizing review creation, ensuring reviews are only allowed for delivered items within the specified timeframe. Documents are removed after 40 days by backend cleanup."
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to fulfill the review system requirements with a strong emphasis on Authorization Independence, QAPs (Query-Agnostic Security Rules), and Structural Segregation. \n\n**Authorization Independence:**\n1.  **Review Ownership & Context:** Each `Review` document in `/products/{productId}/reviews/{reviewId}` explicitly includes `userId` and `productId`. This denormalization allows security rules to verify `request.auth.uid == resource.data.userId` and match `productId` without requiring expensive or insecure `get()` operations on parent `Product` or `User` documents.\n2.  **\"Once per Product per Customer\" Enforcement:** The `/users/{userId}/reviewedProducts/{productId}` collection serves as a direct, user-scoped flag. Its existence for a given `productId` indicates that the user `userId` has already reviewed that product. Security rules for `Review` creation can perform an atomic `!exists(/users/$(request.auth.uid)/reviewedProducts/$(productId))` check, guaranteeing this constraint without hierarchical dependencies.\n3.  **\"Only After Delivery\" & \"Within 40 Days\" Enforcement:** The `/users/{userId}/eligibleOrderItems/{orderItemId}` collection denormalizes the necessary `OrderItem` delivery and review eligibility status. Documents in this collection are created by a Cloud Function when an associated `Order` reaches 'Delivered' status. They contain `productId`, `orderId`, `userId`, `deliveryDate`, `status` ('eligible' or 'reviewed'), and `expiresAt` (40 days after delivery). Rules for `Review` creation can then check `exists(/users/$(request.auth.uid)/eligibleOrderItems/$(orderItemId))` with appropriate `productId` and `status` checks. This completely decouples review eligibility from complex `Order` or `OrderItem` document lookups.\n\n**QAPs (Query-Agnostic Security Rules):**\n1.  **Public Product Reviews:** Listing reviews for any product is a straightforward and secure operation by querying `/products/{productId}/reviews`. All documents in this collection are homogeneously public-readable, enabling efficient data retrieval without additional server-side filtering.\n2.  **User's Reviewable History:** The "
+    "/usuarios/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Perfis de usuários."
+    },
+    "/produtos/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Catálogo de produtos."
+    },
+    "/produtos/{productId}/avaliacoes/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Avaliações públicas do produto."
+    },
+    "/usuarios/{userId}/itens_elegiveis_avaliacao/{itemId}": {
+      "schema": { "$ref": "#/entities/EligibleReview" },
+      "description": "Itens que o usuário pode avaliar após entrega."
+    },
+    "/usuarios/{userId}/produtos_avaliados/{productId}": {
+      "schema": { "type": "object" },
+      "description": "Flag para evitar múltiplas avaliações do mesmo produto."
+    },
+    "/pedidos/{orderId}": {
+      "schema": { "type": "object" },
+      "description": "Histórico de pedidos."
+    }
   }
 }
