@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -491,50 +492,86 @@ export default function AdminDashboard() {
         <TabsContent value="home" className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Visual</h2>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                   <Label>Logo Principal (250x80px)</Label>
-                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
-                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
+              <h2 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="w-6 h-6 text-primary" /> Visual do Site</h2>
+              <div className="space-y-8">
+                {/* Logo Section */}
+                <div className="space-y-4">
+                   <Label className="font-bold">Logo Principal (250x80px)</Label>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="h-32 bg-white rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden p-4">
                        {siteSettings.logoUrl ? <img src={siteSettings.logoUrl} className="max-h-full" alt="Logo" /> : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
-                     <div className="flex-1 w-full space-y-2">
-                       <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
-                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="logo-up">Upload</label></Button>
-                       {siteSettings.logoUrl && <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold rounded-xl">Excluir</Button>}
+                     <div className="space-y-3">
+                       <div className="space-y-1">
+                         <Label className="text-[10px] uppercase font-black">Link da Imagem</Label>
+                         <Input 
+                            value={siteSettings.logoUrl || ''} 
+                            onChange={e => setSiteSettings({...siteSettings, logoUrl: e.target.value})} 
+                            placeholder="https://..."
+                            className="h-10 text-xs"
+                         />
+                       </div>
+                       <div className="relative">
+                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logoUrl')} className="hidden" id="logo-up" />
+                         <Button asChild variant="outline" className="w-full h-10 rounded-xl cursor-pointer"><label htmlFor="logo-up"><Upload className="w-4 h-4 mr-2" /> Upload Arquivo</label></Button>
+                       </div>
+                       {siteSettings.logoUrl && <Button variant="ghost" onClick={() => handleRemoveImage('logoUrl')} className="w-full text-destructive text-xs font-bold rounded-xl h-8">Excluir</Button>}
                      </div>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Favicon (32x32)</Label>
-                    <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-8 h-8" alt="Favicon" /> : <div className="w-8 h-8 bg-muted rounded" />}
-                      <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
-                      <label htmlFor="fav-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
-                      {siteSettings.faviconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('faviconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
+                <Separator />
+
+                {/* Icons Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <Label className="font-bold">Favicon (32x32)</Label>
+                    <div className="flex gap-4 items-center p-3 border-2 border-dashed rounded-2xl bg-muted/5">
+                      {siteSettings.faviconUrl ? <img src={siteSettings.faviconUrl} className="w-10 h-10 object-contain" alt="Favicon" /> : <div className="w-10 h-10 bg-muted rounded" />}
+                      <div className="flex-1 space-y-2">
+                        <Input 
+                          value={siteSettings.faviconUrl || ''} 
+                          onChange={e => setSiteSettings({...siteSettings, faviconUrl: e.target.value})} 
+                          placeholder="Link do Favicon"
+                          className="h-8 text-[10px]"
+                        />
+                        <div className="flex gap-2">
+                          <Input type="file" onChange={e => handleFileUpload(e, 'faviconUrl')} className="hidden" id="fav-up" />
+                          <label htmlFor="fav-up" className="text-[10px] font-bold text-primary cursor-pointer hover:underline">Fazer Upload</label>
+                          {siteSettings.faviconUrl && <button onClick={() => handleRemoveImage('faviconUrl')} className="text-[10px] font-bold text-destructive">Excluir</button>}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>WhatsApp (64x64)</Label>
-                    <div className="flex gap-2 items-center p-3 border-2 border-dashed rounded-2xl">
-                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-8 h-8 rounded-full" alt="WA" /> : <MessageCircle className="w-8 h-8 text-muted" />}
-                      <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
-                      <label htmlFor="wa-up" className="text-xs font-bold text-primary cursor-pointer">Upload</label>
-                      {siteSettings.whatsappIconUrl && <Button variant="ghost" size="icon" onClick={() => handleRemoveImage('whatsappIconUrl')} className="text-destructive h-6 w-6"><X className="w-3 h-3" /></Button>}
+
+                  <div className="space-y-4">
+                    <Label className="font-bold">WhatsApp Ícone (64x64)</Label>
+                    <div className="flex gap-4 items-center p-3 border-2 border-dashed rounded-2xl bg-muted/5">
+                      {siteSettings.whatsappIconUrl ? <img src={siteSettings.whatsappIconUrl} className="w-10 h-10 rounded-full" alt="WA" /> : <MessageCircle className="w-10 h-10 text-muted" />}
+                      <div className="flex-1 space-y-2">
+                        <Input 
+                          value={siteSettings.whatsappIconUrl || ''} 
+                          onChange={e => setSiteSettings({...siteSettings, whatsappIconUrl: e.target.value})} 
+                          placeholder="Link do Ícone"
+                          className="h-8 text-[10px]"
+                        />
+                        <div className="flex gap-2">
+                          <Input type="file" onChange={e => handleFileUpload(e, 'whatsappIconUrl')} className="hidden" id="wa-up" />
+                          <label htmlFor="wa-up" className="text-[10px] font-bold text-primary cursor-pointer hover:underline">Fazer Upload</label>
+                          {siteSettings.whatsappIconUrl && <button onClick={() => handleRemoveImage('whatsappIconUrl')} className="text-[10px] font-bold text-destructive">Excluir</button>}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Tudo</Button>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/10">Salvar Alterações Visuais</Button>
               </div>
             </Card>
 
             <Card className="border-2 rounded-3xl p-6 md:p-8 space-y-6">
               <h2 className="text-2xl font-bold flex items-center gap-2"><Truck className="w-6 h-6 text-primary" /> Informações da Loja</h2>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="space-y-2">
                    <Label>WhatsApp Contato</Label>
                    <Input value={siteSettings.whatsappNumber || ''} onChange={e => setSiteSettings({...siteSettings, whatsappNumber: e.target.value})} placeholder="551299186..." />
@@ -547,16 +584,28 @@ export default function AdminDashboard() {
                    <Label>Descrição Hero</Label>
                    <Textarea value={siteSettings.heroDescription || ''} onChange={e => setSiteSettings({...siteSettings, heroDescription: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                   <Label>Imagem Hero (Fundo)</Label>
-                   <div className="flex flex-col sm:flex-row gap-4 items-center p-4 border-2 border-dashed rounded-2xl bg-muted/10">
-                     <div className="h-16 w-32 bg-white rounded border flex items-center justify-center overflow-hidden">
+                
+                <div className="space-y-4">
+                   <Label className="font-bold">Imagem Hero (Fundo)</Label>
+                   <div className="space-y-3">
+                     <div className="h-40 bg-white rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden">
                        {siteSettings.heroImage ? <img src={siteSettings.heroImage} className="w-full h-full object-cover" alt="Hero" /> : <Layers className="text-muted-foreground opacity-20" />}
                      </div>
-                     <div className="flex-1 w-full space-y-2">
-                       <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
-                       <Button asChild variant="outline" className="w-full cursor-pointer rounded-xl"><label htmlFor="hero-up">Upload</label></Button>
-                       {siteSettings.heroImage && <Button variant="ghost" onClick={() => handleRemoveImage('heroImage')} className="w-full text-destructive text-xs font-bold rounded-xl">Excluir</Button>}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       <div className="space-y-1">
+                         <Label className="text-[10px] uppercase font-black">Link da Imagem</Label>
+                         <Input 
+                            value={siteSettings.heroImage || ''} 
+                            onChange={e => setSiteSettings({...siteSettings, heroImage: e.target.value})} 
+                            placeholder="https://..."
+                            className="h-10 text-xs"
+                         />
+                       </div>
+                       <div className="flex flex-col justify-end">
+                         <Input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'heroImage')} className="hidden" id="hero-up" />
+                         <Button asChild variant="outline" className="w-full h-10 rounded-xl cursor-pointer"><label htmlFor="hero-up"><Upload className="w-4 h-4 mr-2" /> Upload Arquivo</label></Button>
+                         {siteSettings.heroImage && <Button variant="ghost" onClick={() => handleRemoveImage('heroImage')} className="w-full text-destructive text-xs font-bold rounded-xl h-8">Excluir</Button>}
+                       </div>
                      </div>
                    </div>
                 </div>
@@ -583,7 +632,7 @@ export default function AdminDashboard() {
                    </div>
                 </div>
 
-                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações</Button>
+                <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Informações da Loja</Button>
               </div>
             </Card>
 
@@ -616,7 +665,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <Label className="text-[10px]">Ícone</Label>
+                            <Label className="text-[10px]">Ícone (Lucide)</Label>
                             {(() => {
                               const iconName = (siteSettings[`b${num}_icon` as keyof SiteConfig] as string);
                               const IconComp = ICON_MAP[iconName];
@@ -666,7 +715,7 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </div>
-              <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Todo o Conteúdo</Button>
+              <Button onClick={handleSaveSiteSettings} className="w-full h-14 rounded-2xl">Salvar Todo o Conteúdo da Página</Button>
             </Card>
           </div>
         </TabsContent>
@@ -674,7 +723,7 @@ export default function AdminDashboard() {
         <TabsContent value="catalog">
           <Card className="border-2 shadow-sm rounded-3xl overflow-hidden">
             <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Estoque</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" /> Estoque Total</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -689,9 +738,9 @@ export default function AdminDashboard() {
                 <TableBody>
                   {allProducts?.map(prod => (
                     <TableRow key={prod.id}>
-                      <TableCell><img src={prod.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" alt={prod.nome} /></TableCell>
+                      <TableCell><img src={prod.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/50'} className="w-10 h-10 object-cover rounded-lg" alt={prod.nome} /></TableCell>
                       <TableCell className="font-bold">{prod.nome}</TableCell>
-                      <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un</Badge></TableCell>
+                      <TableCell><Badge variant={prod.estoque < 5 ? "destructive" : "outline"}>{prod.estoque} un total</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button asChild size="sm" variant="outline" className="rounded-xl"><Link href={`/admin/products/${prod.id}`}>Editar</Link></Button>
@@ -718,7 +767,7 @@ export default function AdminDashboard() {
                   <Label>Global?</Label>
                   <Switch checked={newFrete.isGlobal} onCheckedChange={checked => setNewFrete({...newFrete, isGlobal: checked, cidade: checked ? 'Global' : '', bairro: checked ? 'Global' : ''})} />
                 </div>
-                <Button onClick={handleAddFrete} className="w-full rounded-xl">Adicionar</Button>
+                <Button onClick={handleAddFrete} className="w-full rounded-xl">Adicionar Regra</Button>
               </div>
             </Card>
             <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
@@ -753,7 +802,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center space-x-2"><RadioGroupItem value="fixo" id="fix" /><Label htmlFor="fix">R$</Label></div>
                 </RadioGroup>
                 <Input type="number" value={newCupom.desconto} onChange={e => setNewCupom({...newCupom, desconto: parseFloat(e.target.value)})} placeholder="Valor Desconto" />
-                <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar</Button>
+                <Button onClick={handleAddCupom} className="w-full rounded-xl">Criar Cupom</Button>
               </div>
             </Card>
             <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
@@ -812,7 +861,7 @@ export default function AdminDashboard() {
                   <Label className="font-bold text-xs">Black Friday?</Label>
                   <Switch checked={newPromo.isBlackFriday} onCheckedChange={checked => setNewPromo({...newPromo, isBlackFriday: checked})} />
                 </div>
-                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar</Button>
+                <Button onClick={handleAddPromo} className="w-full rounded-xl">Ativar Campanha</Button>
               </div>
             </Card>
             <Card className="lg:col-span-2 border-2 rounded-3xl overflow-hidden">
@@ -857,8 +906,8 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                    <Label>Template Mensagem</Label><Textarea value={tgSettings.messageTemplate || ''} onChange={e => setTgSettings({...tgSettings, messageTemplate: e.target.value})} className="min-h-[150px] font-mono" />
                    <div className="flex gap-4">
-                      <Button onClick={handleSaveTgSettings} className="flex-1 h-14 rounded-2xl">Salvar</Button>
-                      <Button variant="secondary" disabled={isTesting} onClick={handleTestTelegram} className="flex-1 h-14 rounded-2xl">Testar</Button>
+                      <Button onClick={handleSaveTgSettings} className="flex-1 h-14 rounded-2xl">Salvar Configurações</Button>
+                      <Button variant="secondary" disabled={isTesting} onClick={handleTestTelegram} className="flex-1 h-14 rounded-2xl">Testar Bot</Button>
                    </div>
                 </div>
              </div>

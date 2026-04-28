@@ -21,7 +21,8 @@ import {
   Image as ImageIcon,
   Zap,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Link as LinkIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,7 @@ export default function NewProductPage() {
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState<number | null>(null);
+  const [imageUrlInputs, setImageUrlInputs] = useState<Record<number, string>>({});
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -65,7 +67,7 @@ export default function NewProductPage() {
   const handleAddVariation = () => {
     setFormData({
       ...formData,
-      variacoes: [...formData.variacoes, { cor: '', estoque: 0, imagens: [] }]
+      variacoes: [...formData.variacoes, { cor: '#000000', estoque: 0, imagens: [] }]
     });
   };
 
@@ -86,10 +88,10 @@ export default function NewProductPage() {
     const files = e.target.files;
     if (files && files.length > 0) {
       setIsUploading(variationIndex);
-      const newImages = [...formData.variacoes[variationIndex].images || [], ...formData.variacoes[variationIndex].imagens];
+      const newImages = [...formData.variacoes[variationIndex].imagens];
       
       for (let i = 0; i < files.length; i++) {
-        if (newImages.length >= 8) break;
+        if (newImages.length >= 12) break;
         const reader = new FileReader();
         const promise = new Promise<string>((resolve) => {
           reader.onloadend = async () => {
@@ -104,8 +106,18 @@ export default function NewProductPage() {
       
       updateVariation(variationIndex, 'imagens', newImages);
       setIsUploading(null);
-      toast({ title: "Imagens adicionadas com sucesso!" });
+      toast({ title: "Imagens carregadas!" });
     }
+  };
+
+  const addImageUrl = (variationIndex: number) => {
+    const url = imageUrlInputs[variationIndex];
+    if (!url) return;
+    
+    const newImages = [...formData.variacoes[variationIndex].imagens, url];
+    updateVariation(variationIndex, 'imagens', newImages);
+    setImageUrlInputs({ ...imageUrlInputs, [variationIndex]: '' });
+    toast({ title: "URL de imagem adicionada!" });
   };
 
   const removeVariationImage = (variationIndex: number, imageIndex: number) => {
@@ -116,13 +128,11 @@ export default function NewProductPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.variacoes.length === 0) {
-      toast({ variant: "destructive", title: "Adicione ao menos uma variação de cor." });
+      toast({ variant: "destructive", title: "Adicione ao menos uma variação." });
       return;
     }
 
     setIsLoading(true);
-    
-    // Calcula estoque total
     const totalEstoque = formData.variacoes.reduce((acc, v) => acc + (v.estoque || 0), 0);
     
     addDocumentNonBlocking(collection(firestore, 'produtos'), {
@@ -145,7 +155,6 @@ export default function NewProductPage() {
           <Link href="/admin/products"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Link>
         </Button>
         <h1 className="text-4xl font-headline font-bold text-primary">Novo Produto Premium</h1>
-        <p className="text-muted-foreground">Gerencie estoque e selos promocionais.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -171,10 +180,7 @@ export default function NewProductPage() {
           <Card className="border-2 rounded-3xl">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Variações de Cor</CardTitle>
-                  <CardDescription>Cada cor tem seu estoque e suas próprias fotos.</CardDescription>
-                </div>
+                <CardTitle>Variações de Cor e Galerias</CardTitle>
                 <Button type="button" onClick={handleAddVariation} size="sm" className="rounded-xl">
                   <Plus className="w-4 h-4 mr-1" /> Adicionar Cor
                 </Button>
@@ -182,51 +188,74 @@ export default function NewProductPage() {
             </CardHeader>
             <CardContent className="space-y-8">
               {formData.variacoes.map((v, vIdx) => (
-                <div key={vIdx} className="p-6 border-2 rounded-2xl bg-muted/5 space-y-6 relative">
-                  <button type="button" onClick={() => handleRemoveVariation(vIdx)} className="absolute top-4 right-4 text-destructive hover:scale-110 transition-transform">
+                <div key={vIdx} className="p-6 border-2 rounded-2xl bg-muted/5 space-y-6 relative shadow-sm">
+                  <button type="button" onClick={() => handleRemoveVariation(vIdx)} className="absolute top-4 right-4 text-destructive p-1 hover:bg-destructive/10 rounded-full transition-colors">
                     <Trash2 className="w-5 h-5" />
                   </button>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase">Cor (Nome ou Hex)</Label>
-                      <Input value={v.cor} onChange={(e) => updateVariation(vIdx, 'cor', e.target.value)} placeholder="Ex: Azul Marinho ou #000080" required />
+                      <Label className="text-xs font-black uppercase tracking-widest">Identificação da Cor</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          value={v.cor} 
+                          onChange={(e) => updateVariation(vIdx, 'cor', e.target.value)} 
+                          placeholder="Ex: Preto ou #000000" 
+                          required 
+                          className="flex-1"
+                        />
+                        <div className="relative w-10 h-10 shrink-0 border rounded-xl overflow-hidden cursor-pointer shadow-inner">
+                          <input 
+                            type="color" 
+                            value={v.cor.startsWith('#') && v.cor.length === 7 ? v.cor : '#000000'} 
+                            onChange={e => updateVariation(vIdx, 'cor', e.target.value)} 
+                            className="absolute inset-0 w-full h-full scale-150 cursor-pointer"
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase">Estoque Disponível</Label>
+                      <Label className="text-xs font-black uppercase tracking-widest">Estoque Desta Cor</Label>
                       <Input type="number" value={v.estoque} onChange={(e) => updateVariation(vIdx, 'estoque', parseInt(e.target.value))} placeholder="0" required />
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <Label className="text-xs font-bold uppercase flex items-center gap-2">
-                      <ImageIcon className="w-3 h-3" /> Fotos desta Cor ({v.imagens.length}/8)
+                    <Label className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <ImageIcon className="w-3 h-3" /> Fotos Desta Cor ({v.imagens.length}/12)
                     </Label>
+
+                    <div className="flex gap-2 items-center bg-white p-2 rounded-xl border shadow-inner">
+                      <Input 
+                        placeholder="Link de imagem externa..." 
+                        value={imageUrlInputs[vIdx] || ''} 
+                        onChange={e => setImageUrlInputs({...imageUrlInputs, [vIdx]: e.target.value})}
+                        className="h-8 text-xs border-none focus-visible:ring-0"
+                      />
+                      <Button type="button" onClick={() => addImageUrl(vIdx)} size="sm" variant="secondary" className="h-8 rounded-lg">Add Link</Button>
+                    </div>
+
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                       {v.imagens.map((img, iIdx) => (
-                        <div key={iIdx} className="relative aspect-square rounded-lg border overflow-hidden bg-white group">
+                        <div key={iIdx} className="relative aspect-square rounded-lg border overflow-hidden bg-white group shadow-sm">
                           <img src={img} className="w-full h-full object-cover" alt="" />
                           <button type="button" onClick={() => removeVariationImage(vIdx, iIdx)} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <X className="w-4 h-4 text-white" />
                           </button>
                         </div>
                       ))}
-                      {v.imagens.length < 8 && (
-                        <label className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/20 transition-colors">
+                      {v.imagens.length < 12 && (
+                        <label className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/20 transition-all">
                           <Plus className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-[8px] font-black text-muted-foreground mt-1">UPLOAD</span>
                           <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, vIdx)} />
                         </label>
                       )}
                     </div>
-                    {isUploading === vIdx && <div className="flex items-center gap-2 text-[10px] text-primary animate-pulse font-bold"><Loader2 className="w-3 h-3 animate-spin" /> PROCESSANDO IMAGENS...</div>}
+                    {isUploading === vIdx && <div className="flex items-center gap-2 text-[10px] text-primary animate-pulse font-bold"><Loader2 className="w-3 h-3 animate-spin" /> PROCESSANDO...</div>}
                   </div>
                 </div>
               ))}
-              {formData.variacoes.length === 0 && (
-                <div className="text-center py-8 border-2 border-dashed rounded-2xl text-muted-foreground">
-                  Nenhuma variação adicionada. Clique em "Adicionar Cor" para começar.
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -237,7 +266,7 @@ export default function NewProductPage() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <select className="w-full p-2 border rounded-md" value={formData.categoriaId} onChange={(e) => setFormData({...formData, categoriaId: e.target.value})}>
+                <select className="w-full p-2 border rounded-xl bg-background" value={formData.categoriaId} onChange={(e) => setFormData({...formData, categoriaId: e.target.value})}>
                   <option value="feminino">Feminino</option>
                   <option value="masculino">Masculino</option>
                   <option value="acessorios">Acessórios</option>
@@ -256,7 +285,7 @@ export default function NewProductPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-green-500" />
-                    <Label htmlFor="novidade">Selo Novidade (Piscante)</Label>
+                    <Label htmlFor="novidade">Novidade (Piscante)</Label>
                   </div>
                   <Switch id="novidade" checked={formData.isNovidade} onCheckedChange={(checked) => setFormData({...formData, isNovidade: checked})} />
                 </div>
@@ -264,7 +293,7 @@ export default function NewProductPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-orange-500" />
-                    <Label htmlFor="lanc">Selo Lançamento (Amarelo)</Label>
+                    <Label htmlFor="lanc">Lançamento</Label>
                   </div>
                   <Switch id="lanc" checked={formData.isLancamento} onCheckedChange={(checked) => setFormData({...formData, isLancamento: checked})} />
                 </div>
@@ -272,29 +301,29 @@ export default function NewProductPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <Label htmlFor="ult">Últimas Peças (Vermelho)</Label>
+                    <Label htmlFor="ult">Últimas Peças</Label>
                   </div>
                   <Switch id="ult" checked={formData.isUltimasPecas} onCheckedChange={(checked) => setFormData({...formData, isUltimasPecas: checked})} />
                 </div>
               </div>
 
               <div className="space-y-4 pt-4 border-t">
-                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos</Label>
+                <Label className="flex items-center gap-2"><Ruler className="w-4 h-4" /> Tamanhos Grade</Label>
                 <div className="flex gap-2">
                   <Input value={newSize} onChange={(e) => setNewSize(e.target.value.toUpperCase())} placeholder="P, M, G..." />
-                  <Button type="button" onClick={handleAddSize} variant="secondary">Add</Button>
+                  <Button type="button" onClick={handleAddSize} variant="secondary" className="rounded-xl">Add</Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.tamanhosDisponiveis.map((s, i) => (
-                    <Badge key={i} className="bg-primary/10 text-primary border-none">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_, idx) => idx !== i)})} /></Badge>
+                    <Badge key={i} className="bg-primary/10 text-primary border-none font-bold">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_, idx) => idx !== i)})} /></Badge>
                   ))}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={isLoading || isUploading !== null} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl">
-            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Salvar Produto
+          <Button type="submit" disabled={isLoading || isUploading !== null} className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl hover:scale-[1.02] transition-transform">
+            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Salvar Produto Premium
           </Button>
         </div>
       </form>
