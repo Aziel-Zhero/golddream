@@ -29,6 +29,7 @@ import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 export function ProductClient({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
   const firestore = useFirestore();
@@ -38,7 +39,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
   const exchangeDays = config?.exchangeDays || 30;
   const variacoes = product.variacoes || [];
 
-  // Mapeia todas as imagens
+  // Mapeia todas as imagens para o carrossel contínuo
   const allImages = useMemo(() => {
     return variacoes.flatMap(v => 
       (v.imagens || []).map(img => ({ url: img, variation: v }))
@@ -75,13 +76,37 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
+  // Lógica de Disponibilidade
+  const isSizeAvailableForCurrentColor = (size: string) => {
+    if (!selectedVariation?.estoquePorTamanho) return selectedVariation?.estoque > 0;
+    return (selectedVariation.estoquePorTamanho[size] || 0) > 0;
+  };
+
+  const isColorAvailableForCurrentSize = (v: ProductVariation) => {
+    if (!selectedSize) return v.estoque > 0;
+    if (!v.estoquePorTamanho) return v.estoque > 0;
+    return (v.estoquePorTamanho[selectedSize] || 0) > 0;
+  };
+
   const handleAddToCart = () => {
-    if (!selectedVariation || selectedVariation.estoque <= 0) return;
+    if (!selectedVariation || !selectedSize) return;
+    
+    const stockForChoice = selectedVariation.estoquePorTamanho 
+      ? (selectedVariation.estoquePorTamanho[selectedSize] || 0)
+      : selectedVariation.estoque;
+
+    if (stockForChoice <= 0) return;
+    
     addItem(product, quantity, selectedSize, selectedVariation.cor);
   };
 
   const isHexColor = (color: string) => /^#[0-9A-F]{6}$/i.test(color);
-  const isOutOfStock = !selectedVariation || selectedVariation.estoque <= 0;
+  
+  const currentChoiceOutOfStock = useMemo(() => {
+    if (!selectedVariation || !selectedSize) return true;
+    if (!selectedVariation.estoquePorTamanho) return selectedVariation.estoque <= 0;
+    return (selectedVariation.estoquePorTamanho[selectedSize] || 0) <= 0;
+  }, [selectedVariation, selectedSize]);
 
   const handleColorSelection = (v: ProductVariation) => {
     if (!emblaApi) return;
@@ -132,7 +157,14 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               <div className="flex h-full">
                 {allImages.map((imgInfo, idx) => (
                   <div key={idx} className="flex-[0_0_100%] min-w-0 relative h-full">
-                    <img src={imgInfo.url} alt={`${product.nome} ${idx}`} className={`w-full h-full object-cover transition-transform duration-700 ${imgInfo.variation.estoque > 0 ? 'group-hover:scale-105' : 'grayscale'}`} />
+                    <img 
+                      src={imgInfo.url} 
+                      alt={`${product.nome} ${idx}`} 
+                      className={cn(
+                        "w-full h-full object-cover transition-transform duration-700",
+                        imgInfo.variation.estoque > 0 ? 'group-hover:scale-105' : 'grayscale'
+                      )} 
+                    />
                   </div>
                 ))}
               </div>
@@ -145,9 +177,9 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               </>
             )}
 
-            {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
-                <Badge className="bg-destructive text-white px-8 py-3 text-xl font-black rotate-[-5deg]">ESGOTADO</Badge>
+            {currentChoiceOutOfStock && (
+              <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center pointer-events-none z-30">
+                <Badge className="bg-destructive text-white px-8 py-3 text-xl font-black rotate-[-5deg] shadow-2xl">ESGOTADO</Badge>
               </div>
             )}
           </div>
@@ -195,23 +227,30 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
               Escolha a Cor: <span className="text-primary font-bold normal-case">{selectedVariation?.cor}</span>
             </label>
             <div className="flex flex-wrap gap-4">
-              {variacoes.map((v, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleColorSelection(v)}
-                  className={`relative w-14 h-14 rounded-2xl border-2 transition-all flex items-center justify-center overflow-hidden ${
-                    selectedVariation?.cor === v.cor ? 'border-primary ring-4 ring-primary/10 scale-110 shadow-lg' : 'border-muted hover:border-primary/50'
-                  }`}
-                  style={{ backgroundColor: isHexColor(v.cor) ? v.cor : undefined }}
-                  title={v.cor}
-                >
-                  {selectedVariation?.cor === v.cor && (
-                    <Check className={`w-6 h-6 ${isHexColor(v.cor) && v.cor.toLowerCase() !== '#ffffff' ? 'text-white' : 'text-primary'}`} />
-                  )}
-                  {!isHexColor(v.cor) && <span className="text-[10px] font-black uppercase text-center px-1 leading-tight">{v.cor}</span>}
-                  {v.estoque <= 0 && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><XCircle className="w-6 h-6 text-destructive" /></div>}
-                </button>
-              ))}
+              {variacoes.map((v, idx) => {
+                const available = isColorAvailableForCurrentSize(v);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleColorSelection(v)}
+                    className={cn(
+                      "relative w-14 h-14 rounded-2xl border-2 transition-all flex items-center justify-center overflow-hidden",
+                      selectedVariation?.cor === v.cor 
+                        ? 'border-primary ring-4 ring-primary/10 scale-110 shadow-lg' 
+                        : 'border-muted hover:border-primary/50',
+                      !available && 'opacity-40 border-dashed grayscale cursor-not-allowed'
+                    )}
+                    style={{ backgroundColor: isHexColor(v.cor) ? v.cor : undefined }}
+                    title={v.cor}
+                  >
+                    {selectedVariation?.cor === v.cor && (
+                      <Check className={`w-6 h-6 ${isHexColor(v.cor) && v.cor.toLowerCase() !== '#ffffff' ? 'text-white' : 'text-primary'}`} />
+                    )}
+                    {!isHexColor(v.cor) && <span className="text-[10px] font-black uppercase text-center px-1 leading-tight">{v.cor}</span>}
+                    {!available && <div className="absolute inset-0 flex items-center justify-center"><XCircle className="w-6 h-6 text-destructive/50" /></div>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -219,24 +258,54 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
           <div className="space-y-4">
             <label className="text-sm font-black uppercase tracking-widest">Tamanho</label>
             <div className="flex flex-wrap gap-3">
-              {(product.tamanhosDisponiveis || []).map(size => (
-                <button key={size} onClick={() => setSelectedSize(size)} className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-sm font-black transition-all ${selectedSize === size ? 'border-primary bg-primary text-white shadow-xl scale-105' : 'border-muted hover:border-primary/50'}`}>
-                  {size}
-                </button>
-              ))}
+              {(product.tamanhosDisponiveis || []).map(size => {
+                const available = isSizeAvailableForCurrentColor(size);
+                return (
+                  <button 
+                    key={size} 
+                    onClick={() => setSelectedSize(size)} 
+                    disabled={!available}
+                    className={cn(
+                      "w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-sm font-black transition-all",
+                      selectedSize === size 
+                        ? 'border-primary bg-primary text-white shadow-xl scale-105' 
+                        : 'border-muted hover:border-primary/50',
+                      !available && 'opacity-30 border-dashed border-2 text-muted-foreground grayscale cursor-not-allowed'
+                    )}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            {!isOutOfStock && (
+            {!currentChoiceOutOfStock && (
               <div className="flex items-center border-2 rounded-2xl px-2 h-16 bg-muted/20">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary">-</button>
                 <span className="w-12 text-center font-black text-lg">{quantity}</span>
-                <button onClick={() => setQuantity(Math.min(selectedVariation?.estoque || 1, quantity + 1))} className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary">+</button>
+                <button 
+                  onClick={() => {
+                    const maxStock = selectedVariation?.estoquePorTamanho 
+                      ? (selectedVariation.estoquePorTamanho[selectedSize] || 1)
+                      : (selectedVariation?.estoque || 1);
+                    setQuantity(Math.min(maxStock, quantity + 1));
+                  }} 
+                  className="w-10 h-10 flex items-center justify-center font-bold text-xl hover:text-primary"
+                >+</button>
               </div>
             )}
-            <Button size="lg" disabled={isOutOfStock} className={`flex-1 h-16 rounded-2xl text-xl font-black shadow-2xl transition-all ${!isOutOfStock ? 'shadow-primary/30 hover:scale-[1.02]' : 'bg-muted text-muted-foreground grayscale cursor-not-allowed'}`} onClick={handleAddToCart}>
-              {isOutOfStock ? "PRODUTO ESGOTADO" : <><ShoppingBag className="mr-3 w-6 h-6" /> ADICIONAR À SACOLA</>}
+            <Button 
+              size="lg" 
+              disabled={currentChoiceOutOfStock} 
+              className={cn(
+                "flex-1 h-16 rounded-2xl text-xl font-black shadow-2xl transition-all",
+                !currentChoiceOutOfStock ? 'shadow-primary/30 hover:scale-[1.02]' : 'bg-muted text-muted-foreground grayscale cursor-not-allowed'
+              )} 
+              onClick={handleAddToCart}
+            >
+              {currentChoiceOutOfStock ? "PRODUTO ESGOTADO" : <><ShoppingBag className="mr-3 w-6 h-6" /> ADICIONAR À SACOLA</>}
             </Button>
           </div>
 
@@ -284,33 +353,31 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             </div>
           ) : (
             reviews?.map((review) => (
-              <Card key={review.id} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-8 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <UserIcon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm">{review.userName}</p>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</p>
-                      </div>
+              <div key={review.id} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white hover:shadow-md transition-shadow p-8 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <UserIcon className="w-5 h-5" />
                     </div>
-                    <div className="flex gap-0.5 text-yellow-500">
-                      {Array.from({ length: review.rating }).map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                      ))}
+                    <div>
+                      <p className="font-bold text-sm">{review.userName}</p>
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <p className="text-muted-foreground text-sm leading-relaxed">"{review.comment}"</p>
-                  <div className="flex items-center gap-1.5 pt-2">
-                     <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 text-green-600" />
-                     </div>
-                     <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">Compra Verificada</span>
+                  <div className="flex gap-0.5 text-yellow-500">
+                    {Array.from({ length: review.rating }).map((_, i) => (
+                      <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <p className="text-muted-foreground text-sm leading-relaxed">"{review.comment}"</p>
+                <div className="flex items-center gap-1.5 pt-2">
+                    <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-green-600" />
+                    </div>
+                    <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">Compra Verificada</span>
+                </div>
+              </div>
             ))
           )}
         </div>

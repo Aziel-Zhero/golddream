@@ -33,6 +33,7 @@ import { compressImage } from '@/lib/utils';
 import { ProductVariation } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -65,9 +66,18 @@ export default function NewProductPage() {
   };
 
   const handleAddVariation = () => {
+    // Inicializa o estoque por tamanho com 0 para todos os tamanhos atuais
+    const initialSizeStock: Record<string, number> = {};
+    formData.tamanhosDisponiveis.forEach(s => initialSizeStock[s] = 0);
+
     setFormData({
       ...formData,
-      variacoes: [...formData.variacoes, { cor: '#000000', estoque: 0, imagens: [] }]
+      variacoes: [...formData.variacoes, { 
+        cor: '#000000', 
+        estoque: 0, 
+        estoquePorTamanho: initialSizeStock,
+        imagens: [] 
+      }]
     });
   };
 
@@ -81,7 +91,20 @@ export default function NewProductPage() {
   const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
     const newVariations = [...formData.variacoes];
     newVariations[index] = { ...newVariations[index], [field]: value };
+    
+    // Se mudou estoque por tamanho, recalcula o estoque total daquela cor
+    if (field === 'estoquePorTamanho') {
+      const total = Object.values(value as Record<string, number>).reduce((a, b) => a + b, 0);
+      newVariations[index].estoque = total;
+    }
+
     setFormData({ ...formData, variacoes: newVariations });
+  };
+
+  const updateSizeStock = (vIdx: number, size: string, qty: number) => {
+    const variation = formData.variacoes[vIdx];
+    const newSizeStock = { ...variation.estoquePorTamanho, [size]: qty };
+    updateVariation(vIdx, 'estoquePorTamanho', newSizeStock);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, variationIndex: number) => {
@@ -180,21 +203,21 @@ export default function NewProductPage() {
           <Card className="border-2 rounded-3xl">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Variações de Cor e Galerias</CardTitle>
+                <CardTitle>Variações de Cor e Estoque por Tamanho</CardTitle>
                 <Button type="button" onClick={handleAddVariation} size="sm" className="rounded-xl">
                   <Plus className="w-4 h-4 mr-1" /> Adicionar Cor
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="space-y-12">
               {formData.variacoes.map((v, vIdx) => (
                 <div key={vIdx} className="p-6 border-2 rounded-2xl bg-muted/5 space-y-6 relative shadow-sm">
                   <button type="button" onClick={() => handleRemoveVariation(vIdx)} className="absolute top-4 right-4 text-destructive p-1 hover:bg-destructive/10 rounded-full transition-colors">
                     <Trash2 className="w-5 h-5" />
                   </button>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
                       <Label className="text-xs font-black uppercase tracking-widest">Identificação da Cor</Label>
                       <div className="flex gap-2">
                         <Input 
@@ -213,12 +236,34 @@ export default function NewProductPage() {
                           />
                         </div>
                       </div>
+                      <div className="pt-2">
+                         <p className="text-[10px] font-black uppercase text-primary">Estoque Total desta Cor: {v.estoque}</p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest">Estoque Desta Cor</Label>
-                      <Input type="number" value={v.estoque} onChange={(e) => updateVariation(vIdx, 'estoque', parseInt(e.target.value))} placeholder="0" required />
+
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest">Estoque por Tamanho</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                         {formData.tamanhosDisponiveis.map(size => (
+                           <div key={size} className="space-y-1">
+                             <Label className="text-[9px] font-bold text-muted-foreground">{size}</Label>
+                             <Input 
+                                type="number" 
+                                min="0"
+                                value={v.estoquePorTamanho?.[size] || 0}
+                                onChange={(e) => updateSizeStock(vIdx, size, parseInt(e.target.value) || 0)}
+                                className="h-8 text-xs font-bold"
+                             />
+                           </div>
+                         ))}
+                         {formData.tamanhosDisponiveis.length === 0 && (
+                           <p className="col-span-full text-[10px] text-muted-foreground italic">Adicione tamanhos primeiro na lateral --></p>
+                         )}
+                      </div>
                     </div>
                   </div>
+
+                  <Separator />
 
                   <div className="space-y-4">
                     <Label className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
@@ -318,6 +363,7 @@ export default function NewProductPage() {
                     <Badge key={i} className="bg-primary/10 text-primary border-none font-bold">{s} <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setFormData({...formData, tamanhosDisponiveis: formData.tamanhosDisponiveis.filter((_, idx) => idx !== i)})} /></Badge>
                   ))}
                 </div>
+                <p className="text-[10px] text-muted-foreground italic">Dica: Adicione os tamanhos aqui para poder editar o estoque deles em cada cor.</p>
               </div>
             </CardContent>
           </Card>

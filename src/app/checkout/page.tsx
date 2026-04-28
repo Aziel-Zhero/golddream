@@ -176,7 +176,8 @@ ${itemsText}
         tamanho: i.selectedSize,
         cor: i.selectedColor,
         valor: i.product.preco,
-        quantidade: i.quantity
+        quantidade: i.quantity,
+        productId: i.productId
       })),
       subtotal: totalPrice,
       frete: shippingCost,
@@ -190,7 +191,7 @@ ${itemsText}
       // 1. Criar o Pedido
       addDocumentNonBlocking(collection(firestore, 'pedidos'), pedidoData);
       
-      // 2. Dar baixa no estoque específico por cor
+      // 2. Dar baixa no estoque específico por cor E TAMANHO
       for (const item of items) {
         const productRef = doc(firestore, 'produtos', item.productId);
         const productSnap = await getDoc(productRef);
@@ -199,7 +200,20 @@ ${itemsText}
           const productData = productSnap.data() as Product;
           const updatedVariations = productData.variacoes?.map(v => {
             if (v.cor === item.selectedColor) {
-              return { ...v, estoque: Math.max(0, v.estoque - item.quantity) };
+              // Baixa no estoquePorTamanho
+              const newStockMap = { ...(v.estoquePorTamanho || {}) };
+              if (newStockMap[item.selectedSize] !== undefined) {
+                newStockMap[item.selectedSize] = Math.max(0, newStockMap[item.selectedSize] - item.quantity);
+              }
+              
+              // Recalcula o estoque total da cor
+              const newTotalColorStock = Object.values(newStockMap).reduce((a, b) => a + b, 0);
+              
+              return { 
+                ...v, 
+                estoquePorTamanho: newStockMap,
+                estoque: newTotalColorStock 
+              };
             }
             return v;
           }) || [];
@@ -280,34 +294,36 @@ ${itemsText}
   return (
     <div className="container mx-auto px-4 py-12">
       <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg">
-          <DialogHeader className="space-y-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
-              <AlertCircle className="w-10 h-10" />
-            </div>
-            <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
-            <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
-              <div className="text-center text-base space-y-4 pt-2">
-                <p>
-                  Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
-                </p>
-                <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
-                  <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
-                  <p className="text-sm text-yellow-800 font-medium">
-                    <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
-                  </p>
-                </div>
+        <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg" asChild>
+          <div className="p-6">
+            <DialogHeader className="space-y-4">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
+                <AlertCircle className="w-10 h-10" />
               </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-6">
-            <Button 
-              onClick={() => setShowInfoModal(false)} 
-              className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20"
-            >
-              Entendi, vamos lá!
-            </Button>
-          </DialogFooter>
+              <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
+              <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
+                <div className="text-center text-base space-y-4 pt-2">
+                  <p>
+                    Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
+                  </p>
+                  <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
+                    <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
+                    <p className="text-sm text-yellow-800 font-medium">
+                      <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
+                    </p>
+                  </div>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-6">
+              <Button 
+                onClick={() => setShowInfoModal(false)} 
+                className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20"
+              >
+                Entendi, vamos lá!
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

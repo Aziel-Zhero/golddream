@@ -2,6 +2,7 @@
 export type ProductVariation = {
   cor: string;
   estoque: number;
+  estoquePorTamanho?: Record<string, number>; // Mapeamento de Tamanho -> Quantidade
   imagens: string[];
 };
 
@@ -75,7 +76,7 @@ export type Pedido = {
     cor: string;
     valor: number;
     quantidade: number;
-    productId?: string; // Garantir que temos o ID do produto para avaliações
+    productId?: string;
   }[];
   subtotal: number;
   frete: number;

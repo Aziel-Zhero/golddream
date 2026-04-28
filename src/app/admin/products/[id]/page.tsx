@@ -32,6 +32,7 @@ import { compressImage } from '@/lib/utils';
 import { ProductVariation } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -87,16 +88,36 @@ export default function EditProductPage() {
   };
 
   const handleAddVariation = () => {
+    const initialSizeStock: Record<string, number> = {};
+    formData.tamanhosDisponiveis.forEach((s: string) => initialSizeStock[s] = 0);
+
     setFormData({
       ...formData,
-      variacoes: [...formData.variacoes, { cor: '#000000', estoque: 0, imagens: [] }]
+      variacoes: [...formData.variacoes, { 
+        cor: '#000000', 
+        estoque: 0, 
+        estoquePorTamanho: initialSizeStock,
+        imagens: [] 
+      }]
     });
   };
 
   const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
     const newVariations = [...formData.variacoes];
     newVariations[index] = { ...newVariations[index], [field]: value };
+    
+    if (field === 'estoquePorTamanho') {
+      const total = Object.values(value as Record<string, number>).reduce((a, b) => a + b, 0);
+      newVariations[index].estoque = total;
+    }
+    
     setFormData({ ...formData, variacoes: newVariations });
+  };
+
+  const updateSizeStock = (vIdx: number, size: string, qty: number) => {
+    const variation = formData.variacoes[vIdx];
+    const newSizeStock = { ...(variation.estoquePorTamanho || {}), [size]: qty };
+    updateVariation(vIdx, 'estoquePorTamanho', newSizeStock);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, variationIndex: number) => {
@@ -189,18 +210,18 @@ export default function EditProductPage() {
           <Card className="border-2 rounded-3xl">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Variações e Galerias</CardTitle>
+                <CardTitle>Variações e Estoque Cruzado</CardTitle>
                 <Button type="button" onClick={handleAddVariation} size="sm" variant="outline" className="rounded-xl border-2"><Plus className="w-4 h-4 mr-1" /> Nova Cor</Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="space-y-12">
               {formData.variacoes.map((v: any, vIdx: number) => (
                 <div key={vIdx} className="p-6 border-2 rounded-2xl bg-muted/5 space-y-6 relative shadow-sm">
                   <button type="button" onClick={() => setFormData({...formData, variacoes: formData.variacoes.filter((_:any, i:any) => i !== vIdx)})} className="absolute top-4 right-4 text-destructive p-1 hover:bg-destructive/10 rounded-full transition-colors"><Trash2 className="w-5 h-5" /></button>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black">Identificação da Cor</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest">Identificação da Cor</Label>
                       <div className="flex gap-2">
                         <Input 
                           value={v.cor} 
@@ -218,15 +239,34 @@ export default function EditProductPage() {
                           />
                         </div>
                       </div>
+                      <div className="pt-2">
+                         <p className="text-[10px] font-black uppercase text-primary">Estoque Total desta Cor: {v.estoque}</p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black">Estoque Desta Cor</Label>
-                      <Input type="number" value={v.estoque} onChange={e => updateVariation(vIdx, 'estoque', parseInt(e.target.value))} required />
+
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest">Estoque por Tamanho</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                         {formData.tamanhosDisponiveis.map((size: string) => (
+                           <div key={size} className="space-y-1">
+                             <Label className="text-[9px] font-bold text-muted-foreground">{size}</Label>
+                             <Input 
+                                type="number" 
+                                min="0"
+                                value={v.estoquePorTamanho?.[size] || 0}
+                                onChange={(e) => updateSizeStock(vIdx, size, parseInt(e.target.value) || 0)}
+                                className="h-8 text-xs font-bold"
+                             />
+                           </div>
+                         ))}
+                      </div>
                     </div>
                   </div>
 
+                  <Separator />
+
                   <div className="space-y-4">
-                    <Label className="text-[10px] uppercase font-black flex items-center gap-2">
+                    <Label className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
                       <ImageIcon className="w-3 h-3" /> Galeria ({v.imagens?.length || 0}/12)
                     </Label>
                     
