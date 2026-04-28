@@ -30,6 +30,9 @@ import useEmblaCarousel from 'embla-carousel-react';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -296,6 +299,10 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
       {/* Lightbox / Gallery Viewer */}
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
         <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-black/95 border-none flex flex-col items-center justify-center rounded-none sm:rounded-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Galeria de Imagens</DialogTitle>
+            <DialogDescription>Visualização ampliada das fotos do produto {product.nome}</DialogDescription>
+          </DialogHeader>
           <div className="relative w-full h-full flex items-center justify-center">
              <img 
                src={currentImages[lightboxIndex]} 
