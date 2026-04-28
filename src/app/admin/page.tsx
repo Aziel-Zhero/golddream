@@ -41,7 +41,12 @@ import {
   Heart,
   Star,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Instagram,
+  Facebook,
+  Twitter,
+  Mail,
+  MessageCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +71,7 @@ import { useAuth } from '@/context/AuthContext';
 import { sendCustomEmail } from '@/ai/flows/send-custom-email';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { compressImage } from '@/lib/utils';
+import { compressImage, cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
