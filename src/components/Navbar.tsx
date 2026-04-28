@@ -51,14 +51,12 @@ const BearIcon = ({ className }: { className?: string }) => (
 
 export function Navbar() {
   const { totalItems, items, totalPrice, removeItem, updateQuantity } = useCart();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const firestore = useFirestore();
 
   const configRef = useMemoFirebase(() => doc(firestore, 'configuracoes', 'geral'), [firestore]);
   const { data: config } = useDoc<SiteConfig>(configRef);
-
-  const isAdmin = user?.papel === 'administrador' || user?.papel === 'admin';
 
   return (
     <nav className="sticky top-0 z-50 glass-morphism border-b">
