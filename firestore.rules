@@ -3,51 +3,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Função auxiliar para verificar se o usuário está logado
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Função auxiliar para verificar se o usuário é o dono do documento
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Função robusta para verificar se o usuário tem papel de admin
     function isAdmin() {
-      return isSignedIn() && (
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador']
-      );
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel in ['admin', 'administrador'];
     }
 
-    // Configurações Gerais
+    // Configurações Gerais: Leitura pública, escrita apenas admin
     match /configuracoes/{configId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Usuários
+    // Usuários: Dono pode ler/editar seu perfil. Admin tem acesso total.
     match /usuarios/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
 
+      // Itens que o usuário pode avaliar (gerados após entrega do pedido)
       match /itens_elegiveis_avaliacao/{itemId} {
-        allow read: if isOwner(userId);
-        allow write: if isAdmin();
+        allow read: if isOwner(userId) || isAdmin();
+        // O cliente pode apagar o item após avaliar. O admin pode gerenciar.
+        allow write: if isOwner(userId) || isAdmin();
       }
 
+      // Registro de produtos já avaliados para evitar duplicidade
       match /produtos_avaliados/{productId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // Produtos
+    // Produtos: Catálogo é público para leitura.
     match /produtos/{productId} {
       allow read: if true;
       allow write: if isAdmin();
 
+      // Avaliações dentro do produto
       match /avaliacoes/{reviewId} {
         allow read: if true;
-        // Só cria se for o dono, se o item estiver na lista de elegíveis e não tiver sido avaliado
+        // Só cria se for o dono da conta E se o item estiver na lista de elegíveis dele
         allow create: if isSignedIn() 
           && request.resource.data.userId == request.auth.uid
           && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)/itens_elegiveis_avaliacao/$(request.resource.data.productId + "_" + request.resource.data.orderId));
@@ -55,14 +62,14 @@ service cloud.firestore {
       }
     }
 
-    // Pedidos
+    // Pedidos: Cliente vê os seus, Admin vê todos.
     match /pedidos/{orderId} {
       allow read: if isSignedIn() && (resource.data.usuarioId == request.auth.uid || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
-    // Fretes, Cupons, Promoções, Suporte
+    // Outras coleções administrativas e de suporte
     match /fretes/{id} { allow read: if true; allow write: if isAdmin(); }
     match /cupons/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /promocoes/{id} { allow read: if true; allow write: if isAdmin(); }
