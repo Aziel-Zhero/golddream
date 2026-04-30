@@ -130,16 +130,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               <CheckCircle2 className="w-12 h-12" />
             </div>
             <DialogTitle className="text-3xl font-headline font-bold text-center">Adicionado com Sucesso!</DialogTitle>
-            <DialogDescription className="text-center text-base pt-2">
-              {lastAdded && (
-                <div className="space-y-1">
-                  <p className="font-bold text-foreground">{lastAdded.name}</p>
-                  <p className="text-sm text-muted-foreground uppercase font-black">
-                    {lastAdded.size} | {lastAdded.color}
-                  </p>
-                </div>
-              )}
-              <p className="mt-4 text-muted-foreground">O item já está garantido na sua sacola.</p>
+            <DialogDescription className="text-center text-base pt-2" asChild>
+              <div>
+                {lastAdded && (
+                  <div className="space-y-1">
+                    <p className="font-bold text-foreground">{lastAdded.name}</p>
+                    <p className="text-sm text-muted-foreground uppercase font-black">
+                      {lastAdded.size} | {lastAdded.color}
+                    </p>
+                  </div>
+                )}
+                <p className="mt-4 text-muted-foreground">O item já está garantido na sua sacola.</p>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-8 flex flex-col gap-3 sm:flex-col sm:space-x-0">
