@@ -17,17 +17,25 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
     if (isOutOfStock) return;
     
+    // Sempre pega a primeira variação disponível
     const variation = product.variacoes?.find(v => v.estoque > 0) || product.variacoes?.[0];
     if (!variation) return;
 
-    const tamanho = product.tamanhosDisponiveis?.[0] || 'M';
+    // Pega o primeiro tamanho disponível para essa variação
+    const availableSizes = Object.entries(variation.estoquePorTamanho || {})
+      .filter(([_, qty]) => qty > 0)
+      .map(([size]) => size);
+      
+    const tamanho = availableSizes.length > 0 ? availableSizes[0] : (product.tamanhosDisponiveis?.[0] || 'M');
+    
     addItem(product, 1, tamanho, variation.cor);
   };
 
+  // Sempre mostra a imagem da primeira variação
   const displayImage = product.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/800x1000?text=Sem+Imagem';
 
   return (
-    <div className={`group relative product-card-hover rounded-2xl md:rounded-[2rem] overflow-hidden bg-card border border-border/50 h-full flex flex-col ${isOutOfStock ? 'opacity-80' : ''}`}>
+    <div className={`group relative product-card-hover rounded-2xl md:rounded-[2rem] overflow-hidden bg-card border border-border/50 dark:border-white/20 h-full flex flex-col ${isOutOfStock ? 'opacity-80' : ''}`}>
       <Link href={`/products/${product.id}`} className="flex flex-col h-full">
         <div className="aspect-[4/5] w-full overflow-hidden bg-muted relative shrink-0">
           <img
@@ -88,12 +96,19 @@ export function ProductCard({ product }: { product: Product }) {
           </h3>
           
           <div className="mt-auto space-y-1">
-            <p className="text-[8px] md:text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+            <p className="text-[8px] md:text-[11px] font-black uppercase tracking-widest text-muted-foreground/80 dark:text-muted-foreground">
               {product.categoriaId}
             </p>
-            <p className={`text-sm md:text-xl font-black ${isOutOfStock ? 'text-muted-foreground' : 'text-primary'}`}>
-              R$ {product.preco?.toFixed(2)}
-            </p>
+            <div className="flex justify-between items-end">
+              <p className={`text-sm md:text-xl font-black ${isOutOfStock ? 'text-muted-foreground' : 'text-primary dark:text-accent'}`}>
+                R$ {product.preco?.toFixed(2)}
+              </p>
+              {!isOutOfStock && (
+                <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
+                  VER DETALHES
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Link>

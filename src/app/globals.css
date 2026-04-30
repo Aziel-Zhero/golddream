@@ -38,8 +38,8 @@
     --secondary: 268 30% 10%;
     --secondary-foreground: 0 0% 100%;
     --muted: 268 30% 10%;
-    --muted-foreground: 268 10% 70%;
-    --accent: 45 100% 55%; /* Gold mais vibrante para Black Friday */
+    --muted-foreground: 268 10% 75%; /* Ligeiramente mais claro para melhor contraste */
+    --accent: 45 100% 55%; /* Gold vibrante */
     --accent-foreground: 268 60% 2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -73,8 +73,8 @@
 }
 
 .dark .glass-morphism {
-  background: rgba(15, 5, 25, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 5, 25, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .product-card-hover {
@@ -88,6 +88,7 @@
   }
   .dark .product-card-hover:hover {
     box-shadow: 0 12px 32px -10px rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.4); /* Brilho na borda ao passar o mouse */
   }
 }
 
