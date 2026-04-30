@@ -294,36 +294,34 @@ ${itemsText}
   return (
     <div className="container mx-auto px-4 py-12">
       <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg" asChild>
-          <div className="p-6">
-            <DialogHeader className="space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
-                <AlertCircle className="w-10 h-10" />
-              </div>
-              <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
-              <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
-                <div className="text-center text-base space-y-4 pt-2">
-                  <p>
-                    Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
+        <DialogContent className="rounded-3xl border-2 shadow-2xl max-w-lg">
+          <DialogHeader className="space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-2">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <DialogTitle className="text-3xl font-headline font-bold text-center">Como funciona seu pedido?</DialogTitle>
+            <DialogDescription className="text-center text-base space-y-4 pt-2" asChild>
+              <div className="text-center text-base space-y-4 pt-2">
+                <p>
+                  Ao finalizar, seus itens serão reservados no sistema. Nossa equipe entrará em contato via **WhatsApp** em breve para confirmar os dados de entrega e enviar os detalhes de pagamento.
+                </p>
+                <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
+                  <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
+                  <p className="text-sm text-yellow-800 font-medium">
+                    <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
                   </p>
-                  <div className="p-4 bg-yellow-50 rounded-2xl border border-yellow-200 flex items-start gap-3 text-left">
-                    <CreditCard className="w-5 h-5 text-yellow-700 mt-1 flex-shrink-0" />
-                    <p className="text-sm text-yellow-800 font-medium">
-                      <strong>Aviso sobre Pagamento:</strong> Se optar por cartão de crédito, o valor total poderá sofrer alteração devido às taxas da maquininha. Você poderá consultar o valor exato com nossa equipe.
-                    </p>
-                  </div>
                 </div>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-6">
-              <Button 
-                onClick={() => setShowInfoModal(false)} 
-                className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20"
-              >
-                Entendi, vamos lá!
-              </Button>
-            </DialogFooter>
-          </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button 
+              onClick={() => setShowInfoModal(false)} 
+              className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20"
+            >
+              Entendi, vamos lá!
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
