@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,25 +27,25 @@
   }
 
   .dark {
-    --background: 268 60% 3%;
-    --foreground: 0 0% 98%;
-    --card: 268 60% 5%;
-    --card-foreground: 0 0% 98%;
-    --popover: 268 60% 5%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 268 60% 50%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 268 30% 15%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 268 30% 15%;
-    --muted-foreground: 268 20% 60%;
-    --accent: 45 90% 50%;
-    --accent-foreground: 268 60% 5%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --background: 268 60% 2%;
+    --foreground: 0 0% 100%;
+    --card: 268 60% 4%;
+    --card-foreground: 0 0% 100%;
+    --popover: 268 60% 4%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 268 70% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 268 30% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 268 30% 10%;
+    --muted-foreground: 268 10% 70%;
+    --accent: 45 100% 55%; /* Gold mais vibrante para Black Friday */
+    --accent-foreground: 268 60% 2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
     --border: 268 30% 15%;
     --input: 268 30% 15%;
-    --ring: 268 60% 50%;
+    --ring: 45 100% 55%;
   }
 }
 
@@ -61,7 +60,6 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline tracking-tight;
   }
-  /* Melhora o scroll no iOS */
   .custom-scrollbar {
     -webkit-overflow-scrolling: touch;
   }
@@ -75,7 +73,7 @@
 }
 
 .dark .glass-morphism {
-  background: rgba(15, 5, 25, 0.7);
+  background: rgba(15, 5, 25, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -88,6 +86,9 @@
     transform: translateY(-4px);
     box-shadow: 0 12px 24px -10px rgba(97, 41, 163, 0.15);
   }
+  .dark .product-card-hover:hover {
+    box-shadow: 0 12px 32px -10px rgba(255, 215, 0, 0.1);
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -98,7 +99,6 @@
   @apply bg-primary/20 rounded-full;
 }
 
-/* Garante que imagens não estourem e mantenham proporção */
 img {
   max-width: 100%;
   height: auto;

@@ -17,7 +17,6 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
     if (isOutOfStock) return;
     
-    // Sempre pega a primeira variação disponível ou a primeira absoluta como fallback
     const variation = product.variacoes?.find(v => v.estoque > 0) || product.variacoes?.[0];
     if (!variation) return;
 
@@ -25,11 +24,10 @@ export function ProductCard({ product }: { product: Product }) {
     addItem(product, 1, tamanho, variation.cor);
   };
 
-  // Garante que sempre mostra o primeiro item (primeira imagem da primeira variação)
   const displayImage = product.variacoes?.[0]?.imagens?.[0] || 'https://placehold.co/800x1000?text=Sem+Imagem';
 
   return (
-    <div className={`group relative product-card-hover rounded-2xl md:rounded-[2rem] overflow-hidden bg-white border border-border/50 h-full flex flex-col ${isOutOfStock ? 'opacity-80' : ''}`}>
+    <div className={`group relative product-card-hover rounded-2xl md:rounded-[2rem] overflow-hidden bg-card border border-border/50 h-full flex flex-col ${isOutOfStock ? 'opacity-80' : ''}`}>
       <Link href={`/products/${product.id}`} className="flex flex-col h-full">
         <div className="aspect-[4/5] w-full overflow-hidden bg-muted relative shrink-0">
           <img
@@ -84,13 +82,11 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="p-3 md:p-6 flex flex-col flex-1 text-left bg-white">
-          {/* Nome completo sem "...", quebra linha se necessário */}
+        <div className="p-3 md:p-6 flex flex-col flex-1 text-left">
           <h3 className={`text-xs md:text-lg font-bold mb-2 leading-tight ${!isOutOfStock ? 'text-foreground group-hover:text-primary transition-colors' : 'text-muted-foreground'}`}>
             {product.nome}
           </h3>
           
-          {/* Categoria e Preço empilhados na base para manter uniformidade */}
           <div className="mt-auto space-y-1">
             <p className="text-[8px] md:text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
               {product.categoriaId}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -28,10 +27,9 @@ export function Footer() {
   const facebookUrl = config?.facebookLink || '#';
   const twitterUrl = config?.twitterLink || '#';
 
-  // Renderiza uma estrutura mínima idêntica no servidor para evitar Hydration Error
   if (!mounted) {
     return (
-      <footer className="bg-white border-t py-12">
+      <footer className="bg-background border-t py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="h-48" />
         </div>
@@ -40,29 +38,27 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-white border-t py-12">
+    <footer className="bg-card border-t py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Coluna 1: Sobre */}
           <div className="space-y-4">
             <span className="font-headline text-2xl font-bold text-primary">Gold Dream</span>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Gold Dream Multimarcas - O melhor da moda premium. Elegância e exclusividade para quem sabe o que quer.
             </p>
             <div className="flex space-x-4">
-              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600 transition-colors">
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors">
                 <Instagram size={20}/>
               </a>
-              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-sky-500 transition-colors">
+              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors">
                 <Twitter size={20}/>
               </a>
-              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-blue-600 transition-colors">
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors">
                 <Facebook size={20}/>
               </a>
             </div>
           </div>
           
-          {/* Coluna 2: Categorias */}
           <div>
             <h4 className="font-headline font-bold mb-6 uppercase tracking-wider text-xs">Categorias</h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
@@ -73,7 +69,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Coluna 3: Suporte */}
           <div>
             <h4 className="font-headline font-bold mb-6 uppercase tracking-wider text-xs">Suporte</h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
@@ -84,7 +79,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Coluna 4: VIP */}
           <div className="bg-muted/30 p-6 rounded-2xl border border-primary/10">
             <h4 className="font-headline font-bold mb-4 flex items-center gap-2">
               <Send className="w-4 h-4 text-[#0088cc]" /> Grupo VIP
@@ -100,7 +94,6 @@ export function Footer() {
           </div>
         </div>
         
-        {/* Rodapé Inferior */}
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center text-[10px] text-muted-foreground gap-4 uppercase tracking-widest">
           <div className="flex items-center gap-4">
             <p>&copy; {new Date().getFullYear()} Gold Dream Multimarcas.</p>

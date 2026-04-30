@@ -43,14 +43,12 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
     );
   }, [variacoes]);
 
-  // Sempre mostrar o primeiro item por padrão na carga da página
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(variacoes[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.tamanhosDisponiveis?.[0] || '');
   const [quantity, setQuantity] = useState(1);
 
   const { addItem } = useCart();
 
-  // Carrossel inicia no primeiro item (index 0)
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, skipSnaps: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -59,7 +57,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
     const index = emblaApi.selectedScrollSnap();
     setSelectedIndex(index);
     
-    // Sincroniza a variação com a imagem exibida no carrossel
     const currentImageInfo = allImages[index];
     if (currentImageInfo && currentImageInfo.variation.cor !== selectedVariation?.cor) {
       setSelectedVariation(currentImageInfo.variation);
@@ -101,7 +98,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
   const handleColorSelection = (v: ProductVariation) => {
     if (!emblaApi) return;
-    // Scrola para a primeira imagem da cor selecionada (sempre o primeiro item daquela cor)
     const index = allImages.findIndex(info => info.variation.cor === v.cor);
     if (index !== -1) {
       emblaApi.scrollTo(index);
@@ -123,7 +119,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
   return (
     <div className="space-y-16 md:space-y-32">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
-        {/* Gallery Section */}
         <div className="space-y-4">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] md:rounded-[3rem] border bg-muted shadow-sm group">
             <div className="absolute top-4 left-4 md:top-8 md:left-8 flex flex-col gap-2 z-20">
@@ -163,18 +158,17 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
             {allImages.length > 1 && (
               <div className="hidden md:block">
-                <button onClick={scrollPrev} className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/90 backdrop-blur shadow-xl flex items-center justify-center text-primary hover:bg-white transition-all opacity-0 group-hover:opacity-100 z-30"><ChevronLeft className="w-8 h-8" /></button>
-                <button onClick={scrollNext} className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/90 backdrop-blur shadow-xl flex items-center justify-center text-primary hover:bg-white transition-all opacity-0 group-hover:opacity-100 z-30"><ChevronRight className="w-8 h-8" /></button>
+                <button onClick={scrollPrev} className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/80 backdrop-blur shadow-xl flex items-center justify-center text-primary hover:bg-background transition-all opacity-0 group-hover:opacity-100 z-30 border"><ChevronLeft className="w-8 h-8" /></button>
+                <button onClick={scrollNext} className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/80 backdrop-blur shadow-xl flex items-center justify-center text-primary hover:bg-background transition-all opacity-0 group-hover:opacity-100 z-30 border"><ChevronRight className="w-8 h-8" /></button>
               </div>
             )}
 
             {currentChoiceOutOfStock && (
-              <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center pointer-events-none z-30">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none z-30">
                 <Badge className="bg-destructive text-white px-10 py-4 text-2xl font-black rotate-[-5deg] shadow-2xl border-4 border-white/20">ESGOTADO</Badge>
               </div>
             )}
             
-            {/* Indicador de Bolinhas Mobile */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 md:hidden">
               {allImages.map((_, idx) => (
                 <div key={idx} className={cn("h-1.5 transition-all rounded-full bg-white shadow-sm", idx === selectedIndex ? "w-6" : "w-1.5 opacity-50")} />
@@ -191,7 +185,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
           </div>
         </div>
 
-        {/* Info Section */}
         <div className="space-y-8 md:space-y-12">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -204,7 +197,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             <h1 className="text-4xl md:text-7xl font-headline font-bold text-foreground leading-tight text-balance">{product.nome}</h1>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-6">
               <p className="text-4xl md:text-6xl font-black text-primary">R$ {product.preco?.toFixed(2)}</p>
-              <div className="flex items-center gap-1 text-yellow-500 bg-yellow-50/50 w-fit px-4 py-2 rounded-2xl border border-yellow-100">
+              <div className="flex items-center gap-1 text-yellow-500 bg-accent/10 w-fit px-4 py-2 rounded-2xl border border-accent/20">
                 {[1,2,3,4,5].map(i => (
                   <Star key={i} className={`w-4 h-4 md:w-5 md:h-5 ${i <= Number(averageRating) ? 'fill-current' : 'text-muted'}`} />
                 ))}
@@ -217,7 +210,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
           <Separator />
 
-          {/* Color Variations */}
           <div className="space-y-5">
             <label className="text-xs md:text-sm font-black uppercase tracking-widest flex items-center justify-between">
               <span>Escolha a Cor: <span className="text-primary font-bold normal-case ml-1">{selectedVariation?.cor}</span></span>
@@ -251,7 +243,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             </div>
           </div>
 
-          {/* Size Selector */}
           <div className="space-y-5">
             <label className="text-xs md:text-sm font-black uppercase tracking-widest">Tamanho / Numeração</label>
             <div className="flex flex-wrap gap-3 md:gap-4">
@@ -319,7 +310,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         </div>
       </div>
 
-      {/* Reviews Section */}
       <section className="bg-muted/10 rounded-[2.5rem] md:rounded-[4rem] p-6 md:p-20 space-y-12 md:space-y-20 border border-primary/5">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
           <div className="space-y-3">
@@ -327,7 +317,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             <h2 className="text-3xl md:text-6xl font-headline font-bold">O que dizem os clientes</h2>
             <p className="text-muted-foreground text-sm md:text-xl">Opiniões de quem já vive a experiência Gold Dream.</p>
           </div>
-          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl border-2 flex items-center gap-8 md:gap-12 w-full md:w-auto justify-center">
+          <div className="bg-card p-8 md:p-10 rounded-[2.5rem] shadow-2xl border-2 flex items-center gap-8 md:gap-12 w-full md:w-auto justify-center">
              <div className="text-center">
                <p className="text-5xl md:text-7xl font-black text-primary leading-none">{averageRating}</p>
                <p className="text-[10px] md:text-xs font-black uppercase text-muted-foreground mt-2 tracking-widest">Média Geral</p>
@@ -344,7 +334,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
           {reviews?.length === 0 ? (
-            <div className="col-span-full py-20 text-center border-2 border-dashed rounded-[3rem] bg-white/50 space-y-4">
+            <div className="col-span-full py-20 text-center border-2 border-dashed rounded-[3rem] bg-card/50 space-y-4">
                <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground/20" />
                <div className="space-y-1">
                  <p className="text-muted-foreground font-bold text-lg">Ainda não há avaliações.</p>
@@ -353,7 +343,7 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
             </div>
           ) : (
             reviews?.map((review) => (
-              <div key={review.id} className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white hover:shadow-xl transition-all p-8 md:p-12 space-y-6">
+              <div key={review.id} className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-card hover:shadow-xl transition-all p-8 md:p-12 space-y-6">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/5">
@@ -383,7 +373,6 @@ export function ProductClient({ product, relatedProducts }: { product: Product, 
         </div>
       </section>
 
-      {/* Related Products Section */}
       <section className="space-y-12 md:space-y-20">
         <div className="text-center space-y-4">
           <Badge variant="outline" className="text-accent border-accent px-6 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest">RECOMENDAÇÕES</Badge>
