@@ -150,12 +150,12 @@ export default function Home() {
       </section>
 
       {benefits.length > 0 && (
-        <section className="py-12 md:py-24 bg-white border-y">
+        <section className="py-12 md:py-24 bg-white dark:bg-background border-y">
           <div className="container mx-auto px-4">
             <div className={`grid grid-cols-2 ${benefits.length === 4 ? 'lg:grid-cols-4' : benefits.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-8 md:gap-16`}>
               {benefits.map((item, idx) => (
                 <div key={idx} className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-14 h-14 md:w-20 md:h-20 rounded-3xl bg-secondary/50 flex items-center justify-center text-primary mb-2 shadow-sm border border-primary/5">
+                  <div className="w-14 h-14 md:w-20 md:h-20 rounded-3xl bg-secondary/50 dark:bg-black flex items-center justify-center text-primary mb-2 shadow-sm border border-primary/5 dark:border-white/10">
                     <item.icon className="w-7 h-7 md:w-10 md:h-10" />
                   </div>
                   <div className="space-y-1 md:space-y-2">

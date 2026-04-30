@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,7 +39,7 @@
     --secondary: 268 30% 10%;
     --secondary-foreground: 0 0% 100%;
     --muted: 268 30% 10%;
-    --muted-foreground: 268 10% 75%; /* Ligeiramente mais claro para melhor contraste */
+    --muted-foreground: 268 10% 85%; /* Reforçado para melhor visibilidade em fundo preto */
     --accent: 45 100% 55%; /* Gold vibrante */
     --accent-foreground: 268 60% 2%;
     --destructive: 0 84.2% 60.2%;
